@@ -18,11 +18,16 @@ fn main() {
 }
 
 fn setup_battle(mut commands: Commands) {
-    let player = GameCharacter::new("勇者".to_string(), 100, 50, 25);
-    let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15);
+    let player = GameCharacter::new("勇者".to_string(), 100, 80, 25);
+    let enemy = GameCharacter::new("スライム".to_string(), 200, 30, 15);
     
-    // HP-based healing rules with randomness
-    let rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
+    // Player rules: HP-based healing with randomness
+    let player_rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
+        vec![
+            Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
+            Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
+            Box::new(action_system::Heal),
+        ],
         vec![
             Box::new(action_system::Check::new(
                 action_system::GreaterThanToken::new(
@@ -30,17 +35,29 @@ fn setup_battle(mut commands: Commands) {
                     action_system::CharacterHP::new(action_system::SelfCharacter),
                 )
             )),
-            Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
-            Box::new(action_system::Heal),
         ],
         vec![
-            Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
             Box::new(action_system::Strike),
         ],
     ];
     
+    // Enemy rules: More aggressive, less healing
+    let enemy_rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
+        vec![
+            Box::new(action_system::Check::new(
+                action_system::GreaterThanToken::new(
+                    action_system::Number::new(30),
+                    action_system::CharacterHP::new(action_system::SelfCharacter),
+                )
+            )),
+            Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
+            Box::new(action_system::Heal),
+        ],
+        vec![Box::new(action_system::Strike)],
+    ];
+    
     let rng = StdRng::from_entropy();
-    let battle = Battle::new(player, enemy, rules, rng);
+    let battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
     
     commands.insert_resource(GameBattle(battle));
 }
@@ -54,8 +71,8 @@ fn handle_restart(
         let player = GameCharacter::new("勇者".to_string(), 100, 50, 25);
         let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15);
         
-        // HP-based healing rules with randomness
-        let rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
+        // Player rules: HP-based healing with randomness
+        let player_rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
             vec![
                 Box::new(action_system::Check::new(
                     action_system::GreaterThanToken::new(
@@ -72,7 +89,22 @@ fn handle_restart(
             ],
         ];
         
+        // Enemy rules: More aggressive, less healing
+        let enemy_rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
+            vec![
+                Box::new(action_system::Check::new(
+                    action_system::GreaterThanToken::new(
+                        action_system::Number::new(30),
+                        action_system::CharacterHP::new(action_system::SelfCharacter),
+                    )
+                )),
+                Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
+                Box::new(action_system::Heal),
+            ],
+            vec![Box::new(action_system::Strike)],
+        ];
+        
         let rng = StdRng::from_entropy();
-        game_battle.0 = Battle::new(player, enemy, rules, rng);
+        game_battle.0 = Battle::new(player, enemy, player_rules, enemy_rules, rng);
     }
 }
