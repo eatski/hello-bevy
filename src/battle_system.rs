@@ -71,21 +71,21 @@ impl Battle {
                     let damage = self.player.attack;
                     self.enemy.take_damage(damage);
                     self.battle_log.push(format!(
-                        "{}が{}に{}のダメージ！",
-                        self.player.name, self.enemy.name, damage
+                        "ターン{}: {}が{}に{}のダメージ！",
+                        self.current_turn + 1, self.player.name, self.enemy.name, damage
                     ));
                 }
                 ActionType::Heal => {
                     let heal_amount = 20;
                     self.player.heal(heal_amount);
                     self.battle_log.push(format!(
-                        "{}が{}回復！",
-                        self.player.name, heal_amount
+                        "ターン{}: {}が{}回復！",
+                        self.current_turn + 1, self.player.name, heal_amount
                     ));
                 }
             }
         } else {
-            self.battle_log.push(format!("{}は何もしなかった", self.player.name));
+            self.battle_log.push(format!("ターン{}: {}は何もしなかった", self.current_turn + 1, self.player.name));
         }
 
         if !self.enemy.is_alive() {
@@ -108,21 +108,21 @@ impl Battle {
                     let damage = self.enemy.attack;
                     self.player.take_damage(damage);
                     self.battle_log.push(format!(
-                        "{}が{}に{}のダメージ！",
-                        self.enemy.name, self.player.name, damage
+                        "ターン{}: {}が{}に{}のダメージ！",
+                        self.current_turn + 1, self.enemy.name, self.player.name, damage
                     ));
                 }
                 ActionType::Heal => {
                     let heal_amount = 20;
                     self.enemy.heal(heal_amount);
                     self.battle_log.push(format!(
-                        "{}が{}回復！",
-                        self.enemy.name, heal_amount
+                        "ターン{}: {}が{}回復！",
+                        self.current_turn + 1, self.enemy.name, heal_amount
                     ));
                 }
             }
         } else {
-            self.battle_log.push(format!("{}は何もしなかった", self.enemy.name));
+            self.battle_log.push(format!("ターン{}: {}は何もしなかった", self.current_turn + 1, self.enemy.name));
         }
 
         if !self.player.is_alive() {

@@ -15,11 +15,17 @@ struct GameBattle(Battle);
 #[derive(Component)]
 struct BattleUI;
 
+#[derive(Component)]
+struct LogUI;
+
+#[derive(Component)]
+struct LatestLogUI;
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, (load_font, setup_battle).chain())
-        .add_systems(Update, (handle_battle_input, update_battle_ui))
+        .add_systems(Update, (handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui))
         .run();
 }
 
@@ -37,7 +43,7 @@ fn setup_battle(mut commands: Commands, game_font: Res<GameFont>) {
     
     commands.insert_resource(GameBattle(battle));
     
-    // UI表示
+    // メインUI表示（左側）
     commands.spawn((
         Text::new("RPGバトル開始！\nスペースキーで攻撃"),
         TextFont {
@@ -54,6 +60,43 @@ fn setup_battle(mut commands: Commands, game_font: Res<GameFont>) {
         },
         BattleUI,
     ));
+    
+    // ログ表示（右側）
+    commands.spawn((
+        Text::new("戦闘ログ:\n"),
+        TextFont {
+            font: game_font.font.clone(),
+            font_size: 18.0,
+            ..default()
+        },
+        TextColor(Color::srgb(0.8, 0.8, 0.8)),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(20.0),
+            right: Val::Px(20.0),
+            width: Val::Px(400.0),
+            ..default()
+        },
+        LogUI,
+    ));
+    
+    // 最新ログ表示（中央上部）
+    commands.spawn((
+        Text::new(""),
+        TextFont {
+            font: game_font.font.clone(),
+            font_size: 20.0,
+            ..default()
+        },
+        TextColor(Color::srgb(1.0, 1.0, 0.0)),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(300.0),
+            left: Val::Px(300.0),
+            ..default()
+        },
+        LatestLogUI,
+    ));
 }
 
 fn handle_battle_input(
@@ -61,6 +104,11 @@ fn handle_battle_input(
     mut game_battle: ResMut<GameBattle>,
 ) {
     if game_battle.0.battle_over {
+        if keyboard_input.just_pressed(KeyCode::ShiftLeft) || keyboard_input.just_pressed(KeyCode::ShiftRight) {
+            let player = GameCharacter::new("勇者".to_string(), 100, 25, true);
+            let enemy = GameCharacter::new("スライム".to_string(), 60, 15, false);
+            game_battle.0 = Battle::new(player, enemy);
+        }
         return;
     }
     
@@ -73,6 +121,27 @@ fn handle_battle_input(
     }
 }
 
+fn create_hp_bar(current_hp: i32, max_hp: i32) -> String {
+    let bar_length = 20;
+    let filled_length = if max_hp > 0 {
+        (current_hp * bar_length / max_hp).max(0)
+    } else {
+        0
+    };
+    
+    let mut bar = String::new();
+    bar.push('[');
+    for i in 0..bar_length {
+        if i < filled_length {
+            bar.push('█');
+        } else {
+            bar.push('░');
+        }
+    }
+    bar.push(']');
+    bar
+}
+
 fn update_battle_ui(
     game_battle: Res<GameBattle>,
     mut ui_query: Query<&mut Text, With<BattleUI>>,
@@ -81,14 +150,16 @@ fn update_battle_ui(
         let battle = &game_battle.0;
         let mut display_text = String::new();
         
+        let player_hp_bar = create_hp_bar(battle.player.hp, battle.player.max_hp);
         display_text.push_str(&format!(
-            "{}: HP {}/{}\n",
-            battle.player.name, battle.player.hp, battle.player.max_hp
+            "{}: HP {}/{} {}\n",
+            battle.player.name, battle.player.hp, battle.player.max_hp, player_hp_bar
         ));
         
+        let enemy_hp_bar = create_hp_bar(battle.enemy.hp, battle.enemy.max_hp);
         display_text.push_str(&format!(
-            "{}: HP {}/{}\n",
-            battle.enemy.name, battle.enemy.hp, battle.enemy.max_hp
+            "{}: HP {}/{} {}\n",
+            battle.enemy.name, battle.enemy.hp, battle.enemy.max_hp, enemy_hp_bar
         ));
         
         display_text.push_str("\n");
@@ -96,6 +167,7 @@ fn update_battle_ui(
         if battle.battle_over {
             if let Some(winner) = &battle.winner {
                 display_text.push_str(&format!("バトル終了！{}の勝利！\n", winner));
+                display_text.push_str("Shiftキーで再戦！\n");
             }
         } else {
             display_text.push_str(&format!("{}のターン\n", battle.get_current_player_name()));
@@ -104,11 +176,37 @@ fn update_battle_ui(
             }
         }
         
-        display_text.push_str("\n戦闘ログ:\n");
-        for log in battle.get_recent_logs(5) {
-            display_text.push_str(&format!("{}\n", log));
+        text.0 = display_text;
+    }
+}
+
+fn update_log_ui(
+    game_battle: Res<GameBattle>,
+    mut log_query: Query<&mut Text, (With<LogUI>, Without<BattleUI>, Without<LatestLogUI>)>,
+) {
+    for mut text in log_query.iter_mut() {
+        let battle = &game_battle.0;
+        let mut log_text = String::from("戦闘ログ:\n");
+        
+        for log in battle.get_recent_logs(8) {
+            log_text.push_str(&format!("{}\n", log));
         }
         
-        text.0 = display_text;
+        text.0 = log_text;
+    }
+}
+
+fn update_latest_log_ui(
+    game_battle: Res<GameBattle>,
+    mut latest_log_query: Query<&mut Text, (With<LatestLogUI>, Without<BattleUI>, Without<LogUI>)>,
+) {
+    for mut text in latest_log_query.iter_mut() {
+        let battle = &game_battle.0;
+        
+        if let Some(latest_log) = battle.battle_log.last() {
+            text.0 = format!(">>> {}", latest_log);
+        } else {
+            text.0 = String::new();
+        }
     }
 }
