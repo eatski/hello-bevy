@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 
 mod action_system;
 mod battle_system;
@@ -16,9 +18,10 @@ fn main() {
 }
 
 fn setup_battle(mut commands: Commands) {
-    let player = GameCharacter::new("勇者".to_string(), 100, 50, 25, true);
-    let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15, false);
-    let battle = Battle::new(player, enemy);
+    let player = GameCharacter::new("勇者".to_string(), 100, 50, 25);
+    let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15);
+    let rng = StdRng::from_entropy();
+    let battle = Battle::new(player, enemy, rng);
     
     commands.insert_resource(GameBattle(battle));
 }
@@ -29,8 +32,9 @@ fn handle_restart(
 ) {
     if game_battle.0.battle_over && 
        (keyboard_input.just_pressed(KeyCode::ShiftLeft) || keyboard_input.just_pressed(KeyCode::ShiftRight)) {
-        let player = GameCharacter::new("勇者".to_string(), 100, 50, 25, true);
-        let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15, false);
-        game_battle.0 = Battle::new(player, enemy);
+        let player = GameCharacter::new("勇者".to_string(), 100, 50, 25);
+        let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15);
+        let rng = StdRng::from_entropy();
+        game_battle.0 = Battle::new(player, enemy, rng);
     }
 }

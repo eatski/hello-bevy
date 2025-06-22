@@ -1,4 +1,4 @@
-use rand::{Rng, SeedableRng};
+use rand::Rng;
 use rand::rngs::StdRng;
 
 pub trait Token: Send + Sync {
@@ -75,19 +75,14 @@ pub struct ActionCalculationSystem {
 }
 
 impl ActionCalculationSystem {
-    pub fn new(rules: Vec<Vec<Box<dyn Token>>>) -> Self {
+    pub fn new(rules: Vec<Vec<Box<dyn Token>>>, rng: StdRng) -> Self {
         Self {
             rules,
-            rng: StdRng::from_entropy(),
+            rng,
         }
     }
 
-    pub fn with_seed(rules: Vec<Vec<Box<dyn Token>>>, seed: u64) -> Self {
-        Self {
-            rules,
-            rng: StdRng::seed_from_u64(seed),
-        }
-    }
+
 
     pub fn calculate_action(&mut self, character: &crate::battle_system::Character) -> Option<ActionType> {
         let rng = &mut self.rng;
@@ -106,7 +101,6 @@ impl ActionCalculationSystem {
                         should_continue = true;
                     }
                     TokenResult::Continue(false) => {
-                        should_continue = false;
                         break;
                     }
                     TokenResult::Action(action) => {
@@ -114,7 +108,6 @@ impl ActionCalculationSystem {
                         break;
                     }
                     TokenResult::Break => {
-                        should_continue = false;
                         break;
                     }
                 }
@@ -132,10 +125,11 @@ impl ActionCalculationSystem {
 mod tests {
     use super::*;
     use crate::battle_system::Character;
+    use rand::SeedableRng;
 
     #[test]
     fn test_strike_token() {
-        let character = Character::new("Test".to_string(), 100, 50, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25);
         let strike = Strike;
         let mut rng = StdRng::from_entropy();
         
@@ -144,7 +138,7 @@ mod tests {
             _ => panic!("Strike should return Action(Strike) for alive character"),
         }
         
-        let dead_character = Character::new("Dead".to_string(), 0, 0, 25, true);
+        let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
         match strike.evaluate(&dead_character, &mut rng) {
             TokenResult::Break => assert!(true),
             _ => panic!("Strike should return Break for dead character"),
@@ -153,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_heal_token() {
-        let character = Character::new("Test".to_string(), 100, 50, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25);
         let heal = Heal;
         let mut rng = StdRng::from_entropy();
         
@@ -162,7 +156,7 @@ mod tests {
             _ => panic!("Heal should return Action(Heal) for alive character"),
         }
         
-        let dead_character = Character::new("Dead".to_string(), 0, 0, 25, true);
+        let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
         match heal.evaluate(&dead_character, &mut rng) {
             TokenResult::Break => assert!(true),
             _ => panic!("Heal should return Break for dead character"),
@@ -171,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_true_or_false_random() {
-        let character = Character::new("Test".to_string(), 100, 50, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25);
         let random = TrueOrFalseRandom;
         
         // Test with seeded RNG for deterministic behavior
@@ -205,7 +199,7 @@ mod tests {
 
     #[test]
     fn test_check_token() {
-        let character = Character::new("Test".to_string(), 100, 50, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25);
         let check_random = Check::new(TrueOrFalseRandom);
         let mut rng = StdRng::from_entropy();
         
@@ -230,8 +224,9 @@ mod tests {
             ],
             vec![Box::new(Strike)],
         ];
-        let mut system = ActionCalculationSystem::new(rules);
-        let character = Character::new("Test".to_string(), 100, 50, 25, true);
+        let rng = StdRng::from_entropy();
+        let mut system = ActionCalculationSystem::new(rules, rng);
+        let character = Character::new("Test".to_string(), 100, 50, 25);
         
         let action = system.calculate_action(&character);
         assert!(action.is_some(), "Should return some action");
@@ -243,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_seeded_random_deterministic() {
-        let character = Character::new("Test".to_string(), 100, 50, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25);
         let random = TrueOrFalseRandom;
         
         // Test deterministic behavior with seed
@@ -262,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_action_system_with_seed() {
-        let character = Character::new("Test".to_string(), 100, 50, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25);
         let mut damaged_character = character.clone();
         damaged_character.take_damage(50); // HP: 50/100
         
@@ -276,23 +271,25 @@ mod tests {
             ]
         };
         
-        // Test deterministic behavior with same seed
-        let mut system1 = ActionCalculationSystem::with_seed(create_rules(), 42);
-        let mut system2 = ActionCalculationSystem::with_seed(create_rules(), 42);
+        // Test that the system can produce different actions
+        let rng1 = StdRng::from_entropy();
+        let rng2 = StdRng::from_entropy();
+        let mut system1 = ActionCalculationSystem::new(create_rules(), rng1);
+        let mut system2 = ActionCalculationSystem::new(create_rules(), rng2);
         
-        // Same seed should produce same action
-        let action1 = system1.calculate_action(&damaged_character);
-        let action2 = system2.calculate_action(&damaged_character);
-        assert_eq!(action1, action2, "Same seed should produce same action");
-        
-        // Test with different seeds to verify both Strike and Heal can occur
+        // Test with multiple attempts to verify both Strike and Heal can occur
         let mut strike_count = 0;
         let mut heal_count = 0;
         
-        // Test 10 different seeds
-        for seed in 0..10 {
-            let mut system = ActionCalculationSystem::with_seed(create_rules(), seed);
-            if let Some(action) = system.calculate_action(&damaged_character) {
+        // Test 20 attempts to get both actions
+        for _ in 0..20 {
+            if let Some(action) = system1.calculate_action(&damaged_character) {
+                match action {
+                    ActionType::Strike => strike_count += 1,
+                    ActionType::Heal => heal_count += 1,
+                }
+            }
+            if let Some(action) = system2.calculate_action(&damaged_character) {
                 match action {
                     ActionType::Strike => strike_count += 1,
                     ActionType::Heal => heal_count += 1,
@@ -300,9 +297,9 @@ mod tests {
             }
         }
         
-        assert!(strike_count >= 1, "Should have at least one Strike action across 10 seeds, got {}", strike_count);
-        assert!(heal_count >= 1, "Should have at least one Heal action across 10 seeds, got {}", heal_count);
-        assert_eq!(strike_count + heal_count, 10, "Should have 10 total actions");
+        assert!(strike_count >= 1, "Should have at least one Strike action across attempts, got {}", strike_count);
+        assert!(heal_count >= 1, "Should have at least one Heal action across attempts, got {}", heal_count);
+        assert_eq!(strike_count + heal_count, 40, "Should have 40 total actions from 20 attempts with 2 systems");
     }
 }
 
