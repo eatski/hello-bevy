@@ -13,7 +13,7 @@ impl Token for Box<dyn Token> {
 
 #[derive(Clone, Debug)]
 pub enum TokenResult {
-    Continue(bool),
+    Continue,
     Action(ActionType),
     Break,
     Value(TokenValue),
@@ -23,6 +23,7 @@ pub enum TokenResult {
 pub enum TokenValue {
     Number(i32),
     Character,
+    Bool(bool),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -50,7 +51,8 @@ impl Check<Box<dyn Token>> {
 impl<T: Token> Token for Check<T> {
     fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
         match self.condition.evaluate(character, rng) {
-            TokenResult::Continue(true) => TokenResult::Continue(true),
+            TokenResult::Value(TokenValue::Bool(true)) => TokenResult::Continue,
+            TokenResult::Continue => TokenResult::Continue,
             _ => TokenResult::Break,
         }
     }
@@ -60,7 +62,7 @@ pub struct TrueOrFalseRandom;
 
 impl Token for TrueOrFalseRandom {
     fn evaluate(&self, _character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
-        TokenResult::Continue(rng.gen_bool(0.5))
+        TokenResult::Value(TokenValue::Bool(rng.gen_bool(0.5)))
     }
 }
 
@@ -117,7 +119,7 @@ impl<A: Token, B: Token> Token for GreaterThanToken<A, B> {
             _ => return TokenResult::Break,
         };
         
-        TokenResult::Continue(left_val > right_val)
+        TokenResult::Value(TokenValue::Bool(left_val > right_val))
     }
 }
 
@@ -198,17 +200,20 @@ impl ActionCalculationSystem {
                 }
 
                 match token.evaluate(character, rng) {
-                    TokenResult::Continue(true) => {
+                    TokenResult::Continue => {
                         should_continue = true;
-                    }
-                    TokenResult::Continue(false) => {
-                        break;
                     }
                     TokenResult::Action(action) => {
                         action_result = Some(action);
                         break;
                     }
                     TokenResult::Break => {
+                        break;
+                    }
+                    TokenResult::Value(TokenValue::Bool(true)) => {
+                        should_continue = true;
+                    }
+                    TokenResult::Value(TokenValue::Bool(false)) => {
                         break;
                     }
                     TokenResult::Value(_) => {
@@ -291,9 +296,9 @@ mod tests {
         
         for _ in 0..100 {
             match random.evaluate(&character, &mut rng) {
-                TokenResult::Continue(true) => true_count += 1,
-                TokenResult::Continue(false) => false_count += 1,
-                _ => panic!("TrueOrFalseRandom should only return Continue(bool)"),
+                TokenResult::Value(TokenValue::Bool(true)) => true_count += 1,
+                TokenResult::Value(TokenValue::Bool(false)) => false_count += 1,
+                _ => panic!("TrueOrFalseRandom should only return Value(Bool(bool))"),
             }
         }
         
@@ -308,7 +313,7 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         match check_random.evaluate(&character, &mut rng) {
-            TokenResult::Continue(_) | TokenResult::Break => assert!(true),
+            TokenResult::Continue | TokenResult::Break => assert!(true),
             _ => panic!("Check(TrueOrFalseRandom) should return Continue or Break"),
         }
         
@@ -354,8 +359,8 @@ mod tests {
         let result2 = random.evaluate(&character, &mut rng2);
         
         match (result1, result2) {
-            (TokenResult::Continue(a), TokenResult::Continue(b)) => assert_eq!(a, b),
-            _ => panic!("Both should return Continue with same boolean value"),
+            (TokenResult::Value(TokenValue::Bool(a)), TokenResult::Value(TokenValue::Bool(b))) => assert_eq!(a, b),
+            _ => panic!("Both should return Value(Bool) with same boolean value"),
         }
     }
 
@@ -435,14 +440,14 @@ mod tests {
         // Test GreaterThanToken
         let greater_than_token = GreaterThanToken::new(Number::new(60), Number::new(40));
         match greater_than_token.evaluate(&character, &mut rng) {
-            TokenResult::Continue(true) => assert!(true),
-            _ => panic!("GreaterThanToken(60, 40) should return Continue(true)"),
+            TokenResult::Value(TokenValue::Bool(true)) => assert!(true),
+            _ => panic!("GreaterThanToken(60, 40) should return Value(Bool(true))"),
         }
         
         let greater_than_token_false = GreaterThanToken::new(Number::new(30), Number::new(50));
         match greater_than_token_false.evaluate(&character, &mut rng) {
-            TokenResult::Continue(false) => assert!(true),
-            _ => panic!("GreaterThanToken(30, 50) should return Continue(false)"),
+            TokenResult::Value(TokenValue::Bool(false)) => assert!(true),
+            _ => panic!("GreaterThanToken(30, 50) should return Value(Bool(false))"),
         }
     }
 
