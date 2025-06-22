@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 
-mod game_logic;
-use game_logic::{Battle, Character as GameCharacter};
+mod action_system;
+mod battle_system;
+use battle_system::{Battle, Character as GameCharacter};
 
 #[derive(Resource)]
 struct GameFont {
@@ -9,9 +10,7 @@ struct GameFont {
 }
 
 #[derive(Resource)]
-struct GameBattle {
-    battle: Battle,
-}
+struct GameBattle(Battle);
 
 #[derive(Component)]
 struct BattleUI;
@@ -36,7 +35,7 @@ fn setup_battle(mut commands: Commands, game_font: Res<GameFont>) {
     let enemy = GameCharacter::new("スライム".to_string(), 60, 15, false);
     let battle = Battle::new(player, enemy);
     
-    commands.insert_resource(GameBattle { battle });
+    commands.insert_resource(GameBattle(battle));
     
     // UI表示
     commands.spawn((
@@ -61,15 +60,15 @@ fn handle_battle_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut game_battle: ResMut<GameBattle>,
 ) {
-    if game_battle.battle.battle_over {
+    if game_battle.0.battle_over {
         return;
     }
     
     if keyboard_input.just_pressed(KeyCode::Space) {
-        if game_battle.battle.is_player_turn() {
-            game_battle.battle.execute_player_action();
+        if game_battle.0.is_player_turn() {
+            game_battle.0.execute_player_action();
         } else {
-            game_battle.battle.execute_enemy_action();
+            game_battle.0.execute_enemy_action();
         }
     }
 }
@@ -79,7 +78,7 @@ fn update_battle_ui(
     mut ui_query: Query<&mut Text, With<BattleUI>>,
 ) {
     for mut text in ui_query.iter_mut() {
-        let battle = &game_battle.battle;
+        let battle = &game_battle.0;
         let mut display_text = String::new();
         
         display_text.push_str(&format!(
