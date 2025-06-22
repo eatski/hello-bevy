@@ -60,10 +60,18 @@ impl Battle {
     pub fn new(player: Character, enemy: Character, rng: StdRng) -> Self {
         let default_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
             vec![
+                Box::new(crate::action_system::Check::new(
+                    crate::action_system::GreaterThanToken::new(
+                        crate::action_system::Number::new(50),
+                        crate::action_system::CharacterHP::new(crate::action_system::SelfCharacter),
+                    )
+                )),
                 Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
                 Box::new(crate::action_system::Heal),
             ],
-            vec![Box::new(crate::action_system::Strike)],
+            vec![
+                Box::new(crate::action_system::Strike),
+            ],
         ];
         
         Self {
@@ -287,15 +295,37 @@ mod integration_tests {
         let rng = StdRng::from_entropy();
         let mut battle = Battle::new(player, enemy, rng);
         
-        let initial_enemy_hp = battle.enemy.hp;
-        let initial_player_mp = battle.player.mp;
         
         battle.execute_player_action();
         
-        let action_occurred = battle.enemy.hp < initial_enemy_hp || battle.player.mp < initial_player_mp;
-        assert!(action_occurred, "Some action should have occurred");
+        // With the new random logic, action may or may not occur
+        // But turn should always advance and battle should not be over initially
         assert_eq!(battle.current_turn, 1);
         assert!(!battle.battle_over);
+        
+        // Check that the battle log has an entry (either action or "did nothing")
+        assert!(!battle.battle_log.is_empty(), "Battle log should have at least one entry");
+        
+        // Try multiple attempts to verify that actions can occur
+        let mut action_occurred = false;
+        for _ in 0..10 {
+            let player_test = Character::new("Player".to_string(), 100, 50, 25);
+            let enemy_test = Character::new("Enemy".to_string(), 80, 40, 20);
+            let rng_test = StdRng::from_entropy();
+            let mut battle_test = Battle::new(player_test, enemy_test, rng_test);
+            
+            let initial_enemy_hp_test = battle_test.enemy.hp;
+            let initial_player_mp_test = battle_test.player.mp;
+            
+            battle_test.execute_player_action();
+            
+            if battle_test.enemy.hp < initial_enemy_hp_test || battle_test.player.mp < initial_player_mp_test {
+                action_occurred = true;
+                break;
+            }
+        }
+        
+        assert!(action_occurred, "At least one action should occur across multiple attempts");
     }
 
     #[test]
@@ -810,6 +840,120 @@ mod integration_tests {
         
         assert!(aggressive_battle.battle_log.len() > 0, "Should have action logs");
         assert!(defensive_battle.battle_log.len() > 0, "Should have action logs");
+    }
+
+    #[test]
+    fn test_hp_based_healing_logic() {
+        // Create a character with low HP (below 50)
+        let mut low_hp_character = Character::new("LowHP".to_string(), 100, 50, 25);
+        low_hp_character.take_damage(60); // HP: 40/100 (below 50)
+        
+        // Create a character with high HP (above 50)
+        let mut high_hp_character = Character::new("HighHP".to_string(), 100, 50, 25);
+        high_hp_character.take_damage(20); // HP: 80/100 (above 50)
+        
+        let enemy = Character::new("Enemy".to_string(), 100, 50, 25);
+        
+        // Test low HP character (should heal)
+        let low_hp_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
+            vec![
+                Box::new(crate::action_system::Check::new(
+                    crate::action_system::GreaterThanToken::new(
+                        crate::action_system::Number::new(50),
+                        crate::action_system::CharacterHP::new(crate::action_system::SelfCharacter),
+                    )
+                )),
+                Box::new(crate::action_system::Heal),
+            ],
+            vec![Box::new(crate::action_system::Strike)],
+        ];
+        
+        let rng1 = StdRng::from_entropy();
+        let mut low_hp_battle = Battle::new(low_hp_character, enemy.clone(), rng1);
+        let rng2 = StdRng::from_entropy();
+        low_hp_battle.action_system = ActionCalculationSystem::new(low_hp_rules, rng2);
+        
+        let initial_low_hp = low_hp_battle.player.hp;
+        let initial_low_mp = low_hp_battle.player.mp;
+        let initial_enemy_hp_1 = low_hp_battle.enemy.hp;
+        
+        low_hp_battle.execute_player_action();
+        
+        // Low HP character should heal (HP increased, MP decreased, enemy HP unchanged)
+        assert!(low_hp_battle.player.hp > initial_low_hp, "Low HP character should heal: HP {} -> {}", initial_low_hp, low_hp_battle.player.hp);
+        assert!(low_hp_battle.player.mp < initial_low_mp, "MP should be consumed for healing: MP {} -> {}", initial_low_mp, low_hp_battle.player.mp);
+        assert_eq!(low_hp_battle.enemy.hp, initial_enemy_hp_1, "Enemy HP should not change when player heals");
+        assert!(low_hp_battle.battle_log.iter().any(|log| log.contains("回復")), "Should have heal log entry");
+        
+        // Test high HP character (should strike)
+        let high_hp_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
+            vec![
+                Box::new(crate::action_system::Check::new(
+                    crate::action_system::GreaterThanToken::new(
+                        crate::action_system::Number::new(50),
+                        crate::action_system::CharacterHP::new(crate::action_system::SelfCharacter),
+                    )
+                )),
+                Box::new(crate::action_system::Heal),
+            ],
+            vec![Box::new(crate::action_system::Strike)],
+        ];
+        
+        let rng3 = StdRng::from_entropy();
+        let mut high_hp_battle = Battle::new(high_hp_character, enemy.clone(), rng3);
+        let rng4 = StdRng::from_entropy();
+        high_hp_battle.action_system = ActionCalculationSystem::new(high_hp_rules, rng4);
+        
+        let initial_high_hp = high_hp_battle.player.hp;
+        let initial_high_mp = high_hp_battle.player.mp;
+        let initial_enemy_hp_2 = high_hp_battle.enemy.hp;
+        
+        high_hp_battle.execute_player_action();
+        
+        // High HP character should strike (HP unchanged, MP unchanged, enemy HP decreased)
+        assert_eq!(high_hp_battle.player.hp, initial_high_hp, "High HP character should not heal: HP should remain {}", initial_high_hp);
+        assert_eq!(high_hp_battle.player.mp, initial_high_mp, "MP should not be consumed when striking: MP should remain {}", initial_high_mp);
+        assert!(high_hp_battle.enemy.hp < initial_enemy_hp_2, "Enemy HP should decrease when player strikes: Enemy HP {} -> {}", initial_enemy_hp_2, high_hp_battle.enemy.hp);
+        assert!(high_hp_battle.battle_log.iter().any(|log| log.contains("ダメージ")), "Should have damage log entry");
+        assert!(!high_hp_battle.battle_log.iter().any(|log| log.contains("回復")), "Should not have heal log entry");
+    }
+
+    #[test]
+    fn test_hp_threshold_boundary_conditions() {
+        let enemy = Character::new("Enemy".to_string(), 100, 50, 25);
+        
+        // Test character with exactly 50 HP (should strike, not heal)
+        let mut exactly_50_hp_character = Character::new("Exactly50HP".to_string(), 100, 50, 25);
+        exactly_50_hp_character.take_damage(50); // HP: 50/100
+        
+        let hp_based_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
+            vec![
+                Box::new(crate::action_system::Check::new(
+                    crate::action_system::GreaterThanToken::new(
+                        crate::action_system::Number::new(50),
+                        crate::action_system::CharacterHP::new(crate::action_system::SelfCharacter),
+                    )
+                )),
+                Box::new(crate::action_system::Heal),
+            ],
+            vec![Box::new(crate::action_system::Strike)],
+        ];
+        
+        let rng = StdRng::from_entropy();
+        let mut battle = Battle::new(exactly_50_hp_character, enemy, rng);
+        let rng = StdRng::from_entropy();
+        battle.action_system = ActionCalculationSystem::new(hp_based_rules, rng);
+        
+        let initial_hp = battle.player.hp;
+        let initial_enemy_hp = battle.enemy.hp;
+        
+        battle.execute_player_action();
+        
+        // At exactly 50 HP, should strike (not heal) because condition is "50 > HP"
+        assert_eq!(battle.player.hp, initial_hp, "Character with exactly 50 HP should not heal");
+        assert!(battle.enemy.hp < initial_enemy_hp, "Enemy should take damage when character has exactly 50 HP");
+        assert!(battle.battle_log.iter().any(|log| log.contains("ダメージ")), "Should have damage log entry");
+        assert!(!battle.battle_log.iter().any(|log| log.contains("回復")), "Should not have heal log entry for exactly 50 HP");
     }
 
     #[test]

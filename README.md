@@ -28,6 +28,20 @@
 ]
 ```
 
+### 🩺 HP条件での設定例
+
+```javascript
+[
+    [Check(GreaterThanToken(Number(50), CharacterHP(SelfCharacter))), Check(TrueOrFalseRandom), Heal],  // HPが50未満かつ50%の確率で回復
+    [Check(TrueOrFalseRandom), Strike]                                                                  // 50%の確率で攻撃
+]
+```
+
+この設定により：
+- HPが50未満の場合、50%の確率で回復を試行
+- それ以外の場合、50%の確率で攻撃を実行
+- 各行でアクションが決定されない場合は「何もしない」となる
+
 ## 📚 用語集
 
 ### 🎯 制御フロー
@@ -43,6 +57,14 @@
 #### 🔍 条件系
 - **Check**: 引数が`True`なら`continue`、`False`なら`break`
 - **TrueOrFalseRandom**: ランダムで`True`または`False`を返す
+- **GreaterThanToken**: 2つの引数（数値）を比較して、最初が大きい（`>`） であれば `True` を返す
+
+#### 固定値系
+- **Number**: 特定の数値を返す（1~100）
+
+#### 状況系
+- **CharacterHP**: 引数のキャラクターのHPを返す
+- **SelfCharacter**: ロジックを計算しているキャラクター自身を返す
 
 #### ⚔️ アクション系
 キャラクターが実際に行動を実行（コスト不足時は`break`）

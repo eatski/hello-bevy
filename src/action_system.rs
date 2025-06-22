@@ -10,6 +10,14 @@ pub enum TokenResult {
     Continue(bool),
     Action(ActionType),
     Break,
+    Value(TokenValue),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum TokenValue {
+    Bool(bool),
+    Number(i32),
+    Character,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -69,6 +77,76 @@ impl Token for Heal {
     }
 }
 
+pub struct GreaterThanToken<A: Token, B: Token> {
+    left: A,
+    right: B,
+}
+
+impl<A: Token, B: Token> GreaterThanToken<A, B> {
+    pub fn new(left: A, right: B) -> Self {
+        Self { left, right }
+    }
+}
+
+impl<A: Token, B: Token> Token for GreaterThanToken<A, B> {
+    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
+        let left_val = match self.left.evaluate(character, rng) {
+            TokenResult::Value(TokenValue::Number(n)) => n,
+            _ => return TokenResult::Break,
+        };
+        
+        let right_val = match self.right.evaluate(character, rng) {
+            TokenResult::Value(TokenValue::Number(n)) => n,
+            _ => return TokenResult::Break,
+        };
+        
+        TokenResult::Continue(left_val > right_val)
+    }
+}
+
+pub struct Number {
+    value: i32,
+}
+
+impl Number {
+    pub fn new(value: i32) -> Self {
+        Self { value: value.clamp(1, 100) }
+    }
+}
+
+impl Token for Number {
+    fn evaluate(&self, _character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> TokenResult {
+        TokenResult::Value(TokenValue::Number(self.value))
+    }
+}
+
+pub struct CharacterHP<C: Token> {
+    character_token: C,
+}
+
+impl<C: Token> CharacterHP<C> {
+    pub fn new(character_token: C) -> Self {
+        Self { character_token }
+    }
+}
+
+impl<C: Token> Token for CharacterHP<C> {
+    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
+        match self.character_token.evaluate(character, rng) {
+            TokenResult::Value(TokenValue::Character) => TokenResult::Value(TokenValue::Number(character.hp)),
+            _ => TokenResult::Break,
+        }
+    }
+}
+
+pub struct SelfCharacter;
+
+impl Token for SelfCharacter {
+    fn evaluate(&self, _character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> TokenResult {
+        TokenResult::Value(TokenValue::Character)
+    }
+}
+
 pub struct ActionCalculationSystem {
     pub rules: Vec<Vec<Box<dyn Token>>>,
     pub rng: StdRng,
@@ -109,6 +187,9 @@ impl ActionCalculationSystem {
                     }
                     TokenResult::Break => {
                         break;
+                    }
+                    TokenResult::Value(_) => {
+                        should_continue = true;
                     }
                 }
             }
@@ -300,6 +381,80 @@ mod tests {
         assert!(strike_count >= 1, "Should have at least one Strike action across attempts, got {}", strike_count);
         assert!(heal_count >= 1, "Should have at least one Heal action across attempts, got {}", heal_count);
         assert_eq!(strike_count + heal_count, 40, "Should have 40 total actions from 20 attempts with 2 systems");
+    }
+
+    #[test]
+    fn test_new_tokens() {
+        let character = Character::new("Test".to_string(), 100, 50, 25);
+        let mut rng = StdRng::from_entropy();
+        
+        // Test Number token
+        let number_token = Number::new(42);
+        match number_token.evaluate(&character, &mut rng) {
+            TokenResult::Value(TokenValue::Number(42)) => assert!(true),
+            _ => panic!("Number token should return Value(Number(42))"),
+        }
+        
+        // Test SelfCharacter token
+        let self_char_token = SelfCharacter;
+        match self_char_token.evaluate(&character, &mut rng) {
+            TokenResult::Value(TokenValue::Character) => assert!(true),
+            _ => panic!("SelfCharacter token should return Value(Character)"),
+        }
+        
+        // Test CharacterHP token
+        let char_hp_token = CharacterHP::new(SelfCharacter);
+        match char_hp_token.evaluate(&character, &mut rng) {
+            TokenResult::Value(TokenValue::Number(100)) => assert!(true),
+            _ => panic!("CharacterHP token should return Value(Number(100))"),
+        }
+        
+        // Test GreaterThanToken
+        let greater_than_token = GreaterThanToken::new(Number::new(60), Number::new(40));
+        match greater_than_token.evaluate(&character, &mut rng) {
+            TokenResult::Continue(true) => assert!(true),
+            _ => panic!("GreaterThanToken(60, 40) should return Continue(true)"),
+        }
+        
+        let greater_than_token_false = GreaterThanToken::new(Number::new(30), Number::new(50));
+        match greater_than_token_false.evaluate(&character, &mut rng) {
+            TokenResult::Continue(false) => assert!(true),
+            _ => panic!("GreaterThanToken(30, 50) should return Continue(false)"),
+        }
+    }
+
+    #[test]
+    fn test_hp_based_action_logic() {
+        let mut low_hp_character = Character::new("LowHP".to_string(), 100, 50, 25);
+        low_hp_character.take_damage(70); // HP: 30
+        
+        let high_hp_character = Character::new("HighHP".to_string(), 100, 50, 25);
+        // HP: 100
+        
+        // Create HP-based rules
+        let hp_rules: Vec<Vec<Box<dyn Token>>> = vec![
+            vec![
+                Box::new(Check::new(
+                    GreaterThanToken::new(
+                        Number::new(50),
+                        CharacterHP::new(SelfCharacter),
+                    )
+                )),
+                Box::new(Heal),
+            ],
+            vec![Box::new(Strike)],
+        ];
+        
+        let rng = StdRng::from_entropy();
+        let mut system = ActionCalculationSystem::new(hp_rules, rng);
+        
+        // Low HP character should heal
+        let low_hp_action = system.calculate_action(&low_hp_character);
+        assert_eq!(low_hp_action, Some(ActionType::Heal), "Low HP character should choose Heal");
+        
+        // High HP character should strike
+        let high_hp_action = system.calculate_action(&high_hp_character);
+        assert_eq!(high_hp_action, Some(ActionType::Strike), "High HP character should choose Strike");
     }
 }
 
