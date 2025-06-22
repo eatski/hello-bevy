@@ -24,16 +24,6 @@ pub struct HPBar;
 #[derive(Component)]
 pub struct MPBar;
 
-#[derive(PartialEq, Clone)]
-pub enum CharacterType {
-    Player,
-    Enemy,
-}
-
-#[derive(Component)]
-pub struct CharacterUI {
-    pub character_type: CharacterType,
-}
 
 
 pub fn load_font(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -44,8 +34,6 @@ pub fn load_font(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub fn setup_ui(
     mut commands: Commands, 
     game_font: Res<GameFont>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     commands.spawn(Camera2d);
     

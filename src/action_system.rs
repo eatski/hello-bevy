@@ -15,7 +15,6 @@ pub enum TokenResult {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenValue {
-    Bool(bool),
     Number(i32),
     Character,
 }
