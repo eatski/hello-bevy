@@ -77,7 +77,7 @@ fn get_fallback_player_rules() -> Vec<Vec<Box<dyn action_system::Token>>> {
             Box::new(action_system::Check::new(
                 action_system::GreaterThanToken::new(
                     action_system::Number::new(50),
-                    action_system::CharacterHP::new(action_system::SelfCharacter),
+                    action_system::CharacterHP::new(action_system::ActingCharacter),
                 )
             )),
         ],
@@ -93,7 +93,7 @@ fn get_fallback_enemy_rules() -> Vec<Vec<Box<dyn action_system::Token>>> {
             Box::new(action_system::Check::new(
                 action_system::GreaterThanToken::new(
                     action_system::Number::new(30),
-                    action_system::CharacterHP::new(action_system::SelfCharacter),
+                    action_system::CharacterHP::new(action_system::ActingCharacter),
                 )
             )),
             Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),

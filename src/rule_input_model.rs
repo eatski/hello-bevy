@@ -16,7 +16,7 @@ pub enum TokenConfig {
     Strike,
     Heal,
     TrueOrFalseRandom,
-    SelfCharacter,
+    ActingCharacter,
     Check {
         #[serde(default)]
         condition: Option<Box<TokenConfig>>,

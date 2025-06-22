@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use crate::action_system::{Token, Check, TrueOrFalseRandom, Strike, Heal, GreaterThanToken, Number, CharacterHP, SelfCharacter};
+use crate::action_system::{Token, Check, TrueOrFalseRandom, Strike, Heal, GreaterThanToken, Number, CharacterHP, ActingCharacter};
 use crate::rule_input_model::{RuleSet, TokenConfig};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
@@ -39,7 +39,7 @@ fn convert_token_config(config: &TokenConfig) -> Result<Box<dyn Token>, String> 
         TokenConfig::Strike => Ok(Box::new(Strike)),
         TokenConfig::Heal => Ok(Box::new(Heal)),
         TokenConfig::TrueOrFalseRandom => Ok(Box::new(TrueOrFalseRandom)),
-        TokenConfig::SelfCharacter => Ok(Box::new(SelfCharacter)),
+        TokenConfig::ActingCharacter => Ok(Box::new(ActingCharacter)),
         TokenConfig::Check { condition, args } => {
             // Try args first, then fallback to condition
             if !args.is_empty() {
@@ -76,7 +76,7 @@ fn convert_token_config(config: &TokenConfig) -> Result<Box<dyn Token>, String> 
                 Ok(Box::new(CharacterHP::new_boxed(character_token)))
             } else if let Some(character) = character {
                 match character.as_str() {
-                    "Self" => Ok(Box::new(CharacterHP::new(SelfCharacter))),
+                    "Self" => Ok(Box::new(CharacterHP::new(ActingCharacter))),
                     _ => Err(format!("Unknown character type: {}", character)),
                 }
             } else {
@@ -157,7 +157,7 @@ mod tests {
                                 TokenConfig::Number { value: 50 },
                                 TokenConfig::CharacterHP { 
                                     character: None,
-                                    args: vec![TokenConfig::SelfCharacter],
+                                    args: vec![TokenConfig::ActingCharacter],
                                 },
                             ],
                         },

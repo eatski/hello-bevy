@@ -33,7 +33,7 @@
               {
                 "type": "CharacterHP",
                 "args": [{
-                  "type": "SelfCharacter"
+                  "type": "ActingCharacter"
                 }]
               }
             ]

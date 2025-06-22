@@ -162,9 +162,9 @@ impl<C: Token> Token for CharacterHP<C> {
     }
 }
 
-pub struct SelfCharacter;
+pub struct ActingCharacter;
 
-impl Token for SelfCharacter {
+impl Token for ActingCharacter {
     fn evaluate(&self, _character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> TokenResult {
         TokenResult::Value(TokenValue::Character)
     }
@@ -418,15 +418,15 @@ mod tests {
             _ => panic!("Number token should return Value(Number(42))"),
         }
         
-        // Test SelfCharacter token
-        let self_char_token = SelfCharacter;
+        // Test ActingCharacter token
+        let self_char_token = ActingCharacter;
         match self_char_token.evaluate(&character, &mut rng) {
             TokenResult::Value(TokenValue::Character) => assert!(true),
-            _ => panic!("SelfCharacter token should return Value(Character)"),
+            _ => panic!("ActingCharacter token should return Value(Character)"),
         }
         
         // Test CharacterHP token
-        let char_hp_token = CharacterHP::new(SelfCharacter);
+        let char_hp_token = CharacterHP::new(ActingCharacter);
         match char_hp_token.evaluate(&character, &mut rng) {
             TokenResult::Value(TokenValue::Number(100)) => assert!(true),
             _ => panic!("CharacterHP token should return Value(Number(100))"),
@@ -460,7 +460,7 @@ mod tests {
                 Box::new(Check::new(
                     GreaterThanToken::new(
                         Number::new(50),
-                        CharacterHP::new(SelfCharacter),
+                        CharacterHP::new(ActingCharacter),
                     )
                 )),
                 Box::new(Heal),

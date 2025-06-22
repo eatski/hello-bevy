@@ -32,7 +32,7 @@
 
 ```javascript
 [
-    [Check(GreaterThanToken(Number(50), CharacterHP(SelfCharacter))), Check(TrueOrFalseRandom), Heal],  // HPが50未満かつ50%の確率で回復
+    [Check(GreaterThanToken(Number(50), CharacterHP(ActingCharacter))), Check(TrueOrFalseRandom), Heal],  // HPが50未満かつ50%の確率で回復
     [Check(TrueOrFalseRandom), Strike]                                                                  // 50%の確率で攻撃
 ]
 ```
@@ -64,7 +64,7 @@
 
 #### 状況系
 - **CharacterHP**: 引数のキャラクターのHPを返す
-- **SelfCharacter**: ロジックを計算しているキャラクター自身を返す
+- **ActingCharacter**: ロジックを計算しているキャラクター自身を返す
 
 #### ⚔️ アクション系
 キャラクターが実際に行動を実行（コスト不足時は`break`）

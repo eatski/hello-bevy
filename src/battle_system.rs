@@ -868,7 +868,7 @@ mod integration_tests {
                 Box::new(crate::action_system::Check::new(
                     crate::action_system::GreaterThanToken::new(
                         crate::action_system::Number::new(50),
-                        crate::action_system::CharacterHP::new(crate::action_system::SelfCharacter),
+                        crate::action_system::CharacterHP::new(crate::action_system::ActingCharacter),
                     )
                 )),
                 Box::new(crate::action_system::Heal),
@@ -899,7 +899,7 @@ mod integration_tests {
                 Box::new(crate::action_system::Check::new(
                     crate::action_system::GreaterThanToken::new(
                         crate::action_system::Number::new(50),
-                        crate::action_system::CharacterHP::new(crate::action_system::SelfCharacter),
+                        crate::action_system::CharacterHP::new(crate::action_system::ActingCharacter),
                     )
                 )),
                 Box::new(crate::action_system::Heal),
@@ -939,7 +939,7 @@ mod integration_tests {
                 Box::new(crate::action_system::Check::new(
                     crate::action_system::GreaterThanToken::new(
                         crate::action_system::Number::new(50),
-                        crate::action_system::CharacterHP::new(crate::action_system::SelfCharacter),
+                        crate::action_system::CharacterHP::new(crate::action_system::ActingCharacter),
                     )
                 )),
                 Box::new(crate::action_system::Heal),
