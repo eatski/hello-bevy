@@ -1,0 +1,52 @@
+{
+  "rules": [
+    {
+      "tokens": [
+        {
+          "type": "Check",
+          "args": [{
+            "type": "TrueOrFalseRandom"
+          }]
+        },
+        {
+          "type": "Check", 
+          "args": [{
+            "type": "TrueOrFalseRandom"
+          }]
+        },
+        {
+          "type": "Heal"
+        }
+      ]
+    },
+    {
+      "tokens": [
+        {
+          "type": "Check",
+          "args": [{
+            "type": "GreaterThan",
+            "args": [
+              {
+                "type": "Number",
+                "value": 50
+              },
+              {
+                "type": "CharacterHP",
+                "args": [{
+                  "type": "SelfCharacter"
+                }]
+              }
+            ]
+          }]
+        }
+      ]
+    },
+    {
+      "tokens": [
+        {
+          "type": "Strike"
+        }
+      ]
+    }
+  ]
+}

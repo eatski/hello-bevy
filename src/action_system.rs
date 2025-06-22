@@ -5,6 +5,12 @@ pub trait Token: Send + Sync {
     fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult;
 }
 
+impl Token for Box<dyn Token> {
+    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
+        (**self).evaluate(character, rng)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum TokenResult {
     Continue(bool),
@@ -31,6 +37,12 @@ pub struct Check<T: Token> {
 
 impl<T: Token> Check<T> {
     pub fn new(condition: T) -> Self {
+        Self { condition }
+    }
+}
+
+impl Check<Box<dyn Token>> {
+    pub fn new_boxed(condition: Box<dyn Token>) -> Self {
         Self { condition }
     }
 }
@@ -87,6 +99,12 @@ impl<A: Token, B: Token> GreaterThanToken<A, B> {
     }
 }
 
+impl GreaterThanToken<Box<dyn Token>, Box<dyn Token>> {
+    pub fn new_boxed(left: Box<dyn Token>, right: Box<dyn Token>) -> Self {
+        Self { left, right }
+    }
+}
+
 impl<A: Token, B: Token> Token for GreaterThanToken<A, B> {
     fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
         let left_val = match self.left.evaluate(character, rng) {
@@ -125,6 +143,12 @@ pub struct CharacterHP<C: Token> {
 
 impl<C: Token> CharacterHP<C> {
     pub fn new(character_token: C) -> Self {
+        Self { character_token }
+    }
+}
+
+impl CharacterHP<Box<dyn Token>> {
+    pub fn new_boxed(character_token: Box<dyn Token>) -> Self {
         Self { character_token }
     }
 }

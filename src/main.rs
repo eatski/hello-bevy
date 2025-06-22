@@ -5,9 +5,12 @@ use rand::SeedableRng;
 mod action_system;
 mod battle_system;
 mod ui;
+mod rule_loader;
+mod rule_input_model;
 
 use ui::*;
 use battle_system::{Battle, Character as GameCharacter};
+use rule_loader::{load_rules_from_file, convert_to_token_rules};
 
 fn main() {
     App::new()
@@ -21,8 +24,50 @@ fn setup_battle(mut commands: Commands) {
     let player = GameCharacter::new("勇者".to_string(), 100, 80, 25);
     let enemy = GameCharacter::new("スライム".to_string(), 200, 30, 15);
     
-    // Player rules: HP-based healing with randomness
-    let player_rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
+    // Load player rules from JSON file, fallback to hardcoded rules
+    let player_rules = match load_rules_from_file("rules/player_rules.json") {
+        Ok(rule_set) => match convert_to_token_rules(&rule_set) {
+            Ok(rules) => {
+                println!("Loaded player rules from JSON");
+                rules
+            },
+            Err(e) => {
+                println!("Error converting player rules: {}, using fallback", e);
+                get_fallback_player_rules()
+            }
+        },
+        Err(e) => {
+            println!("Error loading player rules: {}, using fallback", e);
+            get_fallback_player_rules()
+        }
+    };
+    
+    // Load enemy rules from JSON file, fallback to hardcoded rules
+    let enemy_rules = match load_rules_from_file("rules/enemy_rules.json") {
+        Ok(rule_set) => match convert_to_token_rules(&rule_set) {
+            Ok(rules) => {
+                println!("Loaded enemy rules from JSON");
+                rules
+            },
+            Err(e) => {
+                println!("Error converting enemy rules: {}, using fallback", e);
+                get_fallback_enemy_rules()
+            }
+        },
+        Err(e) => {
+            println!("Error loading enemy rules: {}, using fallback", e);
+            get_fallback_enemy_rules()
+        }
+    };
+    
+    let rng = StdRng::from_entropy();
+    let battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
+    
+    commands.insert_resource(GameBattle(battle));
+}
+
+fn get_fallback_player_rules() -> Vec<Vec<Box<dyn action_system::Token>>> {
+    vec![
         vec![
             Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
             Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
@@ -39,10 +84,11 @@ fn setup_battle(mut commands: Commands) {
         vec![
             Box::new(action_system::Strike),
         ],
-    ];
-    
-    // Enemy rules: More aggressive, less healing
-    let enemy_rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
+    ]
+}
+
+fn get_fallback_enemy_rules() -> Vec<Vec<Box<dyn action_system::Token>>> {
+    vec![
         vec![
             Box::new(action_system::Check::new(
                 action_system::GreaterThanToken::new(
@@ -54,12 +100,7 @@ fn setup_battle(mut commands: Commands) {
             Box::new(action_system::Heal),
         ],
         vec![Box::new(action_system::Strike)],
-    ];
-    
-    let rng = StdRng::from_entropy();
-    let battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
-    
-    commands.insert_resource(GameBattle(battle));
+    ]
 }
 
 fn handle_restart(
@@ -71,38 +112,22 @@ fn handle_restart(
         let player = GameCharacter::new("勇者".to_string(), 100, 50, 25);
         let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15);
         
-        // Player rules: HP-based healing with randomness
-        let player_rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
-            vec![
-                Box::new(action_system::Check::new(
-                    action_system::GreaterThanToken::new(
-                        action_system::Number::new(50),
-                        action_system::CharacterHP::new(action_system::SelfCharacter),
-                    )
-                )),
-                Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
-                Box::new(action_system::Heal),
-            ],
-            vec![
-                Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
-                Box::new(action_system::Strike),
-            ],
-        ];
+        // Load rules from JSON or use fallback
+        let player_rules = match load_rules_from_file("rules/player_rules.json") {
+            Ok(rule_set) => match convert_to_token_rules(&rule_set) {
+                Ok(rules) => rules,
+                Err(_) => get_fallback_player_rules()
+            },
+            Err(_) => get_fallback_player_rules()
+        };
         
-        // Enemy rules: More aggressive, less healing
-        let enemy_rules: Vec<Vec<Box<dyn action_system::Token>>> = vec![
-            vec![
-                Box::new(action_system::Check::new(
-                    action_system::GreaterThanToken::new(
-                        action_system::Number::new(30),
-                        action_system::CharacterHP::new(action_system::SelfCharacter),
-                    )
-                )),
-                Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
-                Box::new(action_system::Heal),
-            ],
-            vec![Box::new(action_system::Strike)],
-        ];
+        let enemy_rules = match load_rules_from_file("rules/enemy_rules.json") {
+            Ok(rule_set) => match convert_to_token_rules(&rule_set) {
+                Ok(rules) => rules,
+                Err(_) => get_fallback_enemy_rules()
+            },
+            Err(_) => get_fallback_enemy_rules()
+        };
         
         let rng = StdRng::from_entropy();
         game_battle.0 = Battle::new(player, enemy, player_rules, enemy_rules, rng);

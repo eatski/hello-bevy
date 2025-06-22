@@ -1,0 +1,44 @@
+{
+  "rules": [
+    {
+      "tokens": [
+        {
+          "type": "Check",
+          "condition": {
+            "type": "GreaterThan",
+            "args": [
+              {
+                "type": "Number",
+                "value": 30
+              },
+              {
+                "type": "CharacterHP",
+                "args": [
+                  {
+                    "type": "SelfCharacter"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "Check",
+          "args":[{
+            "type": "TrueOrFalseRandom"
+          }]
+        },
+        {
+          "type": "Heal"
+        }
+      ]
+    },
+    {
+      "tokens": [
+        {
+          "type": "Strike"
+        }
+      ]
+    }
+  ]
+}
