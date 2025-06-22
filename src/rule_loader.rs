@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 use crate::action_system::{Token, Check, TrueOrFalseRandom, Strike, Heal, GreaterThanToken, Number, CharacterHP, ActingCharacter};
-use crate::rule_input_model::{RuleSet, TokenConfig};
+use crate::rule_input_model::{RuleSet, TokenConfig, ValidatedRuleChain};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
     let content = fs::read_to_string(path)
@@ -21,9 +21,12 @@ pub fn convert_to_token_rules(rule_set: &RuleSet) -> Result<Vec<Vec<Box<dyn Toke
     let mut token_rules = Vec::new();
     
     for rule_chain in &rule_set.rules {
+        // Validate rule chain before conversion
+        let validated_chain = ValidatedRuleChain::from_rule_chain(rule_chain)?;
+        
         let mut token_chain = Vec::new();
         
-        for token_config in &rule_chain.tokens {
+        for token_config in &validated_chain.tokens {
             let token = convert_token_config(token_config)?;
             token_chain.push(token);
         }
@@ -161,6 +164,7 @@ mod tests {
                                 },
                             ],
                         },
+                        TokenConfig::Strike, // Add action token after continue tokens
                     ],
                 },
             ],
@@ -168,7 +172,7 @@ mod tests {
         
         let token_rules = convert_to_token_rules(&rule_set).unwrap();
         assert_eq!(token_rules.len(), 1);
-        assert_eq!(token_rules[0].len(), 2);
+        assert_eq!(token_rules[0].len(), 3); // Now 3 tokens including the Strike
     }
 
     #[test]
@@ -181,6 +185,7 @@ mod tests {
                             condition: None,
                             args: vec![],
                         },
+                        TokenConfig::Strike, // Add action to make validation pass first
                     ],
                 },
             ],
@@ -204,6 +209,7 @@ mod tests {
                             right: None,
                             args: vec![TokenConfig::Number { value: 50 }], // Only 1 arg, need 2
                         },
+                        TokenConfig::Strike, // Add action to make validation pass first
                     ],
                 },
             ],
@@ -275,6 +281,7 @@ mod tests {
                                 }
                             ],
                         },
+                        TokenConfig::Strike, // Add Strike to make it valid sequence
                     ],
                 },
             ],
@@ -285,5 +292,117 @@ mod tests {
         if let Err(error_msg) = result {
             assert!(error_msg.contains("Unknown character type: InvalidCharacter"));
         }
+    }
+
+    #[test]
+    fn test_continue_token_at_end_error_check() {
+        let rule_set = RuleSet {
+            rules: vec![
+                RuleChain {
+                    tokens: vec![
+                        TokenConfig::Check {
+                            condition: None,
+                            args: vec![TokenConfig::TrueOrFalseRandom],
+                        },
+                        // No token after Check - should cause error
+                    ],
+                },
+            ],
+        };
+        
+        let result = convert_to_token_rules(&rule_set);
+        assert!(result.is_err());
+        if let Err(error_msg) = result {
+            assert!(error_msg.contains("Check token at position 0 cannot be the last token"));
+        }
+    }
+
+    #[test]
+    fn test_continue_token_at_end_error_greater_than() {
+        let rule_set = RuleSet {
+            rules: vec![
+                RuleChain {
+                    tokens: vec![
+                        TokenConfig::GreaterThan {
+                            left: None,
+                            right: None,
+                            args: vec![
+                                TokenConfig::Number { value: 50 },
+                                TokenConfig::Number { value: 30 },
+                            ],
+                        },
+                        // No token after GreaterThan - should cause error
+                    ],
+                },
+            ],
+        };
+        
+        let result = convert_to_token_rules(&rule_set);
+        assert!(result.is_err());
+        if let Err(error_msg) = result {
+            assert!(error_msg.contains("GreaterThan token at position 0 cannot be the last token"));
+        }
+    }
+
+    #[test]
+    fn test_continue_token_at_end_error_true_or_false_random() {
+        let rule_set = RuleSet {
+            rules: vec![
+                RuleChain {
+                    tokens: vec![
+                        TokenConfig::TrueOrFalseRandom,
+                        // No token after TrueOrFalseRandom - should cause error
+                    ],
+                },
+            ],
+        };
+        
+        let result = convert_to_token_rules(&rule_set);
+        assert!(result.is_err());
+        if let Err(error_msg) = result {
+            assert!(error_msg.contains("TrueOrFalseRandom token at position 0 cannot be the last token"));
+        }
+    }
+
+    #[test]
+    fn test_valid_continue_token_with_following_action() {
+        let rule_set = RuleSet {
+            rules: vec![
+                RuleChain {
+                    tokens: vec![
+                        TokenConfig::Check {
+                            condition: None,
+                            args: vec![TokenConfig::TrueOrFalseRandom],
+                        },
+                        TokenConfig::Strike, // Valid: action follows continue token
+                    ],
+                },
+            ],
+        };
+        
+        let result = convert_to_token_rules(&rule_set);
+        assert!(result.is_ok());
+        let token_rules = result.unwrap();
+        assert_eq!(token_rules.len(), 1);
+        assert_eq!(token_rules[0].len(), 2);
+    }
+
+    #[test]
+    fn test_action_token_at_end_is_valid() {
+        let rule_set = RuleSet {
+            rules: vec![
+                RuleChain {
+                    tokens: vec![
+                        TokenConfig::Strike, // Action tokens can be at the end
+                    ],
+                },
+            ],
+        };
+        
+        let result = convert_to_token_rules(&rule_set);
+        assert!(result.is_ok());
+        let token_rules = result.unwrap();
+        assert_eq!(token_rules.len(), 1);
+        assert_eq!(token_rules[0].len(), 1);
     }
 }
