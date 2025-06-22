@@ -62,8 +62,8 @@ impl Battle {
     pub fn new(
         player: Character, 
         enemy: Character, 
-        player_rules: Vec<Vec<RuleToken>>, 
-        enemy_rules: Vec<Vec<RuleToken>>, 
+        player_rules: Vec<RuleToken>, 
+        enemy_rules: Vec<RuleToken>, 
         rng: StdRng
     ) -> Self {
         let rng2 = StdRng::from_entropy();

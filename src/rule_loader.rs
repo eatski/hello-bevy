@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use crate::action_system::{RuleToken, CheckToken, BoolToken, NumberToken, ConstantToken, CharacterHPToken, TrueOrFalseRandomToken, GreaterThanToken, StrikeAction, HealAction};
+use crate::action_system::{RuleToken, CheckToken, ActionResolver, BoolToken, NumberToken, ConstantToken, CharacterHPToken, TrueOrFalseRandomToken, GreaterThanToken, StrikeAction, HealAction};
 use crate::rule_input_model::{RuleSet, TokenConfig, ValidatedRuleChain};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
@@ -17,54 +17,59 @@ pub fn parse_rules_from_json(json_content: &str) -> Result<RuleSet, String> {
     Ok(rule_set)
 }
 
-pub fn convert_to_token_rules(rule_set: &RuleSet) -> Result<Vec<Vec<RuleToken>>, String> {
+pub fn convert_to_token_rules(rule_set: &RuleSet) -> Result<Vec<RuleToken>, String> {
     let mut token_rules = Vec::new();
     
     for rule_chain in &rule_set.rules {
         // Validate rule chain before conversion
         let validated_chain = ValidatedRuleChain::from_rule_chain(rule_chain)?;
         
-        let mut token_chain = Vec::new();
-        
-        for token_config in &validated_chain.tokens {
-            let token = convert_token_config(token_config)?;
-            token_chain.push(token);
-        }
-        
-        token_rules.push(token_chain);
+        // Convert token chain to single chained ActionResolver
+        let rule_token = convert_token_chain(&validated_chain.tokens)?;
+        token_rules.push(rule_token);
     }
     
     Ok(token_rules)
 }
 
-fn convert_token_config(config: &TokenConfig) -> Result<RuleToken, String> {
-    match config {
-        TokenConfig::Strike => Ok(RuleToken::Action(Box::new(StrikeAction))),
-        TokenConfig::Heal => Ok(RuleToken::Action(Box::new(HealAction))),
-        TokenConfig::TrueOrFalseRandom => Err("TrueOrFalseRandom cannot be used directly as RuleToken".to_string()),
-        TokenConfig::ActingCharacter => Err("ActingCharacter cannot be used directly as RuleToken".to_string()),
-        TokenConfig::Check { condition, args } => {
-            // Try args first, then fallback to condition
-            if !args.is_empty() {
-                let condition_token = convert_bool_token_config(&args[0])?;
-                Ok(RuleToken::Check(CheckToken::new(condition_token)))
-            } else if let Some(condition) = condition {
-                let condition_token = convert_bool_token_config(condition)?;
-                Ok(RuleToken::Check(CheckToken::new(condition_token)))
-            } else {
-                Err("Check token requires either args or condition".to_string())
-            }
-        },
-        TokenConfig::GreaterThan { left: _, right: _, args: _ } => {
-            Err("GreaterThan cannot be used directly as RuleToken".to_string())
-        },
-        TokenConfig::Number { value: _ } => {
-            Err("Number cannot be used directly as RuleToken".to_string())
-        },
-        TokenConfig::CharacterHP { character: _, args: _ } => {
-            Err("CharacterHP cannot be used directly as RuleToken".to_string())
-        },
+fn convert_token_chain(tokens: &[TokenConfig]) -> Result<RuleToken, String> {
+    if tokens.is_empty() {
+        return Err("Empty token chain".to_string());
     }
+    
+    let mut result: Option<Box<dyn ActionResolver>> = None;
+    
+    // Process tokens in reverse order to build the chain
+    for token_config in tokens.iter().rev() {
+        match token_config {
+            TokenConfig::Strike => {
+                result = Some(Box::new(StrikeAction));
+            }
+            TokenConfig::Heal => {
+                result = Some(Box::new(HealAction));
+            }
+            TokenConfig::Check { condition, args } => {
+                let bool_token = if !args.is_empty() {
+                    convert_bool_token_config(&args[0])?
+                } else if let Some(condition) = condition {
+                    convert_bool_token_config(condition)?
+                } else {
+                    return Err("Check token requires either args or condition".to_string());
+                };
+                
+                if let Some(next) = result {
+                    result = Some(Box::new(CheckToken::new(bool_token, next)));
+                } else {
+                    return Err("Check token must have a following token".to_string());
+                }
+            }
+            _ => {
+                return Err(format!("Token {:?} cannot be used directly in rule chain", token_config));
+            }
+        }
+    }
+    
+    result.ok_or_else(|| "Failed to build token chain".to_string())
 }
 
 fn convert_bool_token_config(config: &TokenConfig) -> Result<Box<dyn BoolToken>, String> {

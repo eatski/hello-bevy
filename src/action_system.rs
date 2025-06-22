@@ -18,11 +18,6 @@ pub enum ActionResolverResult {
     Break,               // 行を中断
 }
 
-#[derive(Clone, Debug)]
-pub enum CheckResult {
-    Continue,  // 行の解決を後続に委譲
-    Break,     // 行を中断
-}
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -31,25 +26,30 @@ pub enum ActionType {
     Heal,
 }
 
-// Check token type - evaluates condition and returns Continue or Break
+// Check token type - evaluates condition and delegates to next token or breaks
 #[derive(Debug)]
 pub struct CheckToken {
     condition: Box<dyn BoolToken>,
+    next: Box<dyn ActionResolver>,
 }
 
 impl CheckToken {
-    pub fn new(condition: Box<dyn BoolToken>) -> Self {
-        Self { condition }
+    pub fn new(condition: Box<dyn BoolToken>, next: Box<dyn ActionResolver>) -> Self {
+        Self { condition, next }
     }
-    
-    pub fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> CheckResult {
+}
+
+impl ActionResolver for CheckToken {
+    fn resolve(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
         if self.condition.evaluate(character, rng) {
-            CheckResult::Continue
+            // Continue: delegate to next token
+            self.next.resolve(character, rng)
         } else {
-            CheckResult::Break
+            ActionResolverResult::Break
         }
     }
 }
+
 
 // Trait for tokens that evaluate to boolean
 pub trait BoolToken: Send + Sync + std::fmt::Debug {
@@ -161,20 +161,16 @@ impl ActionResolver for HealAction {
 
 
 
-// Token types for rule system
-#[derive(Debug)]
-pub enum RuleToken {
-    Check(CheckToken),
-    Action(Box<dyn ActionResolver>),
-}
+// Simplified rule system - all tokens are ActionResolvers
+pub type RuleToken = Box<dyn ActionResolver>;
 
 pub struct ActionCalculationSystem {
-    pub rules: Vec<Vec<RuleToken>>,
+    pub rules: Vec<RuleToken>,
     pub rng: StdRng,
 }
 
 impl ActionCalculationSystem {
-    pub fn new(rules: Vec<Vec<RuleToken>>, rng: StdRng) -> Self {
+    pub fn new(rules: Vec<RuleToken>, rng: StdRng) -> Self {
         Self {
             rules,
             rng,
@@ -184,35 +180,13 @@ impl ActionCalculationSystem {
     pub fn calculate_action(&mut self, character: &crate::battle_system::Character) -> Option<ActionType> {
         let rng = &mut self.rng;
 
-        for rule_line in &self.rules {
-            let mut should_continue = true;
-
-            for token in rule_line {
-                if !should_continue {
-                    break;
+        for rule in &self.rules {
+            match rule.resolve(character, rng) {
+                ActionResolverResult::Action(action_type) => {
+                    return Some(action_type);
                 }
-
-                match token {
-                    RuleToken::Check(check) => {
-                        match check.evaluate(character, rng) {
-                            CheckResult::Continue => {
-                                should_continue = true;
-                            }
-                            CheckResult::Break => {
-                                break;
-                            }
-                        }
-                    }
-                    RuleToken::Action(action) => {
-                        match action.resolve(character, rng) {
-                            ActionResolverResult::Action(action_type) => {
-                                return Some(action_type);
-                            }
-                            ActionResolverResult::Break => {
-                                break;
-                            }
-                        }
-                    }
+                ActionResolverResult::Break => {
+                    continue; // Try next rule
                 }
             }
         }
@@ -296,22 +270,25 @@ mod tests {
     #[test]
     fn test_check_token() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
-        let check_random = CheckToken::new(Box::new(TrueOrFalseRandomToken));
+        let check_random = CheckToken::new(
+            Box::new(TrueOrFalseRandomToken),
+            Box::new(StrikeAction),
+        );
         let mut rng = StdRng::from_entropy();
         
-        match check_random.evaluate(&character, &mut rng) {
-            CheckResult::Continue | CheckResult::Break => assert!(true),
+        match check_random.resolve(&character, &mut rng) {
+            ActionResolverResult::Action(_) | ActionResolverResult::Break => assert!(true),
         }
     }
 
     #[test]
     fn test_action_calculation_system() {
-        let rules: Vec<Vec<RuleToken>> = vec![
-            vec![
-                RuleToken::Check(CheckToken::new(Box::new(TrueOrFalseRandomToken))),
-                RuleToken::Action(Box::new(HealAction)),
-            ],
-            vec![RuleToken::Action(Box::new(StrikeAction))],
+        let rules: Vec<RuleToken> = vec![
+            Box::new(CheckToken::new(
+                Box::new(TrueOrFalseRandomToken),
+                Box::new(HealAction),
+            )),
+            Box::new(StrikeAction),
         ];
         let rng = StdRng::from_entropy();
         let mut system = ActionCalculationSystem::new(rules, rng);
@@ -347,13 +324,13 @@ mod tests {
         let mut damaged_character = character.clone();
         damaged_character.take_damage(50); // HP: 50/100
         
-        let create_rules = || -> Vec<Vec<RuleToken>> {
+        let create_rules = || -> Vec<RuleToken> {
             vec![
-                vec![
-                    RuleToken::Check(CheckToken::new(Box::new(TrueOrFalseRandomToken))),
-                    RuleToken::Action(Box::new(HealAction)),
-                ],
-                vec![RuleToken::Action(Box::new(StrikeAction))],
+                Box::new(CheckToken::new(
+                    Box::new(TrueOrFalseRandomToken),
+                    Box::new(HealAction),
+                )),
+                Box::new(StrikeAction),
             ]
         };
         
@@ -424,15 +401,15 @@ mod tests {
         // HP: 100
         
         // Create HP-based rules
-        let hp_rules: Vec<Vec<RuleToken>> = vec![
-            vec![
-                RuleToken::Check(CheckToken::new(Box::new(GreaterThanToken::new(
+        let hp_rules: Vec<RuleToken> = vec![
+            Box::new(CheckToken::new(
+                Box::new(GreaterThanToken::new(
                     Box::new(ConstantToken::new(50)),
                     Box::new(CharacterHPToken),
-                )))),
-                RuleToken::Action(Box::new(HealAction)),
-            ],
-            vec![RuleToken::Action(Box::new(StrikeAction))],
+                )),
+                Box::new(HealAction),
+            )),
+            Box::new(StrikeAction),
         ];
         
         let rng = StdRng::from_entropy();
