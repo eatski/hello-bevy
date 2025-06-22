@@ -18,12 +18,35 @@ pub struct LogUI;
 #[derive(Component)]
 pub struct LatestLogUI;
 
+#[derive(Component)]
+pub struct HPBar;
+
+#[derive(Component)]
+pub struct MPBar;
+
+#[derive(PartialEq, Clone)]
+pub enum CharacterType {
+    Player,
+    Enemy,
+}
+
+#[derive(Component)]
+pub struct CharacterUI {
+    pub character_type: CharacterType,
+}
+
+
 pub fn load_font(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/NotoSansCJK-Regular.ttc");
     commands.insert_resource(GameFont { font });
 }
 
-pub fn setup_ui(mut commands: Commands, game_font: Res<GameFont>) {
+pub fn setup_ui(
+    mut commands: Commands, 
+    game_font: Res<GameFont>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     commands.spawn(Camera2d);
     
     // メインUI表示（左側）
@@ -80,6 +103,7 @@ pub fn setup_ui(mut commands: Commands, game_font: Res<GameFont>) {
         },
         LatestLogUI,
     ));
+    
 }
 
 pub fn handle_battle_input(
@@ -100,47 +124,9 @@ pub fn handle_battle_input(
 }
 
 
-fn create_hp_bar(current_hp: i32, max_hp: i32) -> String {
-    let bar_length = 20;
-    let filled_length = if max_hp > 0 {
-        (current_hp * bar_length / max_hp).max(0)
-    } else {
-        0
-    };
-    
-    let mut bar = String::new();
-    bar.push('[');
-    for i in 0..bar_length {
-        if i < filled_length {
-            bar.push('█');
-        } else {
-            bar.push('░');
-        }
-    }
-    bar.push(']');
-    bar
-}
 
-fn create_mp_bar(current_mp: i32, max_mp: i32) -> String {
-    let bar_length = 20;
-    let filled_length = if max_mp > 0 {
-        (current_mp * bar_length / max_mp).max(0)
-    } else {
-        0
-    };
-    
-    let mut bar = String::new();
-    bar.push('[');
-    for i in 0..bar_length {
-        if i < filled_length {
-            bar.push('◆');
-        } else {
-            bar.push('◇');
-        }
-    }
-    bar.push(']');
-    bar
-}
+
+
 
 pub fn update_battle_ui(
     game_battle: Res<GameBattle>,
@@ -150,21 +136,15 @@ pub fn update_battle_ui(
         let battle = &game_battle.0;
         let mut display_text = String::new();
         
-        let player_hp_bar = create_hp_bar(battle.player.hp, battle.player.max_hp);
-        let player_mp_bar = create_mp_bar(battle.player.mp, battle.player.max_mp);
-        display_text.push_str(&format!(
-            "{}: HP {}/{} {} MP {}/{} {}\n",
-            battle.player.name, battle.player.hp, battle.player.max_hp, player_hp_bar,
-            battle.player.mp, battle.player.max_mp, player_mp_bar
-        ));
+        display_text.push_str(&format!("{}:\n", battle.player.name));
+        display_text.push_str(&format!("HP {}/{}\n", battle.player.hp, battle.player.max_hp));
+        display_text.push_str(&format!("MP {}/{}\n", battle.player.mp, battle.player.max_mp));
         
-        let enemy_hp_bar = create_hp_bar(battle.enemy.hp, battle.enemy.max_hp);
-        let enemy_mp_bar = create_mp_bar(battle.enemy.mp, battle.enemy.max_mp);
-        display_text.push_str(&format!(
-            "{}: HP {}/{} {} MP {}/{} {}\n",
-            battle.enemy.name, battle.enemy.hp, battle.enemy.max_hp, enemy_hp_bar,
-            battle.enemy.mp, battle.enemy.max_mp, enemy_mp_bar
-        ));
+        display_text.push_str("\n");
+        
+        display_text.push_str(&format!("{}:\n", battle.enemy.name));
+        display_text.push_str(&format!("HP {}/{}\n", battle.enemy.hp, battle.enemy.max_hp));
+        display_text.push_str(&format!("MP {}/{}\n", battle.enemy.mp, battle.enemy.max_mp));
         
         display_text.push_str("\n");
         
