@@ -75,28 +75,16 @@ pub struct ActionCalculationSystem {
 }
 
 impl ActionCalculationSystem {
-    pub fn new() -> Self {
+    pub fn new(rules: Vec<Vec<Box<dyn Token>>>) -> Self {
         Self {
-            rules: vec![
-                vec![
-                    Box::new(Check::new(TrueOrFalseRandom)),
-                    Box::new(Heal),
-                ],
-                vec![Box::new(Strike)],
-            ],
+            rules,
             rng: StdRng::from_entropy(),
         }
     }
 
-    pub fn with_seed(seed: u64) -> Self {
+    pub fn with_seed(rules: Vec<Vec<Box<dyn Token>>>, seed: u64) -> Self {
         Self {
-            rules: vec![
-                vec![
-                    Box::new(Check::new(TrueOrFalseRandom)),
-                    Box::new(Heal),
-                ],
-                vec![Box::new(Strike)],
-            ],
+            rules,
             rng: StdRng::seed_from_u64(seed),
         }
     }
@@ -235,7 +223,14 @@ mod tests {
 
     #[test]
     fn test_action_calculation_system() {
-        let mut system = ActionCalculationSystem::new();
+        let rules: Vec<Vec<Box<dyn Token>>> = vec![
+            vec![
+                Box::new(Check::new(TrueOrFalseRandom)),
+                Box::new(Heal),
+            ],
+            vec![Box::new(Strike)],
+        ];
+        let mut system = ActionCalculationSystem::new(rules);
         let character = Character::new("Test".to_string(), 100, 50, 25, true);
         
         let action = system.calculate_action(&character);
@@ -271,9 +266,19 @@ mod tests {
         let mut damaged_character = character.clone();
         damaged_character.take_damage(50); // HP: 50/100
         
+        let create_rules = || -> Vec<Vec<Box<dyn Token>>> {
+            vec![
+                vec![
+                    Box::new(Check::new(TrueOrFalseRandom)),
+                    Box::new(Heal),
+                ],
+                vec![Box::new(Strike)],
+            ]
+        };
+        
         // Test deterministic behavior with same seed
-        let mut system1 = ActionCalculationSystem::with_seed(42);
-        let mut system2 = ActionCalculationSystem::with_seed(42);
+        let mut system1 = ActionCalculationSystem::with_seed(create_rules(), 42);
+        let mut system2 = ActionCalculationSystem::with_seed(create_rules(), 42);
         
         // Same seed should produce same action
         let action1 = system1.calculate_action(&damaged_character);
@@ -286,7 +291,7 @@ mod tests {
         
         // Test 10 different seeds
         for seed in 0..10 {
-            let mut system = ActionCalculationSystem::with_seed(seed);
+            let mut system = ActionCalculationSystem::with_seed(create_rules(), seed);
             if let Some(action) = system.calculate_action(&damaged_character) {
                 match action {
                     ActionType::Strike => strike_count += 1,
@@ -300,3 +305,4 @@ mod tests {
         assert_eq!(strike_count + heal_count, 10, "Should have 10 total actions");
     }
 }
+
