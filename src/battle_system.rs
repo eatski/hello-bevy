@@ -1,4 +1,4 @@
-use crate::action_system::{ActionCalculationSystem, ActionType};
+use crate::action_system::{ActionCalculationSystem, ActionType, RuleToken};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
@@ -62,8 +62,8 @@ impl Battle {
     pub fn new(
         player: Character, 
         enemy: Character, 
-        player_rules: Vec<Vec<Box<dyn crate::action_system::Token>>>, 
-        enemy_rules: Vec<Vec<Box<dyn crate::action_system::Token>>>, 
+        player_rules: Vec<Vec<RuleToken>>, 
+        enemy_rules: Vec<Vec<RuleToken>>, 
         rng: StdRng
     ) -> Self {
         let rng2 = StdRng::from_entropy();

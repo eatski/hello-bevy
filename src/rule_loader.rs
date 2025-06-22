@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use crate::action_system::{Token, Check, TrueOrFalseRandom, Strike, Heal, GreaterThanToken, Number, CharacterHP, ActingCharacter};
+use crate::action_system::{RuleToken, CheckToken, BoolToken, NumberToken, ConstantToken, CharacterHPToken, TrueOrFalseRandomToken, GreaterThanToken, StrikeAction, HealAction};
 use crate::rule_input_model::{RuleSet, TokenConfig, ValidatedRuleChain};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
@@ -17,7 +17,7 @@ pub fn parse_rules_from_json(json_content: &str) -> Result<RuleSet, String> {
     Ok(rule_set)
 }
 
-pub fn convert_to_token_rules(rule_set: &RuleSet) -> Result<Vec<Vec<Box<dyn Token>>>, String> {
+pub fn convert_to_token_rules(rule_set: &RuleSet) -> Result<Vec<Vec<RuleToken>>, String> {
     let mut token_rules = Vec::new();
     
     for rule_chain in &rule_set.rules {
@@ -37,55 +37,72 @@ pub fn convert_to_token_rules(rule_set: &RuleSet) -> Result<Vec<Vec<Box<dyn Toke
     Ok(token_rules)
 }
 
-fn convert_token_config(config: &TokenConfig) -> Result<Box<dyn Token>, String> {
+fn convert_token_config(config: &TokenConfig) -> Result<RuleToken, String> {
     match config {
-        TokenConfig::Strike => Ok(Box::new(Strike)),
-        TokenConfig::Heal => Ok(Box::new(Heal)),
-        TokenConfig::TrueOrFalseRandom => Ok(Box::new(TrueOrFalseRandom)),
-        TokenConfig::ActingCharacter => Ok(Box::new(ActingCharacter)),
+        TokenConfig::Strike => Ok(RuleToken::Action(Box::new(StrikeAction))),
+        TokenConfig::Heal => Ok(RuleToken::Action(Box::new(HealAction))),
+        TokenConfig::TrueOrFalseRandom => Err("TrueOrFalseRandom cannot be used directly as RuleToken".to_string()),
+        TokenConfig::ActingCharacter => Err("ActingCharacter cannot be used directly as RuleToken".to_string()),
         TokenConfig::Check { condition, args } => {
             // Try args first, then fallback to condition
             if !args.is_empty() {
-                let condition_token = convert_token_config(&args[0])?;
-                Ok(Box::new(Check::new_boxed(condition_token)))
+                let condition_token = convert_bool_token_config(&args[0])?;
+                Ok(RuleToken::Check(CheckToken::new(condition_token)))
             } else if let Some(condition) = condition {
-                let condition_token = convert_token_config(condition)?;
-                Ok(Box::new(Check::new_boxed(condition_token)))
+                let condition_token = convert_bool_token_config(condition)?;
+                Ok(RuleToken::Check(CheckToken::new(condition_token)))
             } else {
                 Err("Check token requires either args or condition".to_string())
             }
         },
+        TokenConfig::GreaterThan { left: _, right: _, args: _ } => {
+            Err("GreaterThan cannot be used directly as RuleToken".to_string())
+        },
+        TokenConfig::Number { value: _ } => {
+            Err("Number cannot be used directly as RuleToken".to_string())
+        },
+        TokenConfig::CharacterHP { character: _, args: _ } => {
+            Err("CharacterHP cannot be used directly as RuleToken".to_string())
+        },
+    }
+}
+
+fn convert_bool_token_config(config: &TokenConfig) -> Result<Box<dyn BoolToken>, String> {
+    match config {
+        TokenConfig::TrueOrFalseRandom => Ok(Box::new(TrueOrFalseRandomToken)),
         TokenConfig::GreaterThan { left, right, args } => {
             // Try args first, then fallback to left/right
             if args.len() >= 2 {
-                let left_token = convert_token_config(&args[0])?;
-                let right_token = convert_token_config(&args[1])?;
-                Ok(Box::new(GreaterThanToken::new_boxed(left_token, right_token)))
+                let left_token = convert_number_token_config(&args[0])?;
+                let right_token = convert_number_token_config(&args[1])?;
+                Ok(Box::new(GreaterThanToken::new(left_token, right_token)))
             } else if let (Some(left), Some(right)) = (left, right) {
-                let left_token = convert_token_config(left)?;
-                let right_token = convert_token_config(right)?;
-                Ok(Box::new(GreaterThanToken::new_boxed(left_token, right_token)))
+                let left_token = convert_number_token_config(left)?;
+                let right_token = convert_number_token_config(right)?;
+                Ok(Box::new(GreaterThanToken::new(left_token, right_token)))
             } else {
                 Err("GreaterThan token requires either args array with 2 elements or left/right fields".to_string())
             }
         },
-        TokenConfig::Number { value } => {
-            Ok(Box::new(Number::new(*value)))
-        },
-        TokenConfig::CharacterHP { character, args } => {
-            // Try args first, then fallback to character
-            if !args.is_empty() {
-                let character_token = convert_token_config(&args[0])?;
-                Ok(Box::new(CharacterHP::new_boxed(character_token)))
-            } else if let Some(character) = character {
+        _ => Err(format!("Cannot convert {:?} to BoolToken", config)),
+    }
+}
+
+fn convert_number_token_config(config: &TokenConfig) -> Result<Box<dyn NumberToken>, String> {
+    match config {
+        TokenConfig::Number { value } => Ok(Box::new(ConstantToken::new(*value))),
+        TokenConfig::CharacterHP { character, args: _ } => {
+            if let Some(character) = character {
                 match character.as_str() {
-                    "Self" => Ok(Box::new(CharacterHP::new(ActingCharacter))),
+                    "Self" => Ok(Box::new(CharacterHPToken)),
                     _ => Err(format!("Unknown character type: {}", character)),
                 }
             } else {
-                Err("CharacterHP token requires either args or character field".to_string())
+                Ok(Box::new(CharacterHPToken))
             }
         },
+        TokenConfig::ActingCharacter => Ok(Box::new(CharacterHPToken)), // ActingCharacter context -> CharacterHP
+        _ => Err(format!("Cannot convert {:?} to NumberToken", config)),
     }
 }
 

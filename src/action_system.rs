@@ -1,30 +1,29 @@
 use rand::Rng;
 use rand::rngs::StdRng;
 
-pub trait Token: Send + Sync {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult;
+// Trait for tokens that can resolve to actions or break
+pub trait ActionResolver: Send + Sync + std::fmt::Debug {
+    fn resolve(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult;
 }
 
-impl Token for Box<dyn Token> {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
-        (**self).evaluate(character, rng)
+impl ActionResolver for Box<dyn ActionResolver> {
+    fn resolve(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+        (**self).resolve(character, rng)
     }
 }
 
 #[derive(Clone, Debug)]
-pub enum TokenResult {
-    Continue,
-    Action(ActionType),
-    Break,
-    Value(TokenValue),
+pub enum ActionResolverResult {
+    Action(ActionType),  // 行はActionを決定
+    Break,               // 行を中断
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum TokenValue {
-    Number(i32),
-    Character,
-    Bool(bool),
+#[derive(Clone, Debug)]
+pub enum CheckResult {
+    Continue,  // 行の解決を後続に委譲
+    Break,     // 行を中断
 }
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ActionType {
@@ -32,198 +31,189 @@ pub enum ActionType {
     Heal,
 }
 
-pub struct Check<T: Token> {
-    condition: T,
+// Check token type - evaluates condition and returns Continue or Break
+#[derive(Debug)]
+pub struct CheckToken {
+    condition: Box<dyn BoolToken>,
 }
 
-impl<T: Token> Check<T> {
-    pub fn new(condition: T) -> Self {
+impl CheckToken {
+    pub fn new(condition: Box<dyn BoolToken>) -> Self {
         Self { condition }
     }
-}
-
-impl Check<Box<dyn Token>> {
-    pub fn new_boxed(condition: Box<dyn Token>) -> Self {
-        Self { condition }
-    }
-}
-
-impl<T: Token> Token for Check<T> {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
-        match self.condition.evaluate(character, rng) {
-            TokenResult::Value(TokenValue::Bool(true)) => TokenResult::Continue,
-            TokenResult::Continue => TokenResult::Continue,
-            _ => TokenResult::Break,
-        }
-    }
-}
-
-pub struct TrueOrFalseRandom;
-
-impl Token for TrueOrFalseRandom {
-    fn evaluate(&self, _character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
-        TokenResult::Value(TokenValue::Bool(rng.gen_bool(0.5)))
-    }
-}
-
-pub struct Strike;
-
-impl Token for Strike {
-    fn evaluate(&self, character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> TokenResult {
-        if character.hp > 0 {
-            TokenResult::Action(ActionType::Strike)
+    
+    pub fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> CheckResult {
+        if self.condition.evaluate(character, rng) {
+            CheckResult::Continue
         } else {
-            TokenResult::Break
+            CheckResult::Break
         }
     }
 }
 
-pub struct Heal;
+// Trait for tokens that evaluate to boolean
+pub trait BoolToken: Send + Sync + std::fmt::Debug {
+    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> bool;
+}
 
-impl Token for Heal {
-    fn evaluate(&self, character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> TokenResult {
-        if character.hp > 0 && character.mp >= 10 {
-            TokenResult::Action(ActionType::Heal)
-        } else {
-            TokenResult::Break
-        }
+impl BoolToken for Box<dyn BoolToken> {
+    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> bool {
+        (**self).evaluate(character, rng)
     }
 }
 
-pub struct GreaterThanToken<A: Token, B: Token> {
-    left: A,
-    right: B,
+// Concrete bool token implementations
+#[derive(Debug)]
+pub struct TrueOrFalseRandomToken;
+
+impl BoolToken for TrueOrFalseRandomToken {
+    fn evaluate(&self, _character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> bool {
+        rng.gen_bool(0.5)
+    }
 }
 
-impl<A: Token, B: Token> GreaterThanToken<A, B> {
-    pub fn new(left: A, right: B) -> Self {
+#[derive(Debug)]
+pub struct GreaterThanToken {
+    pub left: Box<dyn NumberToken>,
+    pub right: Box<dyn NumberToken>,
+}
+
+impl GreaterThanToken {
+    pub fn new(left: Box<dyn NumberToken>, right: Box<dyn NumberToken>) -> Self {
         Self { left, right }
     }
 }
 
-impl GreaterThanToken<Box<dyn Token>, Box<dyn Token>> {
-    pub fn new_boxed(left: Box<dyn Token>, right: Box<dyn Token>) -> Self {
-        Self { left, right }
+impl BoolToken for GreaterThanToken {
+    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> bool {
+        self.left.evaluate(character, rng) > self.right.evaluate(character, rng)
     }
 }
 
-impl<A: Token, B: Token> Token for GreaterThanToken<A, B> {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
-        let left_val = match self.left.evaluate(character, rng) {
-            TokenResult::Value(TokenValue::Number(n)) => n,
-            _ => return TokenResult::Break,
-        };
-        
-        let right_val = match self.right.evaluate(character, rng) {
-            TokenResult::Value(TokenValue::Number(n)) => n,
-            _ => return TokenResult::Break,
-        };
-        
-        TokenResult::Value(TokenValue::Bool(left_val > right_val))
+// Trait for tokens that evaluate to numbers
+pub trait NumberToken: Send + Sync + std::fmt::Debug {
+    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> i32;
+}
+
+impl NumberToken for Box<dyn NumberToken> {
+    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> i32 {
+        (**self).evaluate(character, rng)
     }
 }
 
-pub struct Number {
+// Concrete number token implementations
+#[derive(Debug)]
+pub struct ConstantToken {
     value: i32,
 }
 
-impl Number {
+impl ConstantToken {
     pub fn new(value: i32) -> Self {
         Self { value: value.clamp(1, 100) }
     }
 }
 
-impl Token for Number {
-    fn evaluate(&self, _character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> TokenResult {
-        TokenResult::Value(TokenValue::Number(self.value))
+impl NumberToken for ConstantToken {
+    fn evaluate(&self, _character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> i32 {
+        self.value
     }
 }
 
-pub struct CharacterHP<C: Token> {
-    character_token: C,
-}
+#[derive(Debug)]
+pub struct CharacterHPToken;
 
-impl<C: Token> CharacterHP<C> {
-    pub fn new(character_token: C) -> Self {
-        Self { character_token }
+impl NumberToken for CharacterHPToken {
+    fn evaluate(&self, character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> i32 {
+        character.hp
     }
 }
 
-impl CharacterHP<Box<dyn Token>> {
-    pub fn new_boxed(character_token: Box<dyn Token>) -> Self {
-        Self { character_token }
-    }
-}
 
-impl<C: Token> Token for CharacterHP<C> {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> TokenResult {
-        match self.character_token.evaluate(character, rng) {
-            TokenResult::Value(TokenValue::Character) => TokenResult::Value(TokenValue::Number(character.hp)),
-            _ => TokenResult::Break,
+
+// Action token types
+#[derive(Debug)]
+pub struct StrikeAction;
+
+impl ActionResolver for StrikeAction {
+    fn resolve(&self, character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+        if character.hp > 0 {
+            ActionResolverResult::Action(ActionType::Strike)
+        } else {
+            ActionResolverResult::Break
         }
     }
 }
 
-pub struct ActingCharacter;
+#[derive(Debug)]
+pub struct HealAction;
 
-impl Token for ActingCharacter {
-    fn evaluate(&self, _character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> TokenResult {
-        TokenResult::Value(TokenValue::Character)
+impl ActionResolver for HealAction {
+    fn resolve(&self, character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+        if character.hp > 0 && character.mp >= 10 {
+            ActionResolverResult::Action(ActionType::Heal)
+        } else {
+            ActionResolverResult::Break
+        }
     }
 }
 
+
+
+
+
+// Token types for rule system
+#[derive(Debug)]
+pub enum RuleToken {
+    Check(CheckToken),
+    Action(Box<dyn ActionResolver>),
+}
+
 pub struct ActionCalculationSystem {
-    pub rules: Vec<Vec<Box<dyn Token>>>,
+    pub rules: Vec<Vec<RuleToken>>,
     pub rng: StdRng,
 }
 
 impl ActionCalculationSystem {
-    pub fn new(rules: Vec<Vec<Box<dyn Token>>>, rng: StdRng) -> Self {
+    pub fn new(rules: Vec<Vec<RuleToken>>, rng: StdRng) -> Self {
         Self {
             rules,
             rng,
         }
     }
 
-
-
     pub fn calculate_action(&mut self, character: &crate::battle_system::Character) -> Option<ActionType> {
         let rng = &mut self.rng;
 
         for rule_line in &self.rules {
             let mut should_continue = true;
-            let mut action_result = None;
 
             for token in rule_line {
                 if !should_continue {
                     break;
                 }
 
-                match token.evaluate(character, rng) {
-                    TokenResult::Continue => {
-                        should_continue = true;
+                match token {
+                    RuleToken::Check(check) => {
+                        match check.evaluate(character, rng) {
+                            CheckResult::Continue => {
+                                should_continue = true;
+                            }
+                            CheckResult::Break => {
+                                break;
+                            }
+                        }
                     }
-                    TokenResult::Action(action) => {
-                        action_result = Some(action);
-                        break;
-                    }
-                    TokenResult::Break => {
-                        break;
-                    }
-                    TokenResult::Value(TokenValue::Bool(true)) => {
-                        should_continue = true;
-                    }
-                    TokenResult::Value(TokenValue::Bool(false)) => {
-                        break;
-                    }
-                    TokenResult::Value(_) => {
-                        should_continue = true;
+                    RuleToken::Action(action) => {
+                        match action.resolve(character, rng) {
+                            ActionResolverResult::Action(action_type) => {
+                                return Some(action_type);
+                            }
+                            ActionResolverResult::Break => {
+                                break;
+                            }
+                        }
                     }
                 }
-            }
-
-            if let Some(action) = action_result {
-                return Some(action);
             }
         }
         None
@@ -239,43 +229,43 @@ mod tests {
     #[test]
     fn test_strike_token() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
-        let strike = Strike;
+        let strike = StrikeAction;
         let mut rng = StdRng::from_entropy();
         
-        match strike.evaluate(&character, &mut rng) {
-            TokenResult::Action(ActionType::Strike) => assert!(true),
-            _ => panic!("Strike should return Action(Strike) for alive character"),
+        match strike.resolve(&character, &mut rng) {
+            ActionResolverResult::Action(ActionType::Strike) => assert!(true),
+            _ => panic!("StrikeAction should return Action(Strike) for alive character"),
         }
         
         let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
-        match strike.evaluate(&dead_character, &mut rng) {
-            TokenResult::Break => assert!(true),
-            _ => panic!("Strike should return Break for dead character"),
+        match strike.resolve(&dead_character, &mut rng) {
+            ActionResolverResult::Break => assert!(true),
+            _ => panic!("StrikeAction should return Break for dead character"),
         }
     }
 
     #[test]
     fn test_heal_token() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
-        let heal = Heal;
+        let heal = HealAction;
         let mut rng = StdRng::from_entropy();
         
-        match heal.evaluate(&character, &mut rng) {
-            TokenResult::Action(ActionType::Heal) => assert!(true),
-            _ => panic!("Heal should return Action(Heal) for alive character"),
+        match heal.resolve(&character, &mut rng) {
+            ActionResolverResult::Action(ActionType::Heal) => assert!(true),
+            _ => panic!("HealAction should return Action(Heal) for alive character"),
         }
         
         let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
-        match heal.evaluate(&dead_character, &mut rng) {
-            TokenResult::Break => assert!(true),
-            _ => panic!("Heal should return Break for dead character"),
+        match heal.resolve(&dead_character, &mut rng) {
+            ActionResolverResult::Break => assert!(true),
+            _ => panic!("HealAction should return Break for dead character"),
         }
     }
 
     #[test]
     fn test_true_or_false_random() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
-        let random = TrueOrFalseRandom;
+        let random = TrueOrFalseRandomToken;
         
         // Test with seeded RNG for deterministic behavior
         let mut rng1 = StdRng::seed_from_u64(42);
@@ -284,10 +274,7 @@ mod tests {
         let result2 = random.evaluate(&character, &mut rng2);
         
         // Same seed should produce same result
-        assert_eq!(
-            std::mem::discriminant(&result1),
-            std::mem::discriminant(&result2)
-        );
+        assert_eq!(result1, result2);
         
         // Test with random RNG for variety
         let mut rng = StdRng::from_entropy();
@@ -295,10 +282,10 @@ mod tests {
         let mut false_count = 0;
         
         for _ in 0..100 {
-            match random.evaluate(&character, &mut rng) {
-                TokenResult::Value(TokenValue::Bool(true)) => true_count += 1,
-                TokenResult::Value(TokenValue::Bool(false)) => false_count += 1,
-                _ => panic!("TrueOrFalseRandom should only return Value(Bool(bool))"),
+            if random.evaluate(&character, &mut rng) {
+                true_count += 1;
+            } else {
+                false_count += 1;
             }
         }
         
@@ -309,29 +296,22 @@ mod tests {
     #[test]
     fn test_check_token() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
-        let check_random = Check::new(TrueOrFalseRandom);
+        let check_random = CheckToken::new(Box::new(TrueOrFalseRandomToken));
         let mut rng = StdRng::from_entropy();
         
         match check_random.evaluate(&character, &mut rng) {
-            TokenResult::Continue | TokenResult::Break => assert!(true),
-            _ => panic!("Check(TrueOrFalseRandom) should return Continue or Break"),
-        }
-        
-        let check_strike = Check::new(Strike);
-        match check_strike.evaluate(&character, &mut rng) {
-            TokenResult::Break => assert!(true),
-            _ => panic!("Check(Strike) should return Break since Strike returns Action"),
+            CheckResult::Continue | CheckResult::Break => assert!(true),
         }
     }
 
     #[test]
     fn test_action_calculation_system() {
-        let rules: Vec<Vec<Box<dyn Token>>> = vec![
+        let rules: Vec<Vec<RuleToken>> = vec![
             vec![
-                Box::new(Check::new(TrueOrFalseRandom)),
-                Box::new(Heal),
+                RuleToken::Check(CheckToken::new(Box::new(TrueOrFalseRandomToken))),
+                RuleToken::Action(Box::new(HealAction)),
             ],
-            vec![Box::new(Strike)],
+            vec![RuleToken::Action(Box::new(StrikeAction))],
         ];
         let rng = StdRng::from_entropy();
         let mut system = ActionCalculationSystem::new(rules, rng);
@@ -348,7 +328,7 @@ mod tests {
     #[test]
     fn test_seeded_random_deterministic() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
-        let random = TrueOrFalseRandom;
+        let random = TrueOrFalseRandomToken;
         
         // Test deterministic behavior with seed
         let seed = 12345;
@@ -358,10 +338,7 @@ mod tests {
         let result1 = random.evaluate(&character, &mut rng1);
         let result2 = random.evaluate(&character, &mut rng2);
         
-        match (result1, result2) {
-            (TokenResult::Value(TokenValue::Bool(a)), TokenResult::Value(TokenValue::Bool(b))) => assert_eq!(a, b),
-            _ => panic!("Both should return Value(Bool) with same boolean value"),
-        }
+        assert_eq!(result1, result2);
     }
 
     #[test]
@@ -370,13 +347,13 @@ mod tests {
         let mut damaged_character = character.clone();
         damaged_character.take_damage(50); // HP: 50/100
         
-        let create_rules = || -> Vec<Vec<Box<dyn Token>>> {
+        let create_rules = || -> Vec<Vec<RuleToken>> {
             vec![
                 vec![
-                    Box::new(Check::new(TrueOrFalseRandom)),
-                    Box::new(Heal),
+                    RuleToken::Check(CheckToken::new(Box::new(TrueOrFalseRandomToken))),
+                    RuleToken::Action(Box::new(HealAction)),
                 ],
-                vec![Box::new(Strike)],
+                vec![RuleToken::Action(Box::new(StrikeAction))],
             ]
         };
         
@@ -416,39 +393,26 @@ mod tests {
         let character = Character::new("Test".to_string(), 100, 50, 25);
         let mut rng = StdRng::from_entropy();
         
-        // Test Number token
-        let number_token = Number::new(42);
-        match number_token.evaluate(&character, &mut rng) {
-            TokenResult::Value(TokenValue::Number(42)) => assert!(true),
-            _ => panic!("Number token should return Value(Number(42))"),
-        }
-        
-        // Test ActingCharacter token
-        let self_char_token = ActingCharacter;
-        match self_char_token.evaluate(&character, &mut rng) {
-            TokenResult::Value(TokenValue::Character) => assert!(true),
-            _ => panic!("ActingCharacter token should return Value(Character)"),
-        }
+        // Test Constant token
+        let number_token = ConstantToken::new(42);
+        assert_eq!(number_token.evaluate(&character, &mut rng), 42);
         
         // Test CharacterHP token
-        let char_hp_token = CharacterHP::new(ActingCharacter);
-        match char_hp_token.evaluate(&character, &mut rng) {
-            TokenResult::Value(TokenValue::Number(100)) => assert!(true),
-            _ => panic!("CharacterHP token should return Value(Number(100))"),
-        }
+        let char_hp_token = CharacterHPToken;
+        assert_eq!(char_hp_token.evaluate(&character, &mut rng), 100);
         
         // Test GreaterThanToken
-        let greater_than_token = GreaterThanToken::new(Number::new(60), Number::new(40));
-        match greater_than_token.evaluate(&character, &mut rng) {
-            TokenResult::Value(TokenValue::Bool(true)) => assert!(true),
-            _ => panic!("GreaterThanToken(60, 40) should return Value(Bool(true))"),
-        }
+        let greater_than_token = GreaterThanToken::new(
+            Box::new(ConstantToken::new(60)),
+            Box::new(ConstantToken::new(40)),
+        );
+        assert_eq!(greater_than_token.evaluate(&character, &mut rng), true);
         
-        let greater_than_token_false = GreaterThanToken::new(Number::new(30), Number::new(50));
-        match greater_than_token_false.evaluate(&character, &mut rng) {
-            TokenResult::Value(TokenValue::Bool(false)) => assert!(true),
-            _ => panic!("GreaterThanToken(30, 50) should return Value(Bool(false))"),
-        }
+        let greater_than_token_false = GreaterThanToken::new(
+            Box::new(ConstantToken::new(30)),
+            Box::new(ConstantToken::new(50)),
+        );
+        assert_eq!(greater_than_token_false.evaluate(&character, &mut rng), false);
     }
 
     #[test]
@@ -460,17 +424,15 @@ mod tests {
         // HP: 100
         
         // Create HP-based rules
-        let hp_rules: Vec<Vec<Box<dyn Token>>> = vec![
+        let hp_rules: Vec<Vec<RuleToken>> = vec![
             vec![
-                Box::new(Check::new(
-                    GreaterThanToken::new(
-                        Number::new(50),
-                        CharacterHP::new(ActingCharacter),
-                    )
-                )),
-                Box::new(Heal),
+                RuleToken::Check(CheckToken::new(Box::new(GreaterThanToken::new(
+                    Box::new(ConstantToken::new(50)),
+                    Box::new(CharacterHPToken),
+                )))),
+                RuleToken::Action(Box::new(HealAction)),
             ],
-            vec![Box::new(Strike)],
+            vec![RuleToken::Action(Box::new(StrikeAction))],
         ];
         
         let rng = StdRng::from_entropy();

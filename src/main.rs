@@ -66,40 +66,36 @@ fn setup_battle(mut commands: Commands) {
     commands.insert_resource(GameBattle(battle));
 }
 
-fn get_fallback_player_rules() -> Vec<Vec<Box<dyn action_system::Token>>> {
+fn get_fallback_player_rules() -> Vec<Vec<action_system::RuleToken>> {
     vec![
         vec![
-            Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
-            Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
-            Box::new(action_system::Heal),
+            action_system::RuleToken::Check(action_system::CheckToken::new(Box::new(action_system::TrueOrFalseRandomToken))),
+            action_system::RuleToken::Check(action_system::CheckToken::new(Box::new(action_system::TrueOrFalseRandomToken))),
+            action_system::RuleToken::Action(Box::new(action_system::HealAction)),
         ],
         vec![
-            Box::new(action_system::Check::new(
-                action_system::GreaterThanToken::new(
-                    action_system::Number::new(50),
-                    action_system::CharacterHP::new(action_system::ActingCharacter),
-                )
-            )),
+            action_system::RuleToken::Check(action_system::CheckToken::new(Box::new(action_system::GreaterThanToken::new(
+                Box::new(action_system::ConstantToken::new(50)),
+                Box::new(action_system::CharacterHPToken),
+            )))),
         ],
         vec![
-            Box::new(action_system::Strike),
+            action_system::RuleToken::Action(Box::new(action_system::StrikeAction)),
         ],
     ]
 }
 
-fn get_fallback_enemy_rules() -> Vec<Vec<Box<dyn action_system::Token>>> {
+fn get_fallback_enemy_rules() -> Vec<Vec<action_system::RuleToken>> {
     vec![
         vec![
-            Box::new(action_system::Check::new(
-                action_system::GreaterThanToken::new(
-                    action_system::Number::new(30),
-                    action_system::CharacterHP::new(action_system::ActingCharacter),
-                )
-            )),
-            Box::new(action_system::Check::new(action_system::TrueOrFalseRandom)),
-            Box::new(action_system::Heal),
+            action_system::RuleToken::Check(action_system::CheckToken::new(Box::new(action_system::GreaterThanToken::new(
+                Box::new(action_system::ConstantToken::new(30)),
+                Box::new(action_system::CharacterHPToken),
+            )))),
+            action_system::RuleToken::Check(action_system::CheckToken::new(Box::new(action_system::TrueOrFalseRandomToken))),
+            action_system::RuleToken::Action(Box::new(action_system::HealAction)),
         ],
-        vec![Box::new(action_system::Strike)],
+        vec![action_system::RuleToken::Action(Box::new(action_system::StrikeAction))],
     ]
 }
 
