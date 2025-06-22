@@ -61,7 +61,7 @@ pub struct Heal;
 
 impl Token for Heal {
     fn evaluate(&self, character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> TokenResult {
-        if character.hp > 0 {
+        if character.hp > 0 && character.mp >= 10 {
             TokenResult::Action(ActionType::Heal)
         } else {
             TokenResult::Break
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_strike_token() {
-        let character = Character::new("Test".to_string(), 100, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25, true);
         let strike = Strike;
         let mut rng = StdRng::from_entropy();
         
@@ -156,7 +156,7 @@ mod tests {
             _ => panic!("Strike should return Action(Strike) for alive character"),
         }
         
-        let dead_character = Character::new("Dead".to_string(), 0, 25, true);
+        let dead_character = Character::new("Dead".to_string(), 0, 0, 25, true);
         match strike.evaluate(&dead_character, &mut rng) {
             TokenResult::Break => assert!(true),
             _ => panic!("Strike should return Break for dead character"),
@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_heal_token() {
-        let character = Character::new("Test".to_string(), 100, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25, true);
         let heal = Heal;
         let mut rng = StdRng::from_entropy();
         
@@ -174,7 +174,7 @@ mod tests {
             _ => panic!("Heal should return Action(Heal) for alive character"),
         }
         
-        let dead_character = Character::new("Dead".to_string(), 0, 25, true);
+        let dead_character = Character::new("Dead".to_string(), 0, 0, 25, true);
         match heal.evaluate(&dead_character, &mut rng) {
             TokenResult::Break => assert!(true),
             _ => panic!("Heal should return Break for dead character"),
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_true_or_false_random() {
-        let character = Character::new("Test".to_string(), 100, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25, true);
         let random = TrueOrFalseRandom;
         
         // Test with seeded RNG for deterministic behavior
@@ -217,7 +217,7 @@ mod tests {
 
     #[test]
     fn test_check_token() {
-        let character = Character::new("Test".to_string(), 100, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25, true);
         let check_random = Check::new(TrueOrFalseRandom);
         let mut rng = StdRng::from_entropy();
         
@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn test_action_calculation_system() {
         let mut system = ActionCalculationSystem::new();
-        let character = Character::new("Test".to_string(), 100, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25, true);
         
         let action = system.calculate_action(&character);
         assert!(action.is_some(), "Should return some action");
@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_seeded_random_deterministic() {
-        let character = Character::new("Test".to_string(), 100, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25, true);
         let random = TrueOrFalseRandom;
         
         // Test deterministic behavior with seed
@@ -267,7 +267,7 @@ mod tests {
 
     #[test]
     fn test_action_system_with_seed() {
-        let character = Character::new("Test".to_string(), 100, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25, true);
         let mut damaged_character = character.clone();
         damaged_character.take_damage(50); // HP: 50/100
         

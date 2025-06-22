@@ -5,16 +5,20 @@ pub struct Character {
     pub name: String,
     pub hp: i32,
     pub max_hp: i32,
+    pub mp: i32,
+    pub max_mp: i32,
     pub attack: i32,
     pub is_player: bool,
 }
 
 impl Character {
-    pub fn new(name: String, max_hp: i32, attack: i32, is_player: bool) -> Self {
+    pub fn new(name: String, max_hp: i32, max_mp: i32, attack: i32, is_player: bool) -> Self {
         Self {
             name,
             hp: max_hp,
             max_hp,
+            mp: max_mp,
+            max_mp,
             attack,
             is_player,
         }
@@ -30,6 +34,19 @@ impl Character {
 
     pub fn heal(&mut self, amount: i32) {
         self.hp = (self.hp + amount).min(self.max_hp);
+    }
+
+    pub fn consume_mp(&mut self, amount: i32) -> bool {
+        if self.mp >= amount {
+            self.mp -= amount;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn restore_mp(&mut self, amount: i32) {
+        self.mp = (self.mp + amount).min(self.max_mp);
     }
 }
 
@@ -76,12 +93,19 @@ impl Battle {
                     ));
                 }
                 ActionType::Heal => {
-                    let heal_amount = 20;
-                    self.player.heal(heal_amount);
-                    self.battle_log.push(format!(
-                        "ターン{}: {}が{}回復！",
-                        self.current_turn + 1, self.player.name, heal_amount
-                    ));
+                    if self.player.consume_mp(10) {
+                        let heal_amount = 20;
+                        self.player.heal(heal_amount);
+                        self.battle_log.push(format!(
+                            "ターン{}: {}がMP10を消費して{}回復！",
+                            self.current_turn + 1, self.player.name, heal_amount
+                        ));
+                    } else {
+                        self.battle_log.push(format!(
+                            "ターン{}: {}はMPが足りない！",
+                            self.current_turn + 1, self.player.name
+                        ));
+                    }
                 }
             }
         } else {
@@ -113,12 +137,19 @@ impl Battle {
                     ));
                 }
                 ActionType::Heal => {
-                    let heal_amount = 20;
-                    self.enemy.heal(heal_amount);
-                    self.battle_log.push(format!(
-                        "ターン{}: {}が{}回復！",
-                        self.current_turn + 1, self.enemy.name, heal_amount
-                    ));
+                    if self.enemy.consume_mp(10) {
+                        let heal_amount = 20;
+                        self.enemy.heal(heal_amount);
+                        self.battle_log.push(format!(
+                            "ターン{}: {}がMP10を消費して{}回復！",
+                            self.current_turn + 1, self.enemy.name, heal_amount
+                        ));
+                    } else {
+                        self.battle_log.push(format!(
+                            "ターン{}: {}はMPが足りない！",
+                            self.current_turn + 1, self.enemy.name
+                        ));
+                    }
                 }
             }
         } else {
@@ -153,10 +184,12 @@ mod tests {
 
     #[test]
     fn test_character_creation() {
-        let character = Character::new("Test".to_string(), 100, 25, true);
+        let character = Character::new("Test".to_string(), 100, 50, 25, true);
         assert_eq!(character.name, "Test");
         assert_eq!(character.hp, 100);
         assert_eq!(character.max_hp, 100);
+        assert_eq!(character.mp, 50);
+        assert_eq!(character.max_mp, 50);
         assert_eq!(character.attack, 25);
         assert_eq!(character.is_player, true);
         assert!(character.is_alive());
@@ -164,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_character_damage_and_heal() {
-        let mut character = Character::new("Test".to_string(), 100, 25, true);
+        let mut character = Character::new("Test".to_string(), 100, 50, 25, true);
         
         character.take_damage(30);
         assert_eq!(character.hp, 70);
@@ -182,9 +215,29 @@ mod tests {
     }
 
     #[test]
+    fn test_mp_system() {
+        let mut character = Character::new("Test".to_string(), 100, 50, 25, true);
+        
+        assert_eq!(character.mp, 50);
+        assert_eq!(character.max_mp, 50);
+        
+        assert!(character.consume_mp(20));
+        assert_eq!(character.mp, 30);
+        
+        assert!(!character.consume_mp(40));
+        assert_eq!(character.mp, 30);
+        
+        character.restore_mp(15);
+        assert_eq!(character.mp, 45);
+        
+        character.restore_mp(10);
+        assert_eq!(character.mp, 50);
+    }
+
+    #[test]
     fn test_battle_creation() {
-        let player = Character::new("Player".to_string(), 100, 25, true);
-        let enemy = Character::new("Enemy".to_string(), 80, 20, false);
+        let player = Character::new("Player".to_string(), 100, 50, 25, true);
+        let enemy = Character::new("Enemy".to_string(), 80, 40, 20, false);
         let battle = Battle::new(player, enemy);
         
         assert_eq!(battle.player.name, "Player");
@@ -197,8 +250,8 @@ mod tests {
 
     #[test]
     fn test_battle_turn_system() {
-        let player = Character::new("Player".to_string(), 100, 25, true);
-        let enemy = Character::new("Enemy".to_string(), 80, 20, false);
+        let player = Character::new("Player".to_string(), 100, 50, 25, true);
+        let enemy = Character::new("Enemy".to_string(), 80, 40, 20, false);
         let mut battle = Battle::new(player, enemy);
         
         assert!(battle.is_player_turn());

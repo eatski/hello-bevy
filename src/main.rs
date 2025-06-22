@@ -37,8 +37,8 @@ fn load_font(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn setup_battle(mut commands: Commands, game_font: Res<GameFont>) {
     commands.spawn(Camera2d);
     
-    let player = GameCharacter::new("勇者".to_string(), 100, 25, true);
-    let enemy = GameCharacter::new("スライム".to_string(), 60, 15, false);
+    let player = GameCharacter::new("勇者".to_string(), 100, 50, 25, true);
+    let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15, false);
     let battle = Battle::new(player, enemy);
     
     commands.insert_resource(GameBattle(battle));
@@ -105,8 +105,8 @@ fn handle_battle_input(
 ) {
     if game_battle.0.battle_over {
         if keyboard_input.just_pressed(KeyCode::ShiftLeft) || keyboard_input.just_pressed(KeyCode::ShiftRight) {
-            let player = GameCharacter::new("勇者".to_string(), 100, 25, true);
-            let enemy = GameCharacter::new("スライム".to_string(), 60, 15, false);
+            let player = GameCharacter::new("勇者".to_string(), 100, 50, 25, true);
+            let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15, false);
             game_battle.0 = Battle::new(player, enemy);
         }
         return;
@@ -142,6 +142,27 @@ fn create_hp_bar(current_hp: i32, max_hp: i32) -> String {
     bar
 }
 
+fn create_mp_bar(current_mp: i32, max_mp: i32) -> String {
+    let bar_length = 20;
+    let filled_length = if max_mp > 0 {
+        (current_mp * bar_length / max_mp).max(0)
+    } else {
+        0
+    };
+    
+    let mut bar = String::new();
+    bar.push('[');
+    for i in 0..bar_length {
+        if i < filled_length {
+            bar.push('◆');
+        } else {
+            bar.push('◇');
+        }
+    }
+    bar.push(']');
+    bar
+}
+
 fn update_battle_ui(
     game_battle: Res<GameBattle>,
     mut ui_query: Query<&mut Text, With<BattleUI>>,
@@ -151,15 +172,19 @@ fn update_battle_ui(
         let mut display_text = String::new();
         
         let player_hp_bar = create_hp_bar(battle.player.hp, battle.player.max_hp);
+        let player_mp_bar = create_mp_bar(battle.player.mp, battle.player.max_mp);
         display_text.push_str(&format!(
-            "{}: HP {}/{} {}\n",
-            battle.player.name, battle.player.hp, battle.player.max_hp, player_hp_bar
+            "{}: HP {}/{} {} MP {}/{} {}\n",
+            battle.player.name, battle.player.hp, battle.player.max_hp, player_hp_bar,
+            battle.player.mp, battle.player.max_mp, player_mp_bar
         ));
         
         let enemy_hp_bar = create_hp_bar(battle.enemy.hp, battle.enemy.max_hp);
+        let enemy_mp_bar = create_mp_bar(battle.enemy.mp, battle.enemy.max_mp);
         display_text.push_str(&format!(
-            "{}: HP {}/{} {}\n",
-            battle.enemy.name, battle.enemy.hp, battle.enemy.max_hp, enemy_hp_bar
+            "{}: HP {}/{} {} MP {}/{} {}\n",
+            battle.enemy.name, battle.enemy.hp, battle.enemy.max_hp, enemy_hp_bar,
+            battle.enemy.mp, battle.enemy.max_mp, enemy_mp_bar
         ));
         
         display_text.push_str("\n");
