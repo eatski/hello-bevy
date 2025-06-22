@@ -5,25 +5,6 @@
         {
           "type": "Check",
           "args": [{
-            "type": "TrueOrFalseRandom"
-          }]
-        },
-        {
-          "type": "Check", 
-          "args": [{
-            "type": "TrueOrFalseRandom"
-          }]
-        },
-        {
-          "type": "Heal"
-        }
-      ]
-    },
-    {
-      "tokens": [
-        {
-          "type": "Check",
-          "args": [{
             "type": "GreaterThan",
             "args": [
               {
@@ -38,6 +19,9 @@
               }
             ]
           }]
+        },
+        {
+          "type": "Heal"
         }
       ]
     },
