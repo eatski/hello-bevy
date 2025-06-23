@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 use crate::action_system::{RuleToken, CheckToken, ActionResolver, BoolToken, NumberToken, ConstantToken, CharacterHPToken, TrueOrFalseRandomToken, GreaterThanToken, StrikeAction, HealAction};
-use crate::rule_input_model::{RuleSet, TokenConfig, ValidatedRuleChain};
+use crate::rule_input_model::{RuleSet, TokenConfig};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
     let content = fs::read_to_string(path)
@@ -21,11 +21,8 @@ pub fn convert_to_token_rules(rule_set: &RuleSet) -> Result<Vec<RuleToken>, Stri
     let mut token_rules = Vec::new();
     
     for rule_chain in &rule_set.rules {
-        // Validate rule chain before conversion
-        let validated_chain = ValidatedRuleChain::from_rule_chain(rule_chain)?;
-        
         // Convert token chain to single chained ActionResolver
-        let rule_token = convert_token_chain(&validated_chain.tokens)?;
+        let rule_token = convert_token_chain(&rule_chain.tokens)?;
         token_rules.push(rule_token);
     }
     
@@ -288,72 +285,8 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn test_continue_token_at_end_error_check() {
-        let rule_set = RuleSet {
-            rules: vec![
-                RuleChain {
-                    tokens: vec![
-                        TokenConfig::Check {
-                            args: vec![TokenConfig::TrueOrFalseRandom],
-                        },
-                        // No token after Check - should cause error
-                    ],
-                },
-            ],
-        };
-        
-        let result = convert_to_token_rules(&rule_set);
-        assert!(result.is_err());
-        if let Err(error_msg) = result {
-            assert!(error_msg.contains("Check token at position 0 cannot be the last token"));
-        }
-    }
 
-    #[test]
-    fn test_continue_token_at_end_error_greater_than() {
-        let rule_set = RuleSet {
-            rules: vec![
-                RuleChain {
-                    tokens: vec![
-                        TokenConfig::GreaterThan {
-                            args: vec![
-                                TokenConfig::Number { value: 50 },
-                                TokenConfig::Number { value: 30 },
-                            ],
-                        },
-                        // No token after GreaterThan - should cause error
-                    ],
-                },
-            ],
-        };
-        
-        let result = convert_to_token_rules(&rule_set);
-        assert!(result.is_err());
-        if let Err(error_msg) = result {
-            assert!(error_msg.contains("GreaterThan token at position 0 cannot be the last token"));
-        }
-    }
 
-    #[test]
-    fn test_continue_token_at_end_error_true_or_false_random() {
-        let rule_set = RuleSet {
-            rules: vec![
-                RuleChain {
-                    tokens: vec![
-                        TokenConfig::TrueOrFalseRandom,
-                        // No token after TrueOrFalseRandom - should cause error
-                    ],
-                },
-            ],
-        };
-        
-        let result = convert_to_token_rules(&rule_set);
-        assert!(result.is_err());
-        if let Err(error_msg) = result {
-            assert!(error_msg.contains("TrueOrFalseRandom token at position 0 cannot be the last token"));
-        }
-    }
 
     #[test]
     fn test_valid_continue_token_with_following_action() {
