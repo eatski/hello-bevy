@@ -248,8 +248,8 @@ mod tests {
     fn test_battle_creation() {
         let player = Character::new("Player".to_string(), 100, 50, 25);
         let enemy = Character::new("Enemy".to_string(), 80, 40, 20);
-        let player_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![vec![Box::new(crate::action_system::Strike)]];
-        let enemy_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![vec![Box::new(crate::action_system::Strike)]];
+        let player_rules: Vec<RuleToken> = vec![Box::new(crate::action_system::StrikeAction)];
+        let enemy_rules: Vec<RuleToken> = vec![Box::new(crate::action_system::StrikeAction)];
         let rng = StdRng::from_entropy();
         let battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
         
@@ -265,8 +265,8 @@ mod tests {
     fn test_battle_turn_system() {
         let player = Character::new("Player".to_string(), 100, 50, 25);
         let enemy = Character::new("Enemy".to_string(), 80, 40, 20);
-        let player_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![vec![Box::new(crate::action_system::Strike)]];
-        let enemy_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![vec![Box::new(crate::action_system::Strike)]];
+        let player_rules: Vec<RuleToken> = vec![Box::new(crate::action_system::StrikeAction)];
+        let enemy_rules: Vec<RuleToken> = vec![Box::new(crate::action_system::StrikeAction)];
         let rng = StdRng::from_entropy();
         let mut battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
         
@@ -292,14 +292,14 @@ mod integration_tests {
     fn test_action_system_integration_with_battle() {
         let player = Character::new("Player".to_string(), 100, 50, 25);
         let enemy = Character::new("Enemy".to_string(), 80, 40, 20);
-        let player_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![
-                Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                Box::new(crate::action_system::Heal),
-            ],
-            vec![Box::new(crate::action_system::Strike)],
+        let player_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::CheckToken::new(
+                Box::new(crate::action_system::TrueOrFalseRandomToken),
+                Box::new(crate::action_system::HealAction),
+            )),
+            Box::new(crate::action_system::StrikeAction),
         ];
-        let enemy_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![vec![Box::new(crate::action_system::Strike)]];
+        let enemy_rules: Vec<RuleToken> = vec![Box::new(crate::action_system::StrikeAction)];
         let rng = StdRng::from_entropy();
         let mut battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
         
@@ -320,7 +320,7 @@ mod integration_tests {
             let player_test = Character::new("Player".to_string(), 100, 50, 25);
             let enemy_test = Character::new("Enemy".to_string(), 80, 40, 20);
             let rng_test = StdRng::from_entropy();
-            let mut battle_test = Battle::new(player_test, enemy_test, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng_test);
+            let mut battle_test = Battle::new(player_test, enemy_test, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng_test);
             
             let initial_enemy_hp_test = battle_test.enemy.hp;
             let initial_player_mp_test = battle_test.player.mp;
@@ -341,7 +341,7 @@ mod integration_tests {
         let player = Character::new("Player".to_string(), 50, 30, 30);
         let enemy = Character::new("Enemy".to_string(), 40, 20, 25);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         
         let mut turn_count = 0;
         let max_turns = 20;
@@ -370,12 +370,12 @@ mod integration_tests {
         
         player.take_damage(50);
         
-        let rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![
-                Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                Box::new(crate::action_system::Heal),
-            ],
-            vec![Box::new(crate::action_system::Strike)],
+        let rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::CheckToken::new(
+                Box::new(crate::action_system::TrueOrFalseRandomToken),
+                Box::new(crate::action_system::HealAction),
+            )),
+            Box::new(crate::action_system::StrikeAction),
         ];
         let rng = StdRng::from_entropy();
         let mut action_system = ActionCalculationSystem::new(rules, rng);
@@ -395,12 +395,12 @@ mod integration_tests {
         let mut player = Character::new("Player".to_string(), 50, 5, 25);
         player.take_damage(30);
         
-        let rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![
-                Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                Box::new(crate::action_system::Heal),
-            ],
-            vec![Box::new(crate::action_system::Strike)],
+        let rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::CheckToken::new(
+                Box::new(crate::action_system::TrueOrFalseRandomToken),
+                Box::new(crate::action_system::HealAction),
+            )),
+            Box::new(crate::action_system::StrikeAction),
         ];
         let rng = StdRng::from_entropy();
         let mut action_system = ActionCalculationSystem::new(rules, rng);
@@ -430,15 +430,15 @@ mod integration_tests {
         let create_battle = || {
             let player = Character::new("Player".to_string(), 80, 40, 20);
             let enemy = Character::new("Enemy".to_string(), 70, 30, 18);
-            let rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-                vec![
-                    Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                    Box::new(crate::action_system::Heal),
-                ],
-                vec![Box::new(crate::action_system::Strike)],
+            let rules: Vec<RuleToken> = vec![
+                Box::new(crate::action_system::CheckToken::new(
+                    Box::new(crate::action_system::TrueOrFalseRandomToken),
+                    Box::new(crate::action_system::HealAction),
+                )),
+                Box::new(crate::action_system::StrikeAction),
             ];
             let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
             let rng = StdRng::from_entropy();
             battle.player_action_system = ActionCalculationSystem::new(rules, rng);
             battle
@@ -479,7 +479,7 @@ mod integration_tests {
         let player = Character::new("Hero".to_string(), 100, 50, 30);
         let enemy = Character::new("Goblin".to_string(), 60, 20, 15);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         
         let initial_state = (battle.player.hp, battle.enemy.hp, battle.current_turn);
         
@@ -497,7 +497,7 @@ mod integration_tests {
         let enemy = Character::new("Enemy".to_string(), 50, 30, 20);
         player.take_damage(20);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         
         let initial_player_hp = battle.player.hp;
         
@@ -528,11 +528,11 @@ mod integration_tests {
         let weak_enemy = Character::new("Weak Enemy".to_string(), 10, 10, 5);
         
         // Use strike-only rules to ensure the battle ends quickly
-        let strike_only_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![Box::new(crate::action_system::Strike)],
+        let strike_only_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::StrikeAction),
         ];
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, weak_enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, weak_enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         let rng = StdRng::from_entropy();
         battle.player_action_system = ActionCalculationSystem::new(strike_only_rules, rng);
         
@@ -562,7 +562,7 @@ mod integration_tests {
         let low_mp_player = Character::new("Player".to_string(), 50, 5, 25);
         let enemy = Character::new("Enemy".to_string(), 100, 50, 20);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(low_mp_player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(low_mp_player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         
         battle.player.take_damage(30);
         
@@ -593,12 +593,12 @@ mod integration_tests {
         let damaged_player = Character::new("Player".to_string(), 20, 50, 25);
         let healthy_player = Character::new("Player2".to_string(), 100, 50, 25);
         
-        let rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![
-                Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                Box::new(crate::action_system::Heal),
-            ],
-            vec![Box::new(crate::action_system::Strike)],
+        let rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::CheckToken::new(
+                Box::new(crate::action_system::TrueOrFalseRandomToken),
+                Box::new(crate::action_system::HealAction),
+            )),
+            Box::new(crate::action_system::StrikeAction),
         ];
         let rng = StdRng::from_entropy();
         let mut action_system = ActionCalculationSystem::new(rules, rng);
@@ -613,12 +613,12 @@ mod integration_tests {
         let mut strike_for_healthy = false;
         
         for _seed in 0..20 {
-            let rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-                vec![
-                    Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                    Box::new(crate::action_system::Heal),
-                ],
-                vec![Box::new(crate::action_system::Strike)],
+            let rules: Vec<RuleToken> = vec![
+                Box::new(crate::action_system::CheckToken::new(
+                    Box::new(crate::action_system::TrueOrFalseRandomToken),
+                    Box::new(crate::action_system::HealAction),
+                )),
+                Box::new(crate::action_system::StrikeAction),
             ];
             let rng = StdRng::from_entropy();
             let mut system = ActionCalculationSystem::new(rules, rng);
@@ -644,7 +644,7 @@ mod integration_tests {
         let player = Character::new("Hero".to_string(), 80, 40, 25);
         let enemy = Character::new("Monster".to_string(), 70, 30, 20);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         
         let initial_log_count = battle.battle_log.len();
         
@@ -667,7 +667,7 @@ mod integration_tests {
         let player = Character::new("Player".to_string(), 60, 40, 20);
         let enemy = Character::new("Enemy".to_string(), 50, 30, 18);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         
         for _turn in 0..10 {
             if battle.battle_over {
@@ -702,13 +702,13 @@ mod integration_tests {
         let player = Character::new("Warrior".to_string(), 80, 30, 35);
         let enemy = Character::new("Target".to_string(), 60, 20, 15);
         
-        let strike_only_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![Box::new(crate::action_system::Strike)],
+        let strike_only_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::StrikeAction),
         ];
         let rng = StdRng::from_entropy();
         let action_system = ActionCalculationSystem::new(strike_only_rules, rng);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         battle.player_action_system = action_system;
         
         let initial_enemy_hp = battle.enemy.hp;
@@ -725,13 +725,13 @@ mod integration_tests {
         player.take_damage(40);
         let enemy = Character::new("Dummy".to_string(), 100, 30, 10);
         
-        let heal_only_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![Box::new(crate::action_system::Heal)],
+        let heal_only_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::HealAction),
         ];
         let rng = StdRng::from_entropy();
         let action_system = ActionCalculationSystem::new(heal_only_rules, rng);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         battle.player_action_system = action_system;
         
         let initial_player_hp = battle.player.hp;
@@ -749,22 +749,24 @@ mod integration_tests {
         let player = Character::new("Tactician".to_string(), 70, 40, 25);
         let enemy = Character::new("Opponent".to_string(), 80, 35, 20);
         
-        let complex_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![
-                Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                Box::new(crate::action_system::Heal),
-            ],
-            vec![
-                Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                Box::new(crate::action_system::Strike),
-            ],
-            vec![Box::new(crate::action_system::Strike)],
+        let complex_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::CheckToken::new(
+                Box::new(crate::action_system::TrueOrFalseRandomToken),
+                Box::new(crate::action_system::CheckToken::new(
+                    Box::new(crate::action_system::TrueOrFalseRandomToken),
+                    Box::new(crate::action_system::HealAction),
+                )),
+            )),
+            Box::new(crate::action_system::CheckToken::new(
+                Box::new(crate::action_system::TrueOrFalseRandomToken),
+                Box::new(crate::action_system::StrikeAction),
+            )),
+            Box::new(crate::action_system::StrikeAction),
         ];
         let rng = StdRng::from_entropy();
         let action_system = ActionCalculationSystem::new(complex_rules, rng);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         battle.player_action_system = action_system;
         
         let mut action_count = 0;
@@ -794,11 +796,11 @@ mod integration_tests {
         let player = Character::new("Inactive".to_string(), 50, 30, 20);
         let enemy = Character::new("Target".to_string(), 60, 25, 15);
         
-        let empty_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![];
+        let empty_rules: Vec<RuleToken> = vec![];
         let rng = StdRng::from_entropy();
         let action_system = ActionCalculationSystem::new(empty_rules, rng);
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(player, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(player, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         battle.player_action_system = action_system;
         
         let initial_state = (battle.player.hp, battle.enemy.hp, battle.player.mp);
@@ -814,24 +816,24 @@ mod integration_tests {
         let player = Character::new("Aggressor".to_string(), 80, 40, 30);
         let enemy = Character::new("Defender".to_string(), 100, 60, 20);
         
-        let aggressive_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![Box::new(crate::action_system::Strike)],
+        let aggressive_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::StrikeAction),
         ];
         let rng1 = StdRng::from_entropy();
         let aggressive_system = ActionCalculationSystem::new(aggressive_rules, rng1);
         
-        let defensive_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![Box::new(crate::action_system::Heal)],
-            vec![Box::new(crate::action_system::Strike)],
+        let defensive_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::HealAction),
+            Box::new(crate::action_system::StrikeAction),
         ];
         let rng2 = StdRng::from_entropy();
         let defensive_system = ActionCalculationSystem::new(defensive_rules, rng2);
         
         let rng3 = StdRng::from_entropy();
         let rng4 = StdRng::from_entropy();
-        let mut aggressive_battle = Battle::new(player.clone(), enemy.clone(), vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng3);
+        let mut aggressive_battle = Battle::new(player.clone(), enemy.clone(), vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng3);
         aggressive_battle.player_action_system = aggressive_system;
-        let mut defensive_battle = Battle::new(player.clone(), enemy.clone(), vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng4);
+        let mut defensive_battle = Battle::new(player.clone(), enemy.clone(), vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng4);
         defensive_battle.player_action_system = defensive_system;
         
         aggressive_battle.execute_player_action();
@@ -863,21 +865,19 @@ mod integration_tests {
         let enemy = Character::new("Enemy".to_string(), 100, 50, 25);
         
         // Test low HP character (should heal)
-        let low_hp_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![
-                Box::new(crate::action_system::Check::new(
-                    crate::action_system::GreaterThanToken::new(
-                        crate::action_system::Number::new(50),
-                        crate::action_system::CharacterHP::new(crate::action_system::ActingCharacter),
-                    )
+        let low_hp_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::CheckToken::new(
+                Box::new(crate::action_system::GreaterThanToken::new(
+                    Box::new(crate::action_system::ConstantToken::new(50)),
+                    Box::new(crate::action_system::CharacterHPToken),
                 )),
-                Box::new(crate::action_system::Heal),
-            ],
-            vec![Box::new(crate::action_system::Strike)],
+                Box::new(crate::action_system::HealAction),
+            )),
+            Box::new(crate::action_system::StrikeAction),
         ];
         
         let rng1 = StdRng::from_entropy();
-        let mut low_hp_battle = Battle::new(low_hp_character, enemy.clone(), vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng1);
+        let mut low_hp_battle = Battle::new(low_hp_character, enemy.clone(), vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng1);
         let rng2 = StdRng::from_entropy();
         low_hp_battle.player_action_system = ActionCalculationSystem::new(low_hp_rules, rng2);
         
@@ -894,21 +894,19 @@ mod integration_tests {
         assert!(low_hp_battle.battle_log.iter().any(|log| log.contains("回復")), "Should have heal log entry");
         
         // Test high HP character (should strike)
-        let high_hp_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![
-                Box::new(crate::action_system::Check::new(
-                    crate::action_system::GreaterThanToken::new(
-                        crate::action_system::Number::new(50),
-                        crate::action_system::CharacterHP::new(crate::action_system::ActingCharacter),
-                    )
+        let high_hp_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::CheckToken::new(
+                Box::new(crate::action_system::GreaterThanToken::new(
+                    Box::new(crate::action_system::ConstantToken::new(50)),
+                    Box::new(crate::action_system::CharacterHPToken),
                 )),
-                Box::new(crate::action_system::Heal),
-            ],
-            vec![Box::new(crate::action_system::Strike)],
+                Box::new(crate::action_system::HealAction),
+            )),
+            Box::new(crate::action_system::StrikeAction),
         ];
         
         let rng3 = StdRng::from_entropy();
-        let mut high_hp_battle = Battle::new(high_hp_character, enemy.clone(), vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng3);
+        let mut high_hp_battle = Battle::new(high_hp_character, enemy.clone(), vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng3);
         let rng4 = StdRng::from_entropy();
         high_hp_battle.player_action_system = ActionCalculationSystem::new(high_hp_rules, rng4);
         
@@ -934,21 +932,19 @@ mod integration_tests {
         let mut exactly_50_hp_character = Character::new("Exactly50HP".to_string(), 100, 50, 25);
         exactly_50_hp_character.take_damage(50); // HP: 50/100
         
-        let hp_based_rules: Vec<Vec<Box<dyn crate::action_system::Token>>> = vec![
-            vec![
-                Box::new(crate::action_system::Check::new(
-                    crate::action_system::GreaterThanToken::new(
-                        crate::action_system::Number::new(50),
-                        crate::action_system::CharacterHP::new(crate::action_system::ActingCharacter),
-                    )
+        let hp_based_rules: Vec<RuleToken> = vec![
+            Box::new(crate::action_system::CheckToken::new(
+                Box::new(crate::action_system::GreaterThanToken::new(
+                    Box::new(crate::action_system::ConstantToken::new(50)),
+                    Box::new(crate::action_system::CharacterHPToken),
                 )),
-                Box::new(crate::action_system::Heal),
-            ],
-            vec![Box::new(crate::action_system::Strike)],
+                Box::new(crate::action_system::HealAction),
+            )),
+            Box::new(crate::action_system::StrikeAction),
         ];
         
         let rng = StdRng::from_entropy();
-        let mut battle = Battle::new(exactly_50_hp_character, enemy, vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng);
+        let mut battle = Battle::new(exactly_50_hp_character, enemy, vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng);
         let rng = StdRng::from_entropy();
         battle.player_action_system = ActionCalculationSystem::new(hp_based_rules, rng);
         
@@ -972,23 +968,23 @@ mod integration_tests {
         high_hp_player.take_damage(10);
         let enemy = Character::new("Enemy".to_string(), 60, 30, 20);
         
-        let create_conditional_rules = || -> Vec<Vec<Box<dyn crate::action_system::Token>>> {
+        let create_conditional_rules = || -> Vec<RuleToken> {
             vec![
-                vec![
-                    Box::new(crate::action_system::Check::new(crate::action_system::TrueOrFalseRandom)),
-                    Box::new(crate::action_system::Heal),
-                ],
-                vec![Box::new(crate::action_system::Strike)],
+                Box::new(crate::action_system::CheckToken::new(
+                    Box::new(crate::action_system::TrueOrFalseRandomToken),
+                    Box::new(crate::action_system::HealAction),
+                )),
+                Box::new(crate::action_system::StrikeAction),
             ]
         };
         
         let rng3 = StdRng::from_entropy();
-        let mut low_hp_battle = Battle::new(low_hp_player, enemy.clone(), vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng3);
+        let mut low_hp_battle = Battle::new(low_hp_player, enemy.clone(), vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng3);
         let rng1 = StdRng::from_entropy();
         low_hp_battle.player_action_system = ActionCalculationSystem::new(create_conditional_rules(), rng1);
         
         let rng4 = StdRng::from_entropy();
-        let mut high_hp_battle = Battle::new(high_hp_player, enemy.clone(), vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng4);
+        let mut high_hp_battle = Battle::new(high_hp_player, enemy.clone(), vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng4);
         let rng2 = StdRng::from_entropy();
         high_hp_battle.player_action_system = ActionCalculationSystem::new(create_conditional_rules(), rng2);
         
@@ -1018,19 +1014,19 @@ mod integration_tests {
         let player = Character::new("Consistent".to_string(), 70, 40, 25);
         let enemy = Character::new("Target".to_string(), 80, 35, 20);
         
-        let create_deterministic_rules = || -> Vec<Vec<Box<dyn crate::action_system::Token>>> {
+        let create_deterministic_rules = || -> Vec<RuleToken> {
             vec![
-                vec![Box::new(crate::action_system::Strike)],
+                Box::new(crate::action_system::StrikeAction),
             ]
         };
         
         let rng3 = StdRng::from_entropy();
-        let mut battle1 = Battle::new(player.clone(), enemy.clone(), vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng3);
+        let mut battle1 = Battle::new(player.clone(), enemy.clone(), vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng3);
         let rng1 = StdRng::from_entropy();
         battle1.player_action_system = ActionCalculationSystem::new(create_deterministic_rules(), rng1);
         
         let rng4 = StdRng::from_entropy();
-        let mut battle2 = Battle::new(player.clone(), enemy.clone(), vec![vec![Box::new(crate::action_system::Strike)]], vec![vec![Box::new(crate::action_system::Strike)]], rng4);
+        let mut battle2 = Battle::new(player.clone(), enemy.clone(), vec![Box::new(crate::action_system::StrikeAction)], vec![Box::new(crate::action_system::StrikeAction)], rng4);
         let rng2 = StdRng::from_entropy();
         battle2.player_action_system = ActionCalculationSystem::new(create_deterministic_rules(), rng2);
         

@@ -148,27 +148,3 @@ pub enum TokenConfig {
     },
 }
 
-impl TokenConfig {
-    /// Returns true if this token type can produce Continue(bool) results
-    pub fn can_continue(&self) -> bool {
-        matches!(self, 
-            TokenConfig::Check { .. } | 
-            TokenConfig::GreaterThan { .. } | 
-            TokenConfig::TrueOrFalseRandom
-        )
-    }
-    
-    /// Returns true if this token type always produces Action results
-    pub fn is_action_token(&self) -> bool {
-        matches!(self, TokenConfig::Strike | TokenConfig::Heal)
-    }
-    
-    /// Returns true if this token type produces values for computation
-    pub fn is_value_token(&self) -> bool {
-        matches!(self, 
-            TokenConfig::Number { .. } | 
-            TokenConfig::CharacterHP { .. } | 
-            TokenConfig::ActingCharacter
-        )
-    }
-}

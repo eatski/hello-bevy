@@ -162,7 +162,7 @@ mod tests {
         
         let token_rules = convert_to_token_rules(&rule_set).unwrap();
         assert_eq!(token_rules.len(), 1);
-        assert_eq!(token_rules[0].len(), 2);
+        // Note: token_rules[0] is now a single chained ActionResolver, not a vector
     }
 
     #[test]
@@ -172,21 +172,17 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            condition: None,
-                            args: vec![TokenConfig::TrueOrFalseRandom],
-                        },
-                        TokenConfig::GreaterThan {
-                            left: None,
-                            right: None,
-                            args: vec![
-                                TokenConfig::Number { value: 50 },
-                                TokenConfig::CharacterHP { 
+                            condition: Some(Box::new(TokenConfig::GreaterThan {
+                                left: Some(Box::new(TokenConfig::Number { value: 50 })),
+                                right: Some(Box::new(TokenConfig::CharacterHP { 
                                     character: None,
                                     args: vec![TokenConfig::ActingCharacter],
-                                },
-                            ],
+                                })),
+                                args: vec![],
+                            })),
+                            args: vec![],
                         },
-                        TokenConfig::Strike, // Add action token after continue tokens
+                        TokenConfig::Heal, // Changed to Heal to make it different from the first rule
                     ],
                 },
             ],
@@ -194,7 +190,7 @@ mod tests {
         
         let token_rules = convert_to_token_rules(&rule_set).unwrap();
         assert_eq!(token_rules.len(), 1);
-        assert_eq!(token_rules[0].len(), 3); // Now 3 tokens including the Strike
+        // Note: token_rules[0] is now a single chained ActionResolver, not a vector
     }
 
     #[test]
@@ -226,10 +222,13 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::GreaterThan {
-                            left: None,
-                            right: None,
-                            args: vec![TokenConfig::Number { value: 50 }], // Only 1 arg, need 2
+                        TokenConfig::Check {
+                            condition: None,
+                            args: vec![TokenConfig::GreaterThan {
+                                left: None,
+                                right: None,
+                                args: vec![TokenConfig::Number { value: 50 }], // Only 1 arg, need 2
+                            }],
                         },
                         TokenConfig::Strike, // Add action to make validation pass first
                     ],
@@ -245,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_character_hp_token_error_no_args_or_character() {
+    fn test_convert_character_hp_token_no_args_or_character() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
@@ -259,10 +258,11 @@ mod tests {
             ],
         };
         
+        // This should fail because CharacterHP cannot be used as a direct action
         let result = convert_to_token_rules(&rule_set);
         assert!(result.is_err());
         if let Err(error_msg) = result {
-            assert!(error_msg.contains("CharacterHP token requires either args or character field"));
+            assert!(error_msg.contains("cannot be used directly in rule chain"));
         }
     }
 
@@ -272,10 +272,18 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::CharacterHP {
-                            character: Some("UnknownCharacter".to_string()),
+                        TokenConfig::Check {
+                            condition: Some(Box::new(TokenConfig::GreaterThan {
+                                left: Some(Box::new(TokenConfig::Number { value: 50 })),
+                                right: Some(Box::new(TokenConfig::CharacterHP {
+                                    character: Some("UnknownCharacter".to_string()),
+                                    args: vec![],
+                                })),
+                                args: vec![],
+                            })),
                             args: vec![],
                         },
+                        TokenConfig::Strike,
                     ],
                 },
             ],
@@ -295,13 +303,15 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            condition: None,
-                            args: vec![
-                                TokenConfig::CharacterHP {
+                            condition: Some(Box::new(TokenConfig::GreaterThan {
+                                left: Some(Box::new(TokenConfig::Number { value: 50 })),
+                                right: Some(Box::new(TokenConfig::CharacterHP {
                                     character: Some("InvalidCharacter".to_string()),
                                     args: vec![],
-                                }
-                            ],
+                                })),
+                                args: vec![],
+                            })),
+                            args: vec![],
                         },
                         TokenConfig::Strike, // Add Strike to make it valid sequence
                     ],
@@ -406,7 +416,7 @@ mod tests {
         assert!(result.is_ok());
         let token_rules = result.unwrap();
         assert_eq!(token_rules.len(), 1);
-        assert_eq!(token_rules[0].len(), 2);
+        // Note: token_rules[0] is now a single chained ActionResolver, not a vector
     }
 
     #[test]
@@ -425,6 +435,6 @@ mod tests {
         assert!(result.is_ok());
         let token_rules = result.unwrap();
         assert_eq!(token_rules.len(), 1);
-        assert_eq!(token_rules[0].len(), 1);
+        // Note: token_rules[0] is now a single chained ActionResolver, not a vector
     }
 }
