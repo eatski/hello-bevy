@@ -2,15 +2,9 @@ use bevy::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
-mod action_system;
-mod battle_system;
-mod ui;
-mod rule_loader;
-mod rule_input_model;
-
-use ui::*;
-use battle_system::{Battle, Character as GameCharacter};
-use rule_loader::{load_rules_from_file, convert_to_token_rules};
+use ui::{GameBattle, load_font, setup_ui, handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui};
+use battle_system::{Battle, Character as GameCharacter, load_rules_from_file, convert_to_token_rules};
+use action_system;
 
 fn main() {
     App::new()

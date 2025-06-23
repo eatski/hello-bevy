@@ -17,7 +17,7 @@ impl CheckToken {
 }
 
 impl ActionResolver for CheckToken {
-    fn resolve(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+    fn resolve(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
         if self.condition.evaluate(character, rng) {
             // Continue: delegate to next token
             self.next.resolve(character, rng)
@@ -32,7 +32,7 @@ impl ActionResolver for CheckToken {
 pub struct StrikeAction;
 
 impl ActionResolver for StrikeAction {
-    fn resolve(&self, character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+    fn resolve(&self, character: &crate::Character, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
         if character.hp > 0 {
             ActionResolverResult::Action(ActionType::Strike)
         } else {
@@ -45,7 +45,7 @@ impl ActionResolver for StrikeAction {
 pub struct HealAction;
 
 impl ActionResolver for HealAction {
-    fn resolve(&self, character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+    fn resolve(&self, character: &crate::Character, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
         if character.hp > 0 && character.mp >= 10 {
             ActionResolverResult::Action(ActionType::Heal)
         } else {
@@ -57,8 +57,8 @@ impl ActionResolver for HealAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::battle_system::Character;
-    use crate::action_system::{TrueOrFalseRandomToken};
+    use crate::Character;
+    use crate::{TrueOrFalseRandomToken};
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 

@@ -16,7 +16,7 @@ impl ActionCalculationSystem {
         }
     }
 
-    pub fn calculate_action(&mut self, character: &crate::battle_system::Character) -> Option<ActionType> {
+    pub fn calculate_action(&mut self, character: &crate::Character) -> Option<ActionType> {
         let rng = &mut self.rng;
 
         for rule in &self.rules {
@@ -36,8 +36,8 @@ impl ActionCalculationSystem {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::battle_system::Character;
-    use crate::action_system::{CheckToken, StrikeAction, HealAction, TrueOrFalseRandomToken, GreaterThanToken, ConstantToken, CharacterHPToken};
+    use crate::Character;
+    use crate::{CheckToken, StrikeAction, HealAction, TrueOrFalseRandomToken, GreaterThanToken, ConstantToken, CharacterHPToken};
     use rand::SeedableRng;
 
     #[test]

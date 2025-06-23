@@ -1,3 +1,10 @@
+[workspace]
+members = [
+    "crates/action-system",
+    "crates/battle-system",
+    "crates/ui",
+]
+
 [package]
 name = "hello-bevy"
 version = "0.1.0"
@@ -6,6 +13,7 @@ edition = "2021"
 [dependencies]
 bevy = "0.16.0"
 rand = "0.8.5"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+action-system = { path = "crates/action-system" }
+battle-system = { path = "crates/battle-system" }
+ui = { path = "crates/ui" }
 

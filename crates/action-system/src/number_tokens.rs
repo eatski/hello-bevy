@@ -2,11 +2,11 @@
 
 // Trait for tokens that evaluate to numbers
 pub trait NumberToken: Send + Sync + std::fmt::Debug {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> i32;
+    fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> i32;
 }
 
 impl NumberToken for Box<dyn NumberToken> {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> i32 {
+    fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> i32 {
         (**self).evaluate(character, rng)
     }
 }
@@ -24,7 +24,7 @@ impl ConstantToken {
 }
 
 impl NumberToken for ConstantToken {
-    fn evaluate(&self, _character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> i32 {
+    fn evaluate(&self, _character: &crate::Character, _rng: &mut dyn rand::RngCore) -> i32 {
         self.value
     }
 }
@@ -33,7 +33,7 @@ impl NumberToken for ConstantToken {
 pub struct CharacterHPToken;
 
 impl NumberToken for CharacterHPToken {
-    fn evaluate(&self, character: &crate::battle_system::Character, _rng: &mut dyn rand::RngCore) -> i32 {
+    fn evaluate(&self, character: &crate::Character, _rng: &mut dyn rand::RngCore) -> i32 {
         character.hp
     }
 }
@@ -41,7 +41,7 @@ impl NumberToken for CharacterHPToken {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::battle_system::Character;
+    use crate::Character;
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 

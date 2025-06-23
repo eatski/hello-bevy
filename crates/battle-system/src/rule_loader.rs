@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use crate::action_system::{RuleToken, CheckToken, ActionResolver, BoolToken, NumberToken, ConstantToken, CharacterHPToken, TrueOrFalseRandomToken, GreaterThanToken, StrikeAction, HealAction};
+use action_system::{RuleToken, CheckToken, ActionResolver, BoolToken, NumberToken, ConstantToken, CharacterHPToken, TrueOrFalseRandomToken, GreaterThanToken, StrikeAction, HealAction};
 use crate::rule_input_model::{RuleSet, TokenConfig};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
@@ -118,13 +118,13 @@ mod tests {
 
     #[test]
     fn test_load_player_rules_file() {
-        let rule_set = load_rules_from_file("rules/player_rules.json").unwrap();
+        let rule_set = load_rules_from_file("../../rules/player_rules.json").unwrap();
         assert!(rule_set.rules.len() > 0);
     }
 
     #[test]
     fn test_load_enemy_rules_file() {
-        let rule_set = load_rules_from_file("rules/enemy_rules.json").unwrap();
+        let rule_set = load_rules_from_file("../../rules/enemy_rules.json").unwrap();
         assert!(rule_set.rules.len() > 0);
     }
 

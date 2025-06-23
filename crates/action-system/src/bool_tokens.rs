@@ -5,11 +5,11 @@ use super::number_tokens::NumberToken;
 
 // Trait for tokens that evaluate to boolean
 pub trait BoolToken: Send + Sync + std::fmt::Debug {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> bool;
+    fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> bool;
 }
 
 impl BoolToken for Box<dyn BoolToken> {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> bool {
+    fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> bool {
         (**self).evaluate(character, rng)
     }
 }
@@ -19,7 +19,7 @@ impl BoolToken for Box<dyn BoolToken> {
 pub struct TrueOrFalseRandomToken;
 
 impl BoolToken for TrueOrFalseRandomToken {
-    fn evaluate(&self, _character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> bool {
+    fn evaluate(&self, _character: &crate::Character, rng: &mut dyn rand::RngCore) -> bool {
         rng.gen_bool(0.5)
     }
 }
@@ -37,7 +37,7 @@ impl GreaterThanToken {
 }
 
 impl BoolToken for GreaterThanToken {
-    fn evaluate(&self, character: &crate::battle_system::Character, rng: &mut dyn rand::RngCore) -> bool {
+    fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> bool {
         self.left.evaluate(character, rng) > self.right.evaluate(character, rng)
     }
 }
@@ -45,8 +45,8 @@ impl BoolToken for GreaterThanToken {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::battle_system::Character;
-    use crate::action_system::{ConstantToken};
+    use crate::Character;
+    use crate::{ConstantToken};
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
