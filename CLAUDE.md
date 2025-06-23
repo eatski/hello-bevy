@@ -4,6 +4,7 @@
 commit前に必ず以下を守れ
 - `cargo check --workspace` (警告も全て修正すること)
 - `cargo test --workspace` (全crateのテストを実行)
+- README.mdの最新化
 **重要**: このCLAUDE.mdファイルは常に最新の状態に保つこと
 - プロジェクトの変更時は必ずこのファイルを更新
 - 設計変更、新機能追加、ファイル構成変更を即座に反映
