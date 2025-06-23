@@ -27,7 +27,13 @@ src/
 ├── main.rs             - Bevyエンジン統合・ゲーム固有設定
 ├── ui.rs               - 汎用的なUI表示・入力処理
 ├── battle_system.rs    - バトル管理・キャラクター定義
-├── action_system.rs    - トークンベース行動計算システム
+├── action_system/      - トークンベース行動計算システム（モジュール化）
+│   ├── mod.rs          - モジュールエントリポイント・再エクスポート
+│   ├── core.rs         - 基本トレイト・型定義
+│   ├── actions.rs      - アクショントークン（CheckToken, StrikeAction, HealAction）
+│   ├── bool_tokens.rs  - 論理演算トークン（TrueOrFalseRandomToken, GreaterThanToken）
+│   ├── number_tokens.rs- 数値トークン（ConstantToken, CharacterHPToken）
+│   └── system.rs       - 行動計算システム（ActionCalculationSystem）
 ├── rule_loader.rs      - JSON形式ルール読み込み・変換機能
 └── rule_input_model.rs - JSON入力用ルールデータモデル定義
 rules/
@@ -39,7 +45,12 @@ rules/
 - **アプリ層**: `main.rs` - Bevyエンジン統合・ゲーム固有設定
 - **UI層**: `ui.rs` - 汎用的なUI表示・入力処理
 - **ドメイン層**: `battle_system.rs` - ゲームロジック
-- **計算層**: `action_system.rs` - AI行動システム
+- **計算層**: `action_system/` - AI行動システム（モジュール化）
+  - `core.rs` - 基本トレイト・型定義
+  - `actions.rs` - アクショントークン実装
+  - `bool_tokens.rs` - 論理演算トークン実装
+  - `number_tokens.rs` - 数値トークン実装
+  - `system.rs` - 行動計算システム実装
 - **設定層**: `rule_loader.rs` - JSON外部ルール読み込み
 - **入力モデル層**: `rule_input_model.rs` - JSON入力用データ構造定義
 
