@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.16.0"
-battle-system = { path = "../battle-system" }
+battle-core = { path = "../battle-core" }

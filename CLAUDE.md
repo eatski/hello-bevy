@@ -20,7 +20,8 @@ cargo test --workspace
 
 # 個別crateのテスト
 cargo test -p action-system
-cargo test -p battle-system  
+cargo test -p rule-system
+cargo test -p battle-core
 cargo test -p ui
 
 # ドキュメンテーションテスト
@@ -56,13 +57,17 @@ cargo build --workspace --release
 │   │       ├── bool_tokens.rs  - 論理演算トークン実装
 │   │       ├── number_tokens.rs- 数値トークン実装
 │   │       └── system.rs       - 行動計算システム実装
-│   ├── battle-system/  - バトル管理・ルール読み込みシステム
+│   ├── rule-system/    - JSON ルール読み込み・変換システム
 │   │   ├── Cargo.toml
 │   │   └── src/
 │   │       ├── lib.rs              - クレートエントリポイント
-│   │       ├── battle.rs           - バトル管理ロジック
 │   │       ├── rule_loader.rs      - JSON形式ルール読み込み・変換
 │   │       └── rule_input_model.rs - JSON入力用データモデル定義
+│   ├── battle-core/    - バトル管理・戦闘ロジック
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs  - クレートエントリポイント
+│   │       └── battle.rs - バトル管理ロジック
 │   └── ui/             - Bevy UIコンポーネント・システム
 │       ├── Cargo.toml
 │       └── src/
@@ -76,7 +81,8 @@ cargo build --workspace --release
 ### 🎯 クレート分離設計
 - **アプリ層**: `hello-bevy` (root) - Bevyエンジン統合・ゲーム統合バイナリ
 - **UI層**: `ui` クレート - Bevy UIコンポーネント・システム
-- **ドメイン層**: `battle-system` クレート - バトル管理・ルール読み込み
+- **ドメイン層**: `battle-core` クレート - バトル管理・戦闘ロジック
+- **設定層**: `rule-system` クレート - JSON ルール読み込み・変換システム
 - **計算層**: `action-system` クレート - トークンベース行動計算システム
   - `character.rs` - Character型定義（循環依存回避）
   - `core.rs` - 基本トレイト・型定義
@@ -95,7 +101,7 @@ struct Character {
     hp/max_hp, mp/max_mp, attack
 }
 
-// battle-system/battle.rs  
+// battle-core/battle.rs  
 struct Battle {
     // 戦闘状態管理
     player, enemy, current_turn, battle_over
@@ -122,7 +128,8 @@ ActionCalculationSystem::with_seed(rules, seed)
 ### 3. 責任分離設計（クレート別）
 - **`hello-bevy` (root)**: Bevyシステム統合・ゲーム固有設定("勇者","スライム")
 - **`ui` クレート**: 汎用的なUI表示・入力処理・画面描画
-- **`battle-system` クレート**: 戦闘ルール・JSON読み込み・バトル管理
+- **`battle-core` クレート**: バトル管理・戦闘ロジック
+- **`rule-system` クレート**: JSON読み込み・変換システム
 - **`action-system` クレート**: AI行動決定・トークン処理・Character型定義
 
 ### 4. 拡張性設計（クレート別）
@@ -130,15 +137,16 @@ ActionCalculationSystem::with_seed(rules, seed)
 - **新アクション追加**: `action-system` クレートの`ActionType`enum拡張
 - **UI変更**: `ui` クレートのみ修正で対応
 - **ゲーム設定変更**: `hello-bevy` (root)のみ修正で対応
-- **カスタムルール**: `battle-system` クレートでJSON外部ファイル読み込み（フォールバック機構付き）
+- **カスタムルール**: `rule-system` クレートでJSON外部ファイル読み込み（フォールバック機構付き）
+- **戦闘ロジック変更**: `battle-core` クレートのみ修正で対応
 
-### 5. JSON設定システム（`battle-system` クレート）
+### 5. JSON設定システム（`rule-system` クレート）
 ```rust
-// battle-system/rule_input_model.rs
+// rule-system/rule_input_model.rs
 RuleSet { rules: [RuleChain{ tokens: [TokenConfig] }] }
 TokenConfig: Strike | Heal | Check{args} | GreaterThan{args} | etc.
 
-// battle-system/rule_loader.rs
+// rule-system/rule_loader.rs
 load_rules_from_file(path) -> parse_rules_from_json(content) -> convert_to_token_rules(rule_set)
 ```
 - **入力モデル**: `rule_input_model.rs` - JSON入力専用データ構造定義
@@ -149,9 +157,9 @@ load_rules_from_file(path) -> parse_rules_from_json(content) -> convert_to_token
 
 ## 🔄 データフロー設計（クレート間）
 ```
-入力 → ui クレート → battle-system クレート → action-system クレート → ui クレート → 結果表示
-      ↑                                                                           ↓
-   hello-bevy (root) - ゲーム設定                                              画面描画
+入力 → ui クレート → battle-core クレート → action-system クレート → ui クレート → 結果表示
+      ↑              ↑                                                           ↓
+   hello-bevy (root) rule-system クレート (JSON読み込み)                      画面描画
 ```
 
 ## 📦 クレート依存関係ルール
@@ -160,37 +168,41 @@ load_rules_from_file(path) -> parse_rules_from_json(content) -> convert_to_token
 ```
 hello-bevy (root バイナリ)
 ├── ui クレート
-│   └── battle-system クレート
+│   └── battle-core クレート
+│       ├── rule-system クレート
+│       │   └── action-system クレート
 │       └── action-system クレート
-└── 直接依存: action-system, battle-system, ui
+└── 直接依存: action-system, rule-system, battle-core, ui
 ```
 
 ### クレート間依存関係の制約ルール
 
 1. **階層依存のみ許可（循環依存回避）**
-   - `hello-bevy` (root) → `ui`, `battle-system`, `action-system` 依存可能
-   - `ui` → `battle-system` のみ依存
-   - `battle-system` → `action-system` のみ依存
+   - `hello-bevy` (root) → `ui`, `battle-core`, `rule-system`, `action-system` 依存可能
+   - `ui` → `battle-core` のみ依存
+   - `battle-core` → `rule-system`, `action-system` 依存
+   - `rule-system` → `action-system` のみ依存
    - `action-system` → 外部クレートのみ依存（完全独立）
    - **逆方向依存は禁止** (下位クレートが上位クレートに依存してはいけない)
 
 2. **同一層内の相互依存は禁止**
-   - `ui` ↔ `action-system` の直接依存は禁止（`battle-system`経由で利用）
+   - `ui` ↔ `rule-system` の直接依存は禁止（`battle-core`経由で利用）
 
 3. **Character型の配置戦略**
    - `action-system` クレートに`Character`型を配置（循環依存回避）
-   - `battle-system` が `action-system::Character` を再エクスポート
+   - `battle-core` が `action-system::Character` を再エクスポート
 
 4. **許可される依存パターン**
    ```rust
    // ✅ 許可
-   hello-bevy → ui, battle-system, action-system
-   ui → battle-system
-   battle-system → action-system
+   hello-bevy → ui, battle-core, rule-system, action-system
+   ui → battle-core
+   battle-core → rule-system, action-system
+   rule-system → action-system
    
    // ❌ 禁止
-   action-system → battle-system (逆方向)
-   ui → action-system (同一層)
+   action-system → rule-system (逆方向)
+   ui → rule-system (同一層)
    action-system → ui (逆方向)
    ```
 
@@ -205,10 +217,14 @@ hello-bevy (root バイナリ)
 - **`action-system` クレート**: 11テスト - 単体テスト + トークンシステムテスト
   - ActionResolver, Token, 各種トークンの動作テスト
   - ActionCalculationSystemの統合テスト
-- **`battle-system` クレート**: 38テスト - バトルシステム + ルール管理テスト
-  - Battle, Character, RuleLoaderの単体テスト
+- **`rule-system` クレート**: 12テスト - ルール読み込み・変換テスト
+  - JSON読み込み・解析テスト
+  - TokenConfig → ActionResolver変換テスト
+  - エラーハンドリングテスト
+- **`battle-core` クレート**: 26テスト - バトルシステムテスト
+  - Battle, Character の単体テスト
   - 様々なルールパターンテスト（攻撃専用/回復専用/複雑なチェイン）
-  - JSON読み込み・変換テスト
+  - 戦闘ロジック統合テスト
 - **`ui` クレート**: 0テスト - UI関連（Bevyテストは別途）
 - **`hello-bevy` (root)**: 0テスト - 統合バイナリ
 
@@ -219,10 +235,12 @@ cargo test --workspace
 
 # 個別クレートのテスト
 cargo test -p action-system    # 11テスト
-cargo test -p battle-system    # 38テスト
+cargo test -p rule-system      # 12テスト
+cargo test -p battle-core      # 26テスト
 cargo test -p ui               # 0テスト
 
 # 特定テストパターン
-cargo test -p battle-system -- integration_tests
+cargo test -p battle-core -- integration_tests
 cargo test -p action-system -- token
+cargo test -p rule-system -- loader
 ```

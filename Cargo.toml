@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "crates/action-system",
-    "crates/battle-system",
+    "crates/rule-system",
+    "crates/battle-core",
     "crates/ui",
 ]
 
@@ -14,6 +15,7 @@ edition = "2021"
 bevy = "0.16.0"
 rand = "0.8.5"
 action-system = { path = "crates/action-system" }
-battle-system = { path = "crates/battle-system" }
+rule-system = { path = "crates/rule-system" }
+battle-core = { path = "crates/battle-core" }
 ui = { path = "crates/ui" }
 

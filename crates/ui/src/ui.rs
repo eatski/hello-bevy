@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use battle_system::Battle;
+use battle_core::Battle;
 
 #[derive(Resource)]
 pub struct GameFont {
