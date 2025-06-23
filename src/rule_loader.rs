@@ -48,13 +48,11 @@ fn convert_token_chain(tokens: &[TokenConfig]) -> Result<RuleToken, String> {
             TokenConfig::Heal => {
                 result = Some(Box::new(HealAction));
             }
-            TokenConfig::Check { condition, args } => {
+            TokenConfig::Check { args } => {
                 let bool_token = if !args.is_empty() {
                     convert_bool_token_config(&args[0])?
-                } else if let Some(condition) = condition {
-                    convert_bool_token_config(condition)?
                 } else {
-                    return Err("Check token requires either args or condition".to_string());
+                    return Err("Check token requires args".to_string());
                 };
                 
                 if let Some(next) = result {
@@ -75,18 +73,13 @@ fn convert_token_chain(tokens: &[TokenConfig]) -> Result<RuleToken, String> {
 fn convert_bool_token_config(config: &TokenConfig) -> Result<Box<dyn BoolToken>, String> {
     match config {
         TokenConfig::TrueOrFalseRandom => Ok(Box::new(TrueOrFalseRandomToken)),
-        TokenConfig::GreaterThan { left, right, args } => {
-            // Try args first, then fallback to left/right
+        TokenConfig::GreaterThan { args } => {
             if args.len() >= 2 {
                 let left_token = convert_number_token_config(&args[0])?;
                 let right_token = convert_number_token_config(&args[1])?;
                 Ok(Box::new(GreaterThanToken::new(left_token, right_token)))
-            } else if let (Some(left), Some(right)) = (left, right) {
-                let left_token = convert_number_token_config(left)?;
-                let right_token = convert_number_token_config(right)?;
-                Ok(Box::new(GreaterThanToken::new(left_token, right_token)))
             } else {
-                Err("GreaterThan token requires either args array with 2 elements or left/right fields".to_string())
+                Err("GreaterThan token requires args array with 2 elements".to_string())
             }
         },
         _ => Err(format!("Cannot convert {:?} to BoolToken", config)),
@@ -96,16 +89,7 @@ fn convert_bool_token_config(config: &TokenConfig) -> Result<Box<dyn BoolToken>,
 fn convert_number_token_config(config: &TokenConfig) -> Result<Box<dyn NumberToken>, String> {
     match config {
         TokenConfig::Number { value } => Ok(Box::new(ConstantToken::new(*value))),
-        TokenConfig::CharacterHP { character, args: _ } => {
-            if let Some(character) = character {
-                match character.as_str() {
-                    "Self" => Ok(Box::new(CharacterHPToken)),
-                    _ => Err(format!("Unknown character type: {}", character)),
-                }
-            } else {
-                Ok(Box::new(CharacterHPToken))
-            }
-        },
+        TokenConfig::CharacterHP => Ok(Box::new(CharacterHPToken)),
         TokenConfig::ActingCharacter => Ok(Box::new(CharacterHPToken)), // ActingCharacter context -> CharacterHP
         _ => Err(format!("Cannot convert {:?} to NumberToken", config)),
     }
@@ -172,15 +156,12 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            condition: Some(Box::new(TokenConfig::GreaterThan {
-                                left: Some(Box::new(TokenConfig::Number { value: 50 })),
-                                right: Some(Box::new(TokenConfig::CharacterHP { 
-                                    character: None,
-                                    args: vec![TokenConfig::ActingCharacter],
-                                })),
-                                args: vec![],
-                            })),
-                            args: vec![],
+                            args: vec![TokenConfig::GreaterThan {
+                                args: vec![
+                                    TokenConfig::Number { value: 50 },
+                                    TokenConfig::CharacterHP,
+                                ],
+                            }],
                         },
                         TokenConfig::Heal, // Changed to Heal to make it different from the first rule
                     ],
@@ -200,7 +181,6 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            condition: None,
                             args: vec![],
                         },
                         TokenConfig::Strike, // Add action to make validation pass first
@@ -212,7 +192,7 @@ mod tests {
         let result = convert_to_token_rules(&rule_set);
         assert!(result.is_err());
         if let Err(error_msg) = result {
-            assert!(error_msg.contains("Check token requires either args or condition"));
+            assert!(error_msg.contains("Check token requires args"));
         }
     }
 
@@ -223,10 +203,7 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            condition: None,
                             args: vec![TokenConfig::GreaterThan {
-                                left: None,
-                                right: None,
                                 args: vec![TokenConfig::Number { value: 50 }], // Only 1 arg, need 2
                             }],
                         },
@@ -239,7 +216,7 @@ mod tests {
         let result = convert_to_token_rules(&rule_set);
         assert!(result.is_err());
         if let Err(error_msg) = result {
-            assert!(error_msg.contains("GreaterThan token requires either args array with 2 elements"));
+            assert!(error_msg.contains("GreaterThan token requires args array with 2 elements"));
         }
     }
 
@@ -249,10 +226,7 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::CharacterHP {
-                            character: None,
-                            args: vec![],
-                        },
+                        TokenConfig::CharacterHP,
                     ],
                 },
             ],
@@ -267,21 +241,18 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_character_hp_token_error_unknown_character() {
+    fn test_convert_character_hp_token_success() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            condition: Some(Box::new(TokenConfig::GreaterThan {
-                                left: Some(Box::new(TokenConfig::Number { value: 50 })),
-                                right: Some(Box::new(TokenConfig::CharacterHP {
-                                    character: Some("UnknownCharacter".to_string()),
-                                    args: vec![],
-                                })),
-                                args: vec![],
-                            })),
-                            args: vec![],
+                            args: vec![TokenConfig::GreaterThan {
+                                args: vec![
+                                    TokenConfig::Number { value: 50 },
+                                    TokenConfig::CharacterHP,
+                                ],
+                            }],
                         },
                         TokenConfig::Strike,
                     ],
@@ -290,40 +261,31 @@ mod tests {
         };
         
         let result = convert_to_token_rules(&rule_set);
-        assert!(result.is_err());
-        if let Err(error_msg) = result {
-            assert!(error_msg.contains("Unknown character type: UnknownCharacter"));
-        }
+        assert!(result.is_ok());
     }
 
     #[test]
-    fn test_convert_nested_error_propagation() {
+    fn test_convert_nested_structure_success() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            condition: Some(Box::new(TokenConfig::GreaterThan {
-                                left: Some(Box::new(TokenConfig::Number { value: 50 })),
-                                right: Some(Box::new(TokenConfig::CharacterHP {
-                                    character: Some("InvalidCharacter".to_string()),
-                                    args: vec![],
-                                })),
-                                args: vec![],
-                            })),
-                            args: vec![],
+                            args: vec![TokenConfig::GreaterThan {
+                                args: vec![
+                                    TokenConfig::Number { value: 50 },
+                                    TokenConfig::CharacterHP,
+                                ],
+                            }],
                         },
-                        TokenConfig::Strike, // Add Strike to make it valid sequence
+                        TokenConfig::Strike,
                     ],
                 },
             ],
         };
         
         let result = convert_to_token_rules(&rule_set);
-        assert!(result.is_err());
-        if let Err(error_msg) = result {
-            assert!(error_msg.contains("Unknown character type: InvalidCharacter"));
-        }
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -333,7 +295,6 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            condition: None,
                             args: vec![TokenConfig::TrueOrFalseRandom],
                         },
                         // No token after Check - should cause error
@@ -356,8 +317,6 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::GreaterThan {
-                            left: None,
-                            right: None,
                             args: vec![
                                 TokenConfig::Number { value: 50 },
                                 TokenConfig::Number { value: 30 },
@@ -403,7 +362,6 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            condition: None,
                             args: vec![TokenConfig::TrueOrFalseRandom],
                         },
                         TokenConfig::Strike, // Valid: action follows continue token

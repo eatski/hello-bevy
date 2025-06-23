@@ -27,7 +27,7 @@ impl ValidatedRuleChain {
     fn validate_token_sequence(tokens: &[TokenConfig]) -> Result<(), String> {
         for (i, token) in tokens.iter().enumerate() {
             match token {
-                TokenConfig::Check { condition, args } => {
+                TokenConfig::Check { args } => {
                     // Check token can continue, validate it's not at the end
                     if i == tokens.len() - 1 {
                         return Err(format!(
@@ -38,14 +38,11 @@ impl ValidatedRuleChain {
                     }
                     
                     // Recursively validate nested tokens
-                    if let Some(condition) = condition {
-                        Self::validate_single_token(condition)?;
-                    }
                     for arg in args {
                         Self::validate_single_token(arg)?;
                     }
                 },
-                TokenConfig::GreaterThan { left, right, args } => {
+                TokenConfig::GreaterThan { args } => {
                     // GreaterThan token can continue, validate it's not at the end
                     if i == tokens.len() - 1 {
                         return Err(format!(
@@ -56,12 +53,6 @@ impl ValidatedRuleChain {
                     }
                     
                     // Recursively validate nested tokens
-                    if let Some(left) = left {
-                        Self::validate_single_token(left)?;
-                    }
-                    if let Some(right) = right {
-                        Self::validate_single_token(right)?;
-                    }
                     for arg in args {
                         Self::validate_single_token(arg)?;
                     }
@@ -85,26 +76,12 @@ impl ValidatedRuleChain {
     
     fn validate_single_token(token: &TokenConfig) -> Result<(), String> {
         match token {
-            TokenConfig::Check { condition, args } => {
-                if let Some(condition) = condition {
-                    Self::validate_single_token(condition)?;
-                }
+            TokenConfig::Check { args } => {
                 for arg in args {
                     Self::validate_single_token(arg)?;
                 }
             },
-            TokenConfig::GreaterThan { left, right, args } => {
-                if let Some(left) = left {
-                    Self::validate_single_token(left)?;
-                }
-                if let Some(right) = right {
-                    Self::validate_single_token(right)?;
-                }
-                for arg in args {
-                    Self::validate_single_token(arg)?;
-                }
-            },
-            TokenConfig::CharacterHP { args, .. } => {
+            TokenConfig::GreaterThan { args } => {
                 for arg in args {
                     Self::validate_single_token(arg)?;
                 }
@@ -124,27 +101,14 @@ pub enum TokenConfig {
     TrueOrFalseRandom,
     ActingCharacter,
     Check {
-        #[serde(default)]
-        condition: Option<Box<TokenConfig>>,
-        #[serde(default)]
         args: Vec<TokenConfig>,
     },
     GreaterThan {
-        #[serde(default)]
-        left: Option<Box<TokenConfig>>,
-        #[serde(default)]
-        right: Option<Box<TokenConfig>>,
-        #[serde(default)]
         args: Vec<TokenConfig>,
     },
     Number {
         value: i32,
     },
-    CharacterHP {
-        #[serde(default)]
-        character: Option<String>,
-        #[serde(default)]
-        args: Vec<TokenConfig>,
-    },
+    CharacterHP,
 }
 

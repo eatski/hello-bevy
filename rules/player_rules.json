@@ -12,10 +12,7 @@
                 "value": 50
               },
               {
-                "type": "CharacterHP",
-                "args": [{
-                  "type": "ActingCharacter"
-                }]
+                "type": "CharacterHP"
               }
             ]
           }]
