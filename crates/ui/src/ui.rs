@@ -1,8 +1,7 @@
 use bevy::prelude::*;
 use battle_core::Battle;
 use action_system;
-use rule_system::rule_input_model::{RuleSet, RuleChain, TokenConfig};
-use rule_system::rule_loader::convert_to_token_rules;
+use rule_system::ui_converter::{UITokenType, convert_ui_rules_to_tokens};
 
 #[derive(Resource)]
 pub struct GameFont {
@@ -43,46 +42,18 @@ pub struct TokenSelectionHeader;
 #[derive(Component)]
 pub struct BattleInfo;
 
-// トークンタイプの定義
-#[derive(Clone, Debug, PartialEq)]
-pub enum TokenType {
-    Check,
-    Strike,
-    Heal,
-    Number(u32),
-    HP,
-    GreaterThan, // L-gt-R
-    TrueOrFalse, // 50/50
-}
-
-impl TokenType {
-    pub fn display_text(&self) -> &str {
-        match self {
-            TokenType::Check => "Check",
-            TokenType::Strike => "Strike",
-            TokenType::Heal => "Heal",
-            TokenType::Number(n) => match n {
-                50 => "50",
-                _ => "Num",
-            },
-            TokenType::HP => "HP",
-            TokenType::GreaterThan => "L-gt-R",
-            TokenType::TrueOrFalse => "50/50",
-        }
-    }
-
-    pub fn color(&self) -> Color {
-        match self {
-            TokenType::Heal => Color::srgb(0.4, 0.2, 1.0), // 紫
-            _ => Color::srgb(0.2, 0.6, 1.0), // 青 (default for all others)
-        }
+// UITokenType用のヘルパー関数
+fn get_token_color(token: &UITokenType) -> Color {
+    match token {
+        UITokenType::Heal => Color::srgb(0.4, 0.2, 1.0), // 紫
+        _ => Color::srgb(0.2, 0.6, 1.0), // 青 (default for all others)
     }
 }
 
 // 現在設定されているルール（キー操作用）
 #[derive(Resource, Default)]
 pub struct CurrentRules {
-    pub rules: Vec<Vec<TokenType>>,
+    pub rules: Vec<Vec<UITokenType>>,
     pub selected_row: usize,
 }
 
@@ -100,111 +71,14 @@ impl CurrentRules {
         }
     }
 
-    // UIのTokenTypeからrule-systemを経由してaction-systemのRuleTokenに変換
+    // UIのUITokenTypeからrule-systemを経由してaction-systemのRuleTokenに変換
     pub fn convert_to_rule_tokens(&self) -> Vec<action_system::RuleToken> {
-        let rule_chains: Vec<RuleChain> = self.rules
-            .iter()
-            .filter(|rule_row| !rule_row.is_empty())
-            .filter_map(|rule_row| convert_token_row_to_rule_chain(rule_row))
-            .collect();
-        
-        let rule_set = RuleSet { rules: rule_chains };
-        
-        convert_to_token_rules(&rule_set).unwrap_or_default()
-    }
-}
-
-// TokenTypeの行をrule-systemのRuleChainに変換する関数
-fn convert_token_row_to_rule_chain(token_row: &[TokenType]) -> Option<RuleChain> {
-    if token_row.is_empty() {
-        return None;
-    }
-    
-    let mut token_configs = Vec::new();
-    let mut i = 0;
-    
-    while i < token_row.len() {
-        match &token_row[i] {
-            TokenType::Check => {
-                // Check → (condition) → (action) パターンを処理
-                if i + 1 < token_row.len() {
-                    if let Some((condition_config, consumed)) = convert_condition_tokens_with_count(&token_row[i+1..]) {
-                        token_configs.push(TokenConfig::Check {
-                            args: vec![condition_config],
-                        });
-                        // 条件部分で消費されたトークン数分をスキップ
-                        i += consumed + 1; // +1 for Check token itself
-                    } else {
-                        return None;
-                    }
-                } else {
-                    return None;
-                }
-            }
-            TokenType::Strike => {
-                token_configs.push(TokenConfig::Strike);
-                i += 1;
-            }
-            TokenType::Heal => {
-                token_configs.push(TokenConfig::Heal);
-                i += 1;
-            }
-            _ => {
-                // その他のトークンは直接アクションとしては使用できない
-                return None;
-            }
-        }
-    }
-    
-    if token_configs.is_empty() {
-        None
-    } else {
-        Some(RuleChain {
-            tokens: token_configs,
-        })
-    }
-}
-
-// 条件部分をTokenConfigに変換し、消費したトークン数も返す
-fn convert_condition_tokens_with_count(tokens: &[TokenType]) -> Option<(TokenConfig, usize)> {
-    if tokens.is_empty() {
-        return None;
-    }
-    
-    match &tokens[0] {
-        TokenType::TrueOrFalse => {
-            Some((TokenConfig::TrueOrFalseRandom, 1))
-        }
-        TokenType::GreaterThan => {
-            // GreaterThan → (left) → (right) パターン
-            if tokens.len() >= 3 {
-                let left = convert_single_token_to_config(&tokens[1])?;
-                let right = convert_single_token_to_config(&tokens[2])?;
-                Some((
-                    TokenConfig::GreaterThan {
-                        args: vec![left, right],
-                    },
-                    3 // GreaterThan + left + right
-                ))
-            } else {
-                None
-            }
-        }
-        _ => None,
-    }
-}
-
-// 単一のTokenTypeをTokenConfigに変換
-fn convert_single_token_to_config(token: &TokenType) -> Option<TokenConfig> {
-    match token {
-        TokenType::Number(n) => Some(TokenConfig::Number { value: *n as i32 }),
-        TokenType::HP => Some(TokenConfig::CharacterHP),
-        _ => None,
+        convert_ui_rules_to_tokens(&self.rules)
     }
 }
 
 // ルールトークンを整形した文字列に変換
-fn format_rule_tokens(rule_row: &[TokenType]) -> String {
+fn format_rule_tokens(rule_row: &[UITokenType]) -> String {
     if rule_row.is_empty() {
         "(空)".to_string()
     } else {
@@ -234,7 +108,7 @@ pub struct MenuState {
     pub mode: MenuMode,
     pub selected_row: usize,
     pub selected_token: usize,
-    pub available_tokens: Vec<TokenType>,
+    pub available_tokens: Vec<UITokenType>,
 }
 
 #[derive(Default, PartialEq)]
@@ -251,13 +125,13 @@ impl MenuState {
             selected_row: 0,
             selected_token: 0,
             available_tokens: vec![
-                TokenType::Check,
-                TokenType::Strike,
-                TokenType::Heal,
-                TokenType::TrueOrFalse,
-                TokenType::GreaterThan,
-                TokenType::Number(50),
-                TokenType::HP,
+                UITokenType::Check,
+                UITokenType::Strike,
+                UITokenType::Heal,
+                UITokenType::TrueOrFalse,
+                UITokenType::GreaterThan,
+                UITokenType::Number(50),
+                UITokenType::HP,
             ],
         }
     }
@@ -851,11 +725,11 @@ mod tests {
         // Test: Check → GreaterThan → Number(50) → HP → Strike
         let mut current_rules = CurrentRules::new();
         current_rules.rules[0] = vec![
-            TokenType::Check,
-            TokenType::GreaterThan,
-            TokenType::Number(50),
-            TokenType::HP,
-            TokenType::Strike,
+            UITokenType::Check,
+            UITokenType::GreaterThan,
+            UITokenType::Number(50),
+            UITokenType::HP,
+            UITokenType::Strike,
         ];
         
         let rule_tokens = current_rules.convert_to_rule_tokens();
@@ -867,11 +741,11 @@ mod tests {
         // Test: Check → GreaterThan → HP → Number → Strike (HP > Number)
         let mut current_rules1 = CurrentRules::new();
         current_rules1.rules[0] = vec![
-            TokenType::Check,
-            TokenType::GreaterThan,
-            TokenType::HP,
-            TokenType::Number(50),
-            TokenType::Strike,
+            UITokenType::Check,
+            UITokenType::GreaterThan,
+            UITokenType::HP,
+            UITokenType::Number(50),
+            UITokenType::Strike,
         ];
         
         let rule_tokens1 = current_rules1.convert_to_rule_tokens();
@@ -880,11 +754,11 @@ mod tests {
         // Test: Check → GreaterThan → Number → HP → Strike (Number > HP)
         let mut current_rules2 = CurrentRules::new();
         current_rules2.rules[0] = vec![
-            TokenType::Check,
-            TokenType::GreaterThan,
-            TokenType::Number(50),
-            TokenType::HP,
-            TokenType::Strike,
+            UITokenType::Check,
+            UITokenType::GreaterThan,
+            UITokenType::Number(50),
+            UITokenType::HP,
+            UITokenType::Strike,
         ];
         
         let rule_tokens2 = current_rules2.convert_to_rule_tokens();
@@ -899,21 +773,21 @@ mod tests {
         // Pattern 1: Number > HP
         let mut current_rules1 = CurrentRules::new();
         current_rules1.rules[0] = vec![
-            TokenType::Check,
-            TokenType::GreaterThan,
-            TokenType::Number(30),
-            TokenType::HP,
-            TokenType::Heal,
+            UITokenType::Check,
+            UITokenType::GreaterThan,
+            UITokenType::Number(30),
+            UITokenType::HP,
+            UITokenType::Heal,
         ];
         
         // Pattern 2: HP > Number
         let mut current_rules2 = CurrentRules::new();
         current_rules2.rules[0] = vec![
-            TokenType::Check,
-            TokenType::GreaterThan,
-            TokenType::HP,
-            TokenType::Number(30),
-            TokenType::Heal,
+            UITokenType::Check,
+            UITokenType::GreaterThan,
+            UITokenType::HP,
+            UITokenType::Number(30),
+            UITokenType::Heal,
         ];
         
         // Both patterns should be valid

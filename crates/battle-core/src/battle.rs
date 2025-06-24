@@ -45,41 +45,12 @@ impl Battle {
         }
 
         if let Some(action) = self.player_action_system.calculate_action(&self.player) {
-            match action {
-                ActionType::Strike => {
-                    let damage = self.player.attack;
-                    self.enemy.take_damage(damage);
-                    self.battle_log.push(format!(
-                        "ターン{}: {}が{}に{}のダメージ！",
-                        self.current_turn + 1, self.player.name, self.enemy.name, damage
-                    ));
-                }
-                ActionType::Heal => {
-                    if self.player.consume_mp(10) {
-                        let heal_amount = 20;
-                        self.player.heal(heal_amount);
-                        self.battle_log.push(format!(
-                            "ターン{}: {}がMP10を消費して{}回復！",
-                            self.current_turn + 1, self.player.name, heal_amount
-                        ));
-                    } else {
-                        self.battle_log.push(format!(
-                            "ターン{}: {}はMPが足りない！",
-                            self.current_turn + 1, self.player.name
-                        ));
-                    }
-                }
-            }
+            self.execute_action(action, true);
         } else {
             self.battle_log.push(format!("ターン{}: {}は何もしなかった", self.current_turn + 1, self.player.name));
         }
 
-        if !self.enemy.is_alive() {
-            self.battle_over = true;
-            self.winner = Some(self.player.name.clone());
-            self.battle_log.push(format!("{}の勝利！", self.player.name));
-        }
-
+        self.check_battle_end();
         self.current_turn += 1;
     }
 
@@ -89,41 +60,12 @@ impl Battle {
         }
 
         if let Some(action) = self.enemy_action_system.calculate_action(&self.enemy) {
-            match action {
-                ActionType::Strike => {
-                    let damage = self.enemy.attack;
-                    self.player.take_damage(damage);
-                    self.battle_log.push(format!(
-                        "ターン{}: {}が{}に{}のダメージ！",
-                        self.current_turn + 1, self.enemy.name, self.player.name, damage
-                    ));
-                }
-                ActionType::Heal => {
-                    if self.enemy.consume_mp(10) {
-                        let heal_amount = 20;
-                        self.enemy.heal(heal_amount);
-                        self.battle_log.push(format!(
-                            "ターン{}: {}がMP10を消費して{}回復！",
-                            self.current_turn + 1, self.enemy.name, heal_amount
-                        ));
-                    } else {
-                        self.battle_log.push(format!(
-                            "ターン{}: {}はMPが足りない！",
-                            self.current_turn + 1, self.enemy.name
-                        ));
-                    }
-                }
-            }
+            self.execute_action(action, false);
         } else {
             self.battle_log.push(format!("ターン{}: {}は何もしなかった", self.current_turn + 1, self.enemy.name));
         }
 
-        if !self.player.is_alive() {
-            self.battle_over = true;
-            self.winner = Some(self.enemy.name.clone());
-            self.battle_log.push(format!("{}の勝利！", self.enemy.name));
-        }
-
+        self.check_battle_end();
         self.current_turn += 1;
     }
 
@@ -137,6 +79,58 @@ impl Battle {
 
     pub fn get_recent_logs(&self, count: usize) -> Vec<&String> {
         self.battle_log.iter().rev().take(count).collect()
+    }
+
+    fn execute_action(&mut self, action: ActionType, is_player: bool) {
+        let (attacker_name, target_name) = if is_player {
+            (self.player.name.clone(), self.enemy.name.clone())
+        } else {
+            (self.enemy.name.clone(), self.player.name.clone())
+        };
+
+        let (attacker, target) = if is_player {
+            (&mut self.player, &mut self.enemy)
+        } else {
+            (&mut self.enemy, &mut self.player)
+        };
+
+        match action {
+            ActionType::Strike => {
+                let damage = attacker.attack;
+                target.take_damage(damage);
+                self.battle_log.push(format!(
+                    "ターン{}: {}が{}に{}のダメージ！",
+                    self.current_turn + 1, attacker_name, target_name, damage
+                ));
+            }
+            ActionType::Heal => {
+                if attacker.consume_mp(10) {
+                    let heal_amount = 20;
+                    attacker.heal(heal_amount);
+                    self.battle_log.push(format!(
+                        "ターン{}: {}がMP10を消費して{}回復！",
+                        self.current_turn + 1, attacker_name, heal_amount
+                    ));
+                } else {
+                    self.battle_log.push(format!(
+                        "ターン{}: {}はMPが足りない！",
+                        self.current_turn + 1, attacker_name
+                    ));
+                }
+            }
+        }
+    }
+
+    fn check_battle_end(&mut self) {
+        if !self.player.is_alive() {
+            self.battle_over = true;
+            self.winner = Some(self.enemy.name.clone());
+            self.battle_log.push(format!("{}の勝利！", self.enemy.name));
+        } else if !self.enemy.is_alive() {
+            self.battle_over = true;
+            self.winner = Some(self.player.name.clone());
+            self.battle_log.push(format!("{}の勝利！", self.player.name));
+        }
     }
 }
 
