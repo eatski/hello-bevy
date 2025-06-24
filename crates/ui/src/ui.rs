@@ -148,13 +148,13 @@ fn convert_token_row_to_rule_chain(token_row: &[TokenType]) -> Option<RuleChain>
         match &token_row[i] {
             TokenType::Check => {
                 // Check → (condition) → (action) パターンを処理
-                if i + 2 < token_row.len() {
-                    if let Some(condition_config) = convert_condition_tokens(&token_row[i+1..]) {
+                if i + 1 < token_row.len() {
+                    if let Some((condition_config, consumed)) = convert_condition_tokens_with_count(&token_row[i+1..]) {
                         token_configs.push(TokenConfig::Check {
                             args: vec![condition_config],
                         });
-                        // 条件部分をスキップ（何トークン消費したかを計算）
-                        i += skip_condition_tokens(&token_row[i+1..]) + 1;
+                        // 条件部分で消費されたトークン数分をスキップ
+                        i += consumed + 1; // +1 for Check token itself
                     } else {
                         return None;
                     }
@@ -186,48 +186,32 @@ fn convert_token_row_to_rule_chain(token_row: &[TokenType]) -> Option<RuleChain>
     }
 }
 
-// 条件部分をTokenConfigに変換
-fn convert_condition_tokens(tokens: &[TokenType]) -> Option<TokenConfig> {
+// 条件部分をTokenConfigに変換し、消費したトークン数も返す
+fn convert_condition_tokens_with_count(tokens: &[TokenType]) -> Option<(TokenConfig, usize)> {
     if tokens.is_empty() {
         return None;
     }
     
     match &tokens[0] {
         TokenType::TrueOrFalse => {
-            Some(TokenConfig::TrueOrFalseRandom)
+            Some((TokenConfig::TrueOrFalseRandom, 1))
         }
         TokenType::GreaterThan => {
             // GreaterThan → (left) → (right) パターン
             if tokens.len() >= 3 {
                 let left = convert_single_token_to_config(&tokens[1])?;
                 let right = convert_single_token_to_config(&tokens[2])?;
-                Some(TokenConfig::GreaterThan {
-                    args: vec![left, right],
-                })
+                Some((
+                    TokenConfig::GreaterThan {
+                        args: vec![left, right],
+                    },
+                    3 // GreaterThan + left + right
+                ))
             } else {
                 None
             }
         }
         _ => None,
-    }
-}
-
-// 条件部分で何トークン消費したかを計算
-fn skip_condition_tokens(tokens: &[TokenType]) -> usize {
-    if tokens.is_empty() {
-        return 0;
-    }
-    
-    match &tokens[0] {
-        TokenType::TrueOrFalse => 1,
-        TokenType::GreaterThan => {
-            if tokens.len() >= 3 {
-                3 // GreaterThan + left + right
-            } else {
-                1
-            }
-        }
-        _ => 1,
     }
 }
 
