@@ -73,13 +73,8 @@ impl TokenType {
 
     pub fn color(&self) -> Color {
         match self {
-            TokenType::Check => Color::srgb(0.2, 0.6, 1.0), // 青
-            TokenType::Strike => Color::srgb(0.2, 0.6, 1.0), // 青
             TokenType::Heal => Color::srgb(0.4, 0.2, 1.0), // 紫
-            TokenType::Number(_) => Color::srgb(0.2, 0.6, 1.0), // 青
-            TokenType::HP => Color::srgb(0.2, 0.6, 1.0), // 青
-            TokenType::GreaterThan => Color::srgb(0.2, 0.6, 1.0), // 青
-            TokenType::TrueOrFalse => Color::srgb(0.2, 0.6, 1.0), // 青
+            _ => Color::srgb(0.2, 0.6, 1.0), // 青 (default for all others)
         }
     }
 }
@@ -107,31 +102,15 @@ impl CurrentRules {
 
     // UIのTokenTypeからrule-systemを経由してaction-systemのRuleTokenに変換
     pub fn convert_to_rule_tokens(&self) -> Vec<action_system::RuleToken> {
-        // UIのTokenType → rule-systemのRuleSet に変換
-        let rule_set = self.convert_to_rule_set();
+        let rule_chains: Vec<RuleChain> = self.rules
+            .iter()
+            .filter(|rule_row| !rule_row.is_empty())
+            .filter_map(|rule_row| convert_token_row_to_rule_chain(rule_row))
+            .collect();
         
-        // rule-systemのconvert_to_token_rulesを使用して最終変換
-        match convert_to_token_rules(&rule_set) {
-            Ok(rule_tokens) => rule_tokens,
-            Err(_) => Vec::new(), // エラー時は空のVecを返す
-        }
-    }
-    
-    // UIのTokenTypeからrule-systemのRuleSetに変換
-    fn convert_to_rule_set(&self) -> RuleSet {
-        let mut rule_chains = Vec::new();
+        let rule_set = RuleSet { rules: rule_chains };
         
-        for rule_row in &self.rules {
-            if !rule_row.is_empty() {
-                if let Some(rule_chain) = convert_token_row_to_rule_chain(rule_row) {
-                    rule_chains.push(rule_chain);
-                }
-            }
-        }
-        
-        RuleSet {
-            rules: rule_chains,
-        }
+        convert_to_token_rules(&rule_set).unwrap_or_default()
     }
 }
 
@@ -224,6 +203,18 @@ fn convert_single_token_to_config(token: &TokenType) -> Option<TokenConfig> {
     }
 }
 
+// ルールトークンを整形した文字列に変換
+fn format_rule_tokens(rule_row: &[TokenType]) -> String {
+    if rule_row.is_empty() {
+        "(空)".to_string()
+    } else {
+        rule_row.iter()
+            .map(|token| token.display_text())
+            .collect::<Vec<_>>()
+            .join(" → ")
+    }
+}
+
 // ゲーム全体の状態管理
 #[derive(Resource, Default)]
 pub struct GameState {
@@ -271,10 +262,6 @@ impl MenuState {
         }
     }
     
-    // 利用可能なトークンを取得
-    pub fn get_available_tokens(&self) -> &Vec<TokenType> {
-        &self.available_tokens
-    }
 }
 
 
@@ -668,8 +655,7 @@ pub fn handle_rule_editing(
                 }
             } else if keyboard_input.just_pressed(KeyCode::Enter) {
                 // 選択されたトークンを追加
-                let available_tokens = menu_state.get_available_tokens();
-                if let Some(token) = available_tokens.get(menu_state.selected_token) {
+                if let Some(token) = menu_state.available_tokens.get(menu_state.selected_token) {
                     let selected_row = current_rules.selected_row;
                     current_rules.rules[selected_row].push(token.clone());
                     // 行選択モードに戻る
@@ -715,15 +701,7 @@ pub fn update_rule_display(
                     };
                     
                     display_text.push_str(&prefix);
-                    
-                    if rule_row.is_empty() {
-                        display_text.push_str("(空)");
-                    } else {
-                        let tokens: Vec<String> = rule_row.iter()
-                            .map(|token| token.display_text().to_string())
-                            .collect();
-                        display_text.push_str(&tokens.join(" → "));
-                    }
+                    display_text.push_str(&format_rule_tokens(rule_row));
                     
                     display_text.push('\n');
                 }
@@ -734,18 +712,7 @@ pub fn update_rule_display(
                 display_text.push_str("設定されたルール:\n\n");
                 
                 for (i, rule_row) in current_rules.rules.iter().enumerate() {
-                    display_text.push_str(&format!("行{}: ", i + 1));
-                    
-                    if rule_row.is_empty() {
-                        display_text.push_str("(空)");
-                    } else {
-                        let tokens: Vec<String> = rule_row.iter()
-                            .map(|token| token.display_text().to_string())
-                            .collect();
-                        display_text.push_str(&tokens.join(" → "));
-                    }
-                    
-                    display_text.push('\n');
+                    display_text.push_str(&format!("行{}: {}\n", i + 1, format_rule_tokens(rule_row)));
                 }
             }
         }
@@ -772,8 +739,7 @@ pub fn update_token_inventory_display(
                     MenuMode::TokenSelection => {
                         display_text.push_str("トークンを選択してください:\n\n");
                         
-                        let available_tokens = menu_state.get_available_tokens();
-                        for (i, token) in available_tokens.iter().enumerate() {
+                        for (i, token) in menu_state.available_tokens.iter().enumerate() {
                             let prefix = if i == menu_state.selected_token {
                                 "▶ "
                             } else {
@@ -860,12 +826,7 @@ pub fn update_battle_info_display(
         display_text.push_str("設定ルール:\n");
         for (i, rule_row) in current_rules.rules.iter().enumerate() {
             if !rule_row.is_empty() {
-                display_text.push_str(&format!("{}. ", i + 1));
-                let tokens: Vec<String> = rule_row.iter()
-                    .map(|token| token.display_text().to_string())
-                    .collect();
-                display_text.push_str(&tokens.join(" → "));
-                display_text.push('\n');
+                display_text.push_str(&format!("{}. {}\n", i + 1, format_rule_tokens(rule_row)));
             }
         }
         
