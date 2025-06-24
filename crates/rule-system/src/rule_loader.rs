@@ -87,7 +87,6 @@ fn convert_number_token_config(config: &TokenConfig) -> Result<Box<dyn NumberTok
     match config {
         TokenConfig::Number { value } => Ok(Box::new(ConstantToken::new(*value))),
         TokenConfig::CharacterHP => Ok(Box::new(CharacterHPToken)),
-        TokenConfig::ActingCharacter => Ok(Box::new(CharacterHPToken)), // ActingCharacter context -> CharacterHP
         _ => Err(format!("Cannot convert {:?} to NumberToken", config)),
     }
 }

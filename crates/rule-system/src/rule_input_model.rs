@@ -17,7 +17,6 @@ pub enum TokenConfig {
     Strike,
     Heal,
     TrueOrFalseRandom,
-    ActingCharacter,
     Check {
         args: Vec<TokenConfig>,
     },

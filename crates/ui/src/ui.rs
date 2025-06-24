@@ -261,11 +261,7 @@ impl MenuState {
             ],
         }
     }
-    
 }
-
-
-
 
 pub fn load_font(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/NotoSansCJK-Regular.ttc");
@@ -473,12 +469,7 @@ pub fn handle_battle_input(
     mut game_battle: ResMut<GameBattle>,
     game_state: Res<GameState>,
 ) {
-    // 戦闘モードの時のみ処理
-    if game_state.mode != GameMode::Battle {
-        return;
-    }
-    
-    if game_battle.0.battle_over {
+    if game_state.mode != GameMode::Battle || game_battle.0.battle_over {
         return;
     }
     
