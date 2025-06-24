@@ -39,6 +39,8 @@ cargo build --workspace --release
 - **ドキュメント更新**: 一般的なフィードバックはこのドキュメントを更新すること
 - **UI分離**: 具体的なキャラクター設定はmain.rsに、汎用的なUIロジックはui.rsに分離すること
 - **JSON設定**: キャラクターのruleはJSON外部ファイルから読み込み可能になった（フォールバック機構付き）
+- **UI検証**: トークン配置の有効性検証ロジックは削除済み - 実際の変換処理でのみ妥当性が確認される
+- **変換アーキテクチャ**: UIの直接変換を廃止し、rule-systemを経由する統一パイプラインに変更（UI TokenType → rule-system RuleSet → action-system RuleToken）
 
 ## 🏗️ アーキテクチャ設計
 

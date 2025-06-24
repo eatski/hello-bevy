@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 bevy = "0.16.0"
 battle-core = { path = "../battle-core" }
+action-system = { path = "../action-system" }
+rule-system = { path = "../rule-system" }
