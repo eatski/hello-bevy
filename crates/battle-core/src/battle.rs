@@ -1,4 +1,4 @@
-use action_system::{ActionCalculationSystem, ActionType, RuleToken, Character};
+use action_system::{ActionCalculationSystem, ActionType, RuleNode, Character};
 use rand::rngs::StdRng;
 use rand::{SeedableRng, Rng};
 
@@ -17,8 +17,8 @@ impl Battle {
     pub fn new(
         player: Character, 
         enemy: Character, 
-        player_rules: Vec<RuleToken>, 
-        enemy_rules: Vec<RuleToken>, 
+        player_rules: Vec<RuleNode>, 
+        enemy_rules: Vec<RuleNode>, 
         mut rng: StdRng
     ) -> Self {
         let rng2 = StdRng::from_seed(rng.gen());
@@ -201,8 +201,8 @@ mod tests {
     fn test_battle_creation() {
         let player = Character::new("Player".to_string(), 100, 50, 25);
         let enemy = Character::new("Enemy".to_string(), 80, 40, 20);
-        let player_rules: Vec<RuleToken> = vec![Box::new(action_system::StrikeAction)];
-        let enemy_rules: Vec<RuleToken> = vec![Box::new(action_system::StrikeAction)];
+        let player_rules: Vec<RuleNode> = vec![Box::new(action_system::StrikeAction)];
+        let enemy_rules: Vec<RuleNode> = vec![Box::new(action_system::StrikeAction)];
         let rng = create_test_rng();
         let battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
         
@@ -218,8 +218,8 @@ mod tests {
     fn test_battle_turn_system() {
         let player = Character::new("Player".to_string(), 100, 50, 25);
         let enemy = Character::new("Enemy".to_string(), 80, 40, 20);
-        let player_rules: Vec<RuleToken> = vec![Box::new(action_system::StrikeAction)];
-        let enemy_rules: Vec<RuleToken> = vec![Box::new(action_system::StrikeAction)];
+        let player_rules: Vec<RuleNode> = vec![Box::new(action_system::StrikeAction)];
+        let enemy_rules: Vec<RuleNode> = vec![Box::new(action_system::StrikeAction)];
         let rng = create_test_rng();
         let mut battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
         
@@ -249,14 +249,14 @@ mod integration_tests {
     fn test_action_system_integration_with_battle() {
         let player = Character::new("Player".to_string(), 100, 50, 25);
         let enemy = Character::new("Enemy".to_string(), 80, 40, 20);
-        let player_rules: Vec<RuleToken> = vec![
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::TrueOrFalseRandomToken),
+        let player_rules: Vec<RuleNode> = vec![
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::TrueOrFalseRandomNode),
                 Box::new(action_system::HealAction),
             )),
             Box::new(action_system::StrikeAction),
         ];
-        let enemy_rules: Vec<RuleToken> = vec![Box::new(action_system::StrikeAction)];
+        let enemy_rules: Vec<RuleNode> = vec![Box::new(action_system::StrikeAction)];
         let rng = create_test_rng();
         let mut battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
         
@@ -327,9 +327,9 @@ mod integration_tests {
         
         player.take_damage(50);
         
-        let rules: Vec<RuleToken> = vec![
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::TrueOrFalseRandomToken),
+        let rules: Vec<RuleNode> = vec![
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::TrueOrFalseRandomNode),
                 Box::new(action_system::HealAction),
             )),
             Box::new(action_system::StrikeAction),
@@ -352,9 +352,9 @@ mod integration_tests {
         let mut player = Character::new("Player".to_string(), 50, 5, 25);
         player.take_damage(30);
         
-        let rules: Vec<RuleToken> = vec![
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::TrueOrFalseRandomToken),
+        let rules: Vec<RuleNode> = vec![
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::TrueOrFalseRandomNode),
                 Box::new(action_system::HealAction),
             )),
             Box::new(action_system::StrikeAction),
@@ -387,9 +387,9 @@ mod integration_tests {
         let create_battle = || {
             let player = Character::new("Player".to_string(), 80, 40, 20);
             let enemy = Character::new("Enemy".to_string(), 70, 30, 18);
-            let rules: Vec<RuleToken> = vec![
-                Box::new(action_system::CheckToken::new(
-                    Box::new(action_system::TrueOrFalseRandomToken),
+            let rules: Vec<RuleNode> = vec![
+                Box::new(action_system::CheckNode::new(
+                    Box::new(action_system::TrueOrFalseRandomNode),
                     Box::new(action_system::HealAction),
                 )),
                 Box::new(action_system::StrikeAction),
@@ -485,7 +485,7 @@ mod integration_tests {
         let weak_enemy = Character::new("Weak Enemy".to_string(), 10, 10, 5);
         
         // Use strike-only rules to ensure the battle ends quickly
-        let strike_only_rules: Vec<RuleToken> = vec![
+        let strike_only_rules: Vec<RuleNode> = vec![
             Box::new(action_system::StrikeAction),
         ];
         let rng = create_test_rng();
@@ -550,9 +550,9 @@ mod integration_tests {
         let damaged_player = Character::new("Player".to_string(), 20, 50, 25);
         let healthy_player = Character::new("Player2".to_string(), 100, 50, 25);
         
-        let rules: Vec<RuleToken> = vec![
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::TrueOrFalseRandomToken),
+        let rules: Vec<RuleNode> = vec![
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::TrueOrFalseRandomNode),
                 Box::new(action_system::HealAction),
             )),
             Box::new(action_system::StrikeAction),
@@ -570,9 +570,9 @@ mod integration_tests {
         let mut strike_for_healthy = false;
         
         for _seed in 0..20 {
-            let rules: Vec<RuleToken> = vec![
-                Box::new(action_system::CheckToken::new(
-                    Box::new(action_system::TrueOrFalseRandomToken),
+            let rules: Vec<RuleNode> = vec![
+                Box::new(action_system::CheckNode::new(
+                    Box::new(action_system::TrueOrFalseRandomNode),
                     Box::new(action_system::HealAction),
                 )),
                 Box::new(action_system::StrikeAction),
@@ -659,7 +659,7 @@ mod integration_tests {
         let player = Character::new("Warrior".to_string(), 80, 30, 35);
         let enemy = Character::new("Target".to_string(), 60, 20, 15);
         
-        let strike_only_rules: Vec<RuleToken> = vec![
+        let strike_only_rules: Vec<RuleNode> = vec![
             Box::new(action_system::StrikeAction),
         ];
         let rng = create_test_rng();
@@ -682,7 +682,7 @@ mod integration_tests {
         player.take_damage(40);
         let enemy = Character::new("Dummy".to_string(), 100, 30, 10);
         
-        let heal_only_rules: Vec<RuleToken> = vec![
+        let heal_only_rules: Vec<RuleNode> = vec![
             Box::new(action_system::HealAction),
         ];
         let rng = create_test_rng();
@@ -706,16 +706,16 @@ mod integration_tests {
         let player = Character::new("Tactician".to_string(), 70, 40, 25);
         let enemy = Character::new("Opponent".to_string(), 80, 35, 20);
         
-        let complex_rules: Vec<RuleToken> = vec![
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::TrueOrFalseRandomToken),
-                Box::new(action_system::CheckToken::new(
-                    Box::new(action_system::TrueOrFalseRandomToken),
+        let complex_rules: Vec<RuleNode> = vec![
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::TrueOrFalseRandomNode),
+                Box::new(action_system::CheckNode::new(
+                    Box::new(action_system::TrueOrFalseRandomNode),
                     Box::new(action_system::HealAction),
                 )),
             )),
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::TrueOrFalseRandomToken),
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::TrueOrFalseRandomNode),
                 Box::new(action_system::StrikeAction),
             )),
             Box::new(action_system::StrikeAction),
@@ -753,7 +753,7 @@ mod integration_tests {
         let player = Character::new("Inactive".to_string(), 50, 30, 20);
         let enemy = Character::new("Target".to_string(), 60, 25, 15);
         
-        let empty_rules: Vec<RuleToken> = vec![];
+        let empty_rules: Vec<RuleNode> = vec![];
         let rng = create_test_rng();
         let action_system = ActionCalculationSystem::new(empty_rules, rng);
         let rng = create_test_rng();
@@ -773,13 +773,13 @@ mod integration_tests {
         let player = Character::new("Aggressor".to_string(), 80, 40, 30);
         let enemy = Character::new("Defender".to_string(), 100, 60, 20);
         
-        let aggressive_rules: Vec<RuleToken> = vec![
+        let aggressive_rules: Vec<RuleNode> = vec![
             Box::new(action_system::StrikeAction),
         ];
         let rng1 = create_test_rng();
         let aggressive_system = ActionCalculationSystem::new(aggressive_rules, rng1);
         
-        let defensive_rules: Vec<RuleToken> = vec![
+        let defensive_rules: Vec<RuleNode> = vec![
             Box::new(action_system::HealAction),
             Box::new(action_system::StrikeAction),
         ];
@@ -822,11 +822,11 @@ mod integration_tests {
         let enemy = Character::new("Enemy".to_string(), 100, 50, 25);
         
         // Test low HP character (should heal)
-        let low_hp_rules: Vec<RuleToken> = vec![
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::GreaterThanToken::new(
-                    Box::new(action_system::ConstantToken::new(50)),
-                    Box::new(action_system::CharacterHPToken),
+        let low_hp_rules: Vec<RuleNode> = vec![
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::GreaterThanNode::new(
+                    Box::new(action_system::ConstantNode::new(50)),
+                    Box::new(action_system::CharacterHPNode),
                 )),
                 Box::new(action_system::HealAction),
             )),
@@ -851,11 +851,11 @@ mod integration_tests {
         assert!(low_hp_battle.battle_log.iter().any(|log| log.contains("回復")), "Should have heal log entry");
         
         // Test high HP character (should strike)
-        let high_hp_rules: Vec<RuleToken> = vec![
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::GreaterThanToken::new(
-                    Box::new(action_system::ConstantToken::new(50)),
-                    Box::new(action_system::CharacterHPToken),
+        let high_hp_rules: Vec<RuleNode> = vec![
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::GreaterThanNode::new(
+                    Box::new(action_system::ConstantNode::new(50)),
+                    Box::new(action_system::CharacterHPNode),
                 )),
                 Box::new(action_system::HealAction),
             )),
@@ -889,11 +889,11 @@ mod integration_tests {
         let mut exactly_50_hp_character = Character::new("Exactly50HP".to_string(), 100, 50, 25);
         exactly_50_hp_character.take_damage(50); // HP: 50/100
         
-        let hp_based_rules: Vec<RuleToken> = vec![
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::GreaterThanToken::new(
-                    Box::new(action_system::ConstantToken::new(50)),
-                    Box::new(action_system::CharacterHPToken),
+        let hp_based_rules: Vec<RuleNode> = vec![
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::GreaterThanNode::new(
+                    Box::new(action_system::ConstantNode::new(50)),
+                    Box::new(action_system::CharacterHPNode),
                 )),
                 Box::new(action_system::HealAction),
             )),
@@ -925,10 +925,10 @@ mod integration_tests {
         high_hp_player.take_damage(10);
         let enemy = Character::new("Enemy".to_string(), 60, 30, 20);
         
-        let create_conditional_rules = || -> Vec<RuleToken> {
+        let create_conditional_rules = || -> Vec<RuleNode> {
             vec![
-                Box::new(action_system::CheckToken::new(
-                    Box::new(action_system::TrueOrFalseRandomToken),
+                Box::new(action_system::CheckNode::new(
+                    Box::new(action_system::TrueOrFalseRandomNode),
                     Box::new(action_system::HealAction),
                 )),
                 Box::new(action_system::StrikeAction),
@@ -971,7 +971,7 @@ mod integration_tests {
         let player = Character::new("Consistent".to_string(), 70, 40, 25);
         let enemy = Character::new("Target".to_string(), 80, 35, 20);
         
-        let create_deterministic_rules = || -> Vec<RuleToken> {
+        let create_deterministic_rules = || -> Vec<RuleNode> {
             vec![
                 Box::new(action_system::StrikeAction),
             ]

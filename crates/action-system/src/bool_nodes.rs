@@ -1,42 +1,42 @@
-// Boolean tokens - tokens that evaluate to true/false
+// Boolean nodes - nodes that evaluate to true/false
 
 use rand::Rng;
-use super::number_tokens::NumberToken;
+use super::number_nodes::NumberNode;
 
-// Trait for tokens that evaluate to boolean
-pub trait BoolToken: Send + Sync + std::fmt::Debug {
+// Trait for nodes that evaluate to boolean
+pub trait BoolNode: Send + Sync + std::fmt::Debug {
     fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> bool;
 }
 
-impl BoolToken for Box<dyn BoolToken> {
+impl BoolNode for Box<dyn BoolNode> {
     fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> bool {
         (**self).evaluate(character, rng)
     }
 }
 
-// Concrete bool token implementations
+// Concrete bool node implementations
 #[derive(Debug)]
-pub struct TrueOrFalseRandomToken;
+pub struct TrueOrFalseRandomNode;
 
-impl BoolToken for TrueOrFalseRandomToken {
+impl BoolNode for TrueOrFalseRandomNode {
     fn evaluate(&self, _character: &crate::Character, rng: &mut dyn rand::RngCore) -> bool {
         rng.gen_bool(0.5)
     }
 }
 
 #[derive(Debug)]
-pub struct GreaterThanToken {
-    pub left: Box<dyn NumberToken>,
-    pub right: Box<dyn NumberToken>,
+pub struct GreaterThanNode {
+    pub left: Box<dyn NumberNode>,
+    pub right: Box<dyn NumberNode>,
 }
 
-impl GreaterThanToken {
-    pub fn new(left: Box<dyn NumberToken>, right: Box<dyn NumberToken>) -> Self {
+impl GreaterThanNode {
+    pub fn new(left: Box<dyn NumberNode>, right: Box<dyn NumberNode>) -> Self {
         Self { left, right }
     }
 }
 
-impl BoolToken for GreaterThanToken {
+impl BoolNode for GreaterThanNode {
     fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> bool {
         self.left.evaluate(character, rng) > self.right.evaluate(character, rng)
     }
@@ -46,14 +46,14 @@ impl BoolToken for GreaterThanToken {
 mod tests {
     use super::*;
     use crate::Character;
-    use crate::{ConstantToken};
+    use crate::{ConstantNode};
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
     #[test]
     fn test_true_or_false_random() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
-        let random = TrueOrFalseRandomToken;
+        let random = TrueOrFalseRandomNode;
         
         // Test with seeded RNG for deterministic behavior
         let mut rng1 = StdRng::seed_from_u64(42);
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn test_seeded_random_deterministic() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
-        let random = TrueOrFalseRandomToken;
+        let random = TrueOrFalseRandomNode;
         
         // Test deterministic behavior with seed
         let seed = 12345;
@@ -98,21 +98,21 @@ mod tests {
     }
 
     #[test]
-    fn test_greater_than_token() {
+    fn test_greater_than_node() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
         let mut rng = StdRng::from_entropy();
         
-        // Test GreaterThanToken
-        let greater_than_token = GreaterThanToken::new(
-            Box::new(ConstantToken::new(60)),
-            Box::new(ConstantToken::new(40)),
+        // Test GreaterThanNode
+        let greater_than_node = GreaterThanNode::new(
+            Box::new(ConstantNode::new(60)),
+            Box::new(ConstantNode::new(40)),
         );
-        assert_eq!(greater_than_token.evaluate(&character, &mut rng), true);
+        assert_eq!(greater_than_node.evaluate(&character, &mut rng), true);
         
-        let greater_than_token_false = GreaterThanToken::new(
-            Box::new(ConstantToken::new(30)),
-            Box::new(ConstantToken::new(50)),
+        let greater_than_node_false = GreaterThanNode::new(
+            Box::new(ConstantNode::new(30)),
+            Box::new(ConstantNode::new(50)),
         );
-        assert_eq!(greater_than_token_false.evaluate(&character, &mut rng), false);
+        assert_eq!(greater_than_node_false.evaluate(&character, &mut rng), false);
     }
 }

@@ -1,25 +1,25 @@
-// Action tokens - tokens that resolve to specific actions
+// Action nodes - nodes that resolve to specific actions
 
 use super::core::{ActionResolver, ActionResolverResult, ActionType};
-use super::bool_tokens::BoolToken;
+use super::bool_nodes::BoolNode;
 
-// Check token type - evaluates condition and delegates to next token or breaks
+// Check node type - evaluates condition and delegates to next node or breaks
 #[derive(Debug)]
-pub struct CheckToken {
-    condition: Box<dyn BoolToken>,
+pub struct CheckNode {
+    condition: Box<dyn BoolNode>,
     next: Box<dyn ActionResolver>,
 }
 
-impl CheckToken {
-    pub fn new(condition: Box<dyn BoolToken>, next: Box<dyn ActionResolver>) -> Self {
+impl CheckNode {
+    pub fn new(condition: Box<dyn BoolNode>, next: Box<dyn ActionResolver>) -> Self {
         Self { condition, next }
     }
 }
 
-impl ActionResolver for CheckToken {
+impl ActionResolver for CheckNode {
     fn resolve(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
         if self.condition.evaluate(character, rng) {
-            // Continue: delegate to next token
+            // Continue: delegate to next node
             self.next.resolve(character, rng)
         } else {
             ActionResolverResult::Break
@@ -27,7 +27,7 @@ impl ActionResolver for CheckToken {
     }
 }
 
-// Action token types
+// Action node types
 #[derive(Debug)]
 pub struct StrikeAction;
 
@@ -58,12 +58,12 @@ impl ActionResolver for HealAction {
 mod tests {
     use super::*;
     use crate::Character;
-    use crate::{TrueOrFalseRandomToken};
+    use crate::{TrueOrFalseRandomNode};
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
     #[test]
-    fn test_strike_token() {
+    fn test_strike_action() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
         let strike = StrikeAction;
         let mut rng = StdRng::from_entropy();
@@ -81,7 +81,7 @@ mod tests {
     }
 
     #[test]
-    fn test_heal_token() {
+    fn test_heal_action() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
         let heal = HealAction;
         let mut rng = StdRng::from_entropy();
@@ -99,10 +99,10 @@ mod tests {
     }
 
     #[test]
-    fn test_check_token() {
+    fn test_check_node() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
-        let check_random = CheckToken::new(
-            Box::new(TrueOrFalseRandomToken),
+        let check_random = CheckNode::new(
+            Box::new(TrueOrFalseRandomNode),
             Box::new(StrikeAction),
         );
         let mut rng = StdRng::from_entropy();

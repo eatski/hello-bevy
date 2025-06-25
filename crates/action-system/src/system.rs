@@ -1,15 +1,15 @@
 // Action calculation system - manages rule execution
 
 use rand::rngs::StdRng;
-use super::core::{ActionType, ActionResolverResult, RuleToken};
+use super::core::{ActionType, ActionResolverResult, RuleNode};
 
 pub struct ActionCalculationSystem {
-    pub rules: Vec<RuleToken>,
+    pub rules: Vec<RuleNode>,
     pub rng: StdRng,
 }
 
 impl ActionCalculationSystem {
-    pub fn new(rules: Vec<RuleToken>, rng: StdRng) -> Self {
+    pub fn new(rules: Vec<RuleNode>, rng: StdRng) -> Self {
         Self {
             rules,
             rng,
@@ -37,14 +37,14 @@ impl ActionCalculationSystem {
 mod tests {
     use super::*;
     use crate::Character;
-    use crate::{CheckToken, StrikeAction, HealAction, TrueOrFalseRandomToken, GreaterThanToken, ConstantToken, CharacterHPToken};
+    use crate::{CheckNode, StrikeAction, HealAction, TrueOrFalseRandomNode, GreaterThanNode, ConstantNode, CharacterHPNode};
     use rand::SeedableRng;
 
     #[test]
     fn test_action_calculation_system() {
-        let rules: Vec<RuleToken> = vec![
-            Box::new(CheckToken::new(
-                Box::new(TrueOrFalseRandomToken),
+        let rules: Vec<RuleNode> = vec![
+            Box::new(CheckNode::new(
+                Box::new(TrueOrFalseRandomNode),
                 Box::new(HealAction),
             )),
             Box::new(StrikeAction),
@@ -67,10 +67,10 @@ mod tests {
         let mut damaged_character = character.clone();
         damaged_character.take_damage(50); // HP: 50/100
         
-        let create_rules = || -> Vec<RuleToken> {
+        let create_rules = || -> Vec<RuleNode> {
             vec![
-                Box::new(CheckToken::new(
-                    Box::new(TrueOrFalseRandomToken),
+                Box::new(CheckNode::new(
+                    Box::new(TrueOrFalseRandomNode),
                     Box::new(HealAction),
                 )),
                 Box::new(StrikeAction),
@@ -117,11 +117,11 @@ mod tests {
         // HP: 100
         
         // Create HP-based rules
-        let hp_rules: Vec<RuleToken> = vec![
-            Box::new(CheckToken::new(
-                Box::new(GreaterThanToken::new(
-                    Box::new(ConstantToken::new(50)),
-                    Box::new(CharacterHPToken),
+        let hp_rules: Vec<RuleNode> = vec![
+            Box::new(CheckNode::new(
+                Box::new(GreaterThanNode::new(
+                    Box::new(ConstantNode::new(50)),
+                    Box::new(CharacterHPNode),
                 )),
                 Box::new(HealAction),
             )),

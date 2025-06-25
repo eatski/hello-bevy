@@ -1,6 +1,6 @@
 // Core traits and types for the action system
 
-// Trait for tokens that can resolve to actions or break
+// Trait for nodes that can resolve to actions or break
 pub trait ActionResolver: Send + Sync + std::fmt::Debug {
     fn resolve(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult;
 }
@@ -23,5 +23,5 @@ pub enum ActionType {
     Heal,
 }
 
-// Simplified rule system - all tokens are ActionResolvers
-pub type RuleToken = Box<dyn ActionResolver>;
+// Simplified rule system - all nodes are ActionResolvers
+pub type RuleNode = Box<dyn ActionResolver>;

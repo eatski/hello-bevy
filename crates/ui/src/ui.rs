@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use battle_core::Battle;
 use action_system;
-use rule_system::ui_converter::{UITokenType, convert_ui_rules_to_tokens};
+use rule_system::ui_converter::{UITokenType, convert_ui_rules_to_nodes};
 
 #[derive(Resource)]
 pub struct GameFont {
@@ -71,9 +71,9 @@ impl CurrentRules {
         }
     }
 
-    // UIのUITokenTypeからrule-systemを経由してaction-systemのRuleTokenに変換
-    pub fn convert_to_rule_tokens(&self) -> Vec<action_system::RuleToken> {
-        convert_ui_rules_to_tokens(&self.rules)
+    // UIのUITokenTypeからrule-systemを経由してaction-systemのRuleNodeに変換
+    pub fn convert_to_rule_nodes(&self) -> Vec<action_system::RuleNode> {
+        convert_ui_rules_to_nodes(&self.rules)
     }
 }
 
@@ -360,7 +360,6 @@ pub fn handle_battle_input(
 
 
 
-
 pub fn update_battle_ui(
     game_state: Res<GameState>,
     game_battle: Res<GameBattle>,
@@ -408,7 +407,7 @@ pub fn update_battle_ui(
 pub fn update_log_ui(
     game_state: Res<GameState>,
     game_battle: Res<GameBattle>,
-    mut log_query: Query<&mut Text, (With<LogUI>, Without<BattleUI>, Without<LatestLogUI>)>,
+    mut log_query: Query<&mut Text, (With<LogUI>, Without<BattleUI>, Without<LatestLogUI>)>
 ) {
     for mut text in log_query.iter_mut() {
         match game_state.mode {
@@ -432,7 +431,7 @@ pub fn update_log_ui(
 pub fn update_latest_log_ui(
     game_state: Res<GameState>,
     game_battle: Res<GameBattle>,
-    mut latest_log_query: Query<&mut Text, (With<LatestLogUI>, Without<BattleUI>, Without<LogUI>)>,
+    mut latest_log_query: Query<&mut Text, (With<LatestLogUI>, Without<BattleUI>, Without<LogUI>)>
 ) {
     for mut text in latest_log_query.iter_mut() {
         match game_state.mode {
@@ -732,8 +731,8 @@ mod tests {
             UITokenType::Strike,
         ];
         
-        let rule_tokens = current_rules.convert_to_rule_tokens();
-        assert_eq!(rule_tokens.len(), 1, "Check → GreaterThan → Number → HP → Strike should be valid");
+        let rule_nodes = current_rules.convert_to_rule_nodes();
+        assert_eq!(rule_nodes.len(), 1, "Check → GreaterThan → Number → HP → Strike should be valid");
     }
     
     #[test]
@@ -748,8 +747,8 @@ mod tests {
             UITokenType::Strike,
         ];
         
-        let rule_tokens1 = current_rules1.convert_to_rule_tokens();
-        assert_eq!(rule_tokens1.len(), 1, "Check → GreaterThan → HP → Number → Strike should be valid (HP > Number)");
+        let rule_nodes1 = current_rules1.convert_to_rule_nodes();
+        assert_eq!(rule_nodes1.len(), 1, "Check → GreaterThan → HP → Number → Strike should be valid (HP > Number)");
         
         // Test: Check → GreaterThan → Number → HP → Strike (Number > HP)
         let mut current_rules2 = CurrentRules::new();
@@ -761,8 +760,8 @@ mod tests {
             UITokenType::Strike,
         ];
         
-        let rule_tokens2 = current_rules2.convert_to_rule_tokens();
-        assert_eq!(rule_tokens2.len(), 1, "Check → GreaterThan → Number → HP → Strike should be valid (Number > HP)");
+        let rule_nodes2 = current_rules2.convert_to_rule_nodes();
+        assert_eq!(rule_nodes2.len(), 1, "Check → GreaterThan → Number → HP → Strike should be valid (Number > HP)");
     }
     
     
@@ -791,10 +790,10 @@ mod tests {
         ];
         
         // Both patterns should be valid
-        let rule_tokens1 = current_rules1.convert_to_rule_tokens();
-        let rule_tokens2 = current_rules2.convert_to_rule_tokens();
-        assert_eq!(rule_tokens1.len(), 1, "Number > HP pattern should convert successfully");
-        assert_eq!(rule_tokens2.len(), 1, "HP > Number pattern should convert successfully");
+        let rule_nodes1 = current_rules1.convert_to_rule_nodes();
+        let rule_nodes2 = current_rules2.convert_to_rule_nodes();
+        assert_eq!(rule_nodes1.len(), 1, "Number > HP pattern should convert successfully");
+        assert_eq!(rule_nodes2.len(), 1, "HP > Number pattern should convert successfully");
     }
     
 }

@@ -1,8 +1,8 @@
 // UI converter - converts UI tokens to rule-system format
 
 use crate::rule_input_model::{RuleSet, RuleChain, TokenConfig};
-use crate::rule_loader::convert_to_token_rules;
-use action_system::RuleToken;
+use crate::rule_loader::convert_to_node_rules;
+use action_system::RuleNode;
 
 // UI側のトークンタイプの定義
 #[derive(Clone, Debug, PartialEq)]
@@ -33,8 +33,8 @@ impl UITokenType {
     }
 }
 
-// UIルールをaction-systemのRuleTokenに変換
-pub fn convert_ui_rules_to_tokens(ui_rules: &[Vec<UITokenType>]) -> Vec<RuleToken> {
+// UIルールをaction-systemのRuleNodeに変換
+pub fn convert_ui_rules_to_nodes(ui_rules: &[Vec<UITokenType>]) -> Vec<RuleNode> {
     let rule_chains: Vec<RuleChain> = ui_rules
         .iter()
         .filter(|rule_row| !rule_row.is_empty())
@@ -43,7 +43,7 @@ pub fn convert_ui_rules_to_tokens(ui_rules: &[Vec<UITokenType>]) -> Vec<RuleToke
     
     let rule_set = RuleSet { rules: rule_chains };
     
-    convert_to_token_rules(&rule_set).unwrap_or_default()
+    convert_to_node_rules(&rule_set).unwrap_or_default()
 }
 
 // UIトークン行をrule-systemのRuleChainに変換
@@ -141,8 +141,8 @@ mod tests {
             vec![UITokenType::Strike],
         ];
         
-        let rule_tokens = convert_ui_rules_to_tokens(&ui_rules);
-        assert_eq!(rule_tokens.len(), 1);
+        let rule_nodes = convert_ui_rules_to_nodes(&ui_rules);
+        assert_eq!(rule_nodes.len(), 1);
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod tests {
             ],
         ];
         
-        let rule_tokens = convert_ui_rules_to_tokens(&ui_rules);
-        assert_eq!(rule_tokens.len(), 1);
+        let rule_nodes = convert_ui_rules_to_nodes(&ui_rules);
+        assert_eq!(rule_nodes.len(), 1);
     }
 }

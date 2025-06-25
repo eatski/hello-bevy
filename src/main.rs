@@ -3,8 +3,8 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 
 use ui::{GameBattle, CurrentRules, GameState, GameMode, load_font, setup_ui, handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui, handle_rule_editing, update_rule_display, update_token_inventory_display, update_instruction_display, handle_battle_reset, update_right_panel_visibility, update_battle_info_display};
-use battle_core::{Battle, Character as GameCharacter};
-use rule_system::{load_rules_from_file, convert_to_token_rules};
+use battle_core::{Battle, Character as GameCharacter, RuleNode};
+use rule_system::{load_rules_from_file, convert_to_node_rules};
 use action_system;
 
 fn main() {
@@ -35,7 +35,7 @@ fn setup_battle(mut commands: Commands) {
     
     // Load player rules from JSON file, fallback to hardcoded rules
     let player_rules = match load_rules_from_file("rules/player_rules.json") {
-        Ok(rule_set) => match convert_to_token_rules(&rule_set) {
+        Ok(rule_set) => match convert_to_node_rules(&rule_set) {
             Ok(rules) => {
                 println!("Loaded player rules from JSON");
                 rules
@@ -53,7 +53,7 @@ fn setup_battle(mut commands: Commands) {
     
     // Load enemy rules from JSON file, fallback to hardcoded rules
     let enemy_rules = match load_rules_from_file("rules/enemy_rules.json") {
-        Ok(rule_set) => match convert_to_token_rules(&rule_set) {
+        Ok(rule_set) => match convert_to_node_rules(&rule_set) {
             Ok(rules) => {
                 println!("Loaded enemy rules from JSON");
                 rules
@@ -75,13 +75,13 @@ fn setup_battle(mut commands: Commands) {
     commands.insert_resource(GameBattle(battle));
 }
 
-fn get_fallback_player_rules() -> Vec<action_system::RuleToken> {
+fn get_fallback_player_rules() -> Vec<RuleNode> {
     vec![
         // First rule: TrueOrFalse -> TrueOrFalse -> Heal
-        Box::new(action_system::CheckToken::new(
-            Box::new(action_system::TrueOrFalseRandomToken),
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::TrueOrFalseRandomToken),
+        Box::new(action_system::CheckNode::new(
+            Box::new(action_system::TrueOrFalseRandomNode),
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::TrueOrFalseRandomNode),
                 Box::new(action_system::HealAction),
             )),
         )),
@@ -90,16 +90,16 @@ fn get_fallback_player_rules() -> Vec<action_system::RuleToken> {
     ]
 }
 
-fn get_fallback_enemy_rules() -> Vec<action_system::RuleToken> {
+fn get_fallback_enemy_rules() -> Vec<RuleNode> {
     vec![
         // First rule: HP check -> Random -> Heal
-        Box::new(action_system::CheckToken::new(
-            Box::new(action_system::GreaterThanToken::new(
-                Box::new(action_system::ConstantToken::new(30)),
-                Box::new(action_system::CharacterHPToken),
+        Box::new(action_system::CheckNode::new(
+            Box::new(action_system::GreaterThanNode::new(
+                Box::new(action_system::ConstantNode::new(30)),
+                Box::new(action_system::CharacterHPNode),
             )),
-            Box::new(action_system::CheckToken::new(
-                Box::new(action_system::TrueOrFalseRandomToken),
+            Box::new(action_system::CheckNode::new(
+                Box::new(action_system::TrueOrFalseRandomNode),
                 Box::new(action_system::HealAction),
             )),
         )),
@@ -119,7 +119,7 @@ fn handle_restart(
         
         // Load rules from JSON or use fallback
         let player_rules = match load_rules_from_file("rules/player_rules.json") {
-            Ok(rule_set) => match convert_to_token_rules(&rule_set) {
+            Ok(rule_set) => match convert_to_node_rules(&rule_set) {
                 Ok(rules) => rules,
                 Err(_) => get_fallback_player_rules()
             },
@@ -127,7 +127,7 @@ fn handle_restart(
         };
         
         let enemy_rules = match load_rules_from_file("rules/enemy_rules.json") {
-            Ok(rule_set) => match convert_to_token_rules(&rule_set) {
+            Ok(rule_set) => match convert_to_node_rules(&rule_set) {
                 Ok(rules) => rules,
                 Err(_) => get_fallback_enemy_rules()
             },
@@ -151,7 +151,7 @@ fn apply_rules_to_battle(
         let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15);
         
         // UIで作成したルールを変換
-        let player_rules = current_rules.convert_to_rule_tokens();
+        let player_rules = current_rules.convert_to_rule_nodes();
         
         // 敵のルールはデフォルトを使用
         let enemy_rules = get_fallback_enemy_rules();
@@ -159,6 +159,6 @@ fn apply_rules_to_battle(
         let rng = StdRng::from_entropy();
         game_battle.0 = Battle::new(player, enemy, player_rules, enemy_rules, rng);
         
-        println!("新しいバトルを開始しました。プレイヤールール数: {}", current_rules.convert_to_rule_tokens().len());
+        println!("新しいバトルを開始しました。プレイヤールール数: {}", current_rules.convert_to_rule_nodes().len());
     }
 }

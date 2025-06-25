@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use action_system::{RuleToken, CheckToken, ActionResolver, BoolToken, NumberToken, ConstantToken, CharacterHPToken, TrueOrFalseRandomToken, GreaterThanToken, StrikeAction, HealAction};
+use action_system::{RuleNode, CheckNode, ActionResolver, BoolNode, NumberNode, ConstantNode, CharacterHPNode, TrueOrFalseRandomNode, GreaterThanNode, StrikeAction, HealAction};
 use crate::rule_input_model::{RuleSet, TokenConfig};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
@@ -17,19 +17,19 @@ pub fn parse_rules_from_json(json_content: &str) -> Result<RuleSet, String> {
     Ok(rule_set)
 }
 
-pub fn convert_to_token_rules(rule_set: &RuleSet) -> Result<Vec<RuleToken>, String> {
-    let mut token_rules = Vec::new();
+pub fn convert_to_node_rules(rule_set: &RuleSet) -> Result<Vec<RuleNode>, String> {
+    let mut node_rules = Vec::new();
     
     for rule_chain in &rule_set.rules {
         // Convert token chain to single chained ActionResolver
-        let rule_token = convert_token_chain(&rule_chain.tokens)?;
-        token_rules.push(rule_token);
+        let rule_node = convert_node_chain(&rule_chain.tokens)?;
+        node_rules.push(rule_node);
     }
     
-    Ok(token_rules)
+    Ok(node_rules)
 }
 
-fn convert_token_chain(tokens: &[TokenConfig]) -> Result<RuleToken, String> {
+fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
     if tokens.is_empty() {
         return Err("Empty token chain".to_string());
     }
@@ -46,14 +46,14 @@ fn convert_token_chain(tokens: &[TokenConfig]) -> Result<RuleToken, String> {
                 result = Some(Box::new(HealAction));
             }
             TokenConfig::Check { args } => {
-                let bool_token = if !args.is_empty() {
-                    convert_bool_token_config(&args[0])?
+                let bool_node = if !args.is_empty() {
+                    convert_bool_node_config(&args[0])?
                 } else {
                     return Err("Check token requires args".to_string());
                 };
                 
                 if let Some(next) = result {
-                    result = Some(Box::new(CheckToken::new(bool_token, next)));
+                    result = Some(Box::new(CheckNode::new(bool_node, next)));
                 } else {
                     return Err("Check token must have a following token".to_string());
                 }
@@ -64,30 +64,30 @@ fn convert_token_chain(tokens: &[TokenConfig]) -> Result<RuleToken, String> {
         }
     }
     
-    result.ok_or_else(|| "Failed to build token chain".to_string())
+    result.ok_or_else(|| "Failed to build node chain".to_string())
 }
 
-fn convert_bool_token_config(config: &TokenConfig) -> Result<Box<dyn BoolToken>, String> {
+fn convert_bool_node_config(config: &TokenConfig) -> Result<Box<dyn BoolNode>, String> {
     match config {
-        TokenConfig::TrueOrFalseRandom => Ok(Box::new(TrueOrFalseRandomToken)),
+        TokenConfig::TrueOrFalseRandom => Ok(Box::new(TrueOrFalseRandomNode)),
         TokenConfig::GreaterThan { args } => {
             if args.len() >= 2 {
-                let left_token = convert_number_token_config(&args[0])?;
-                let right_token = convert_number_token_config(&args[1])?;
-                Ok(Box::new(GreaterThanToken::new(left_token, right_token)))
+                let left_node = convert_number_node_config(&args[0])?;
+                let right_node = convert_number_node_config(&args[1])?;
+                Ok(Box::new(GreaterThanNode::new(left_node, right_node)))
             } else {
                 Err("GreaterThan token requires args array with 2 elements".to_string())
             }
         },
-        _ => Err(format!("Cannot convert {:?} to BoolToken", config)),
+        _ => Err(format!("Cannot convert {:?} to BoolNode", config)),
     }
 }
 
-fn convert_number_token_config(config: &TokenConfig) -> Result<Box<dyn NumberToken>, String> {
+fn convert_number_node_config(config: &TokenConfig) -> Result<Box<dyn NumberNode>, String> {
     match config {
-        TokenConfig::Number { value } => Ok(Box::new(ConstantToken::new(*value))),
-        TokenConfig::CharacterHP => Ok(Box::new(CharacterHPToken)),
-        _ => Err(format!("Cannot convert {:?} to NumberToken", config)),
+        TokenConfig::Number { value } => Ok(Box::new(ConstantNode::new(*value))),
+        TokenConfig::CharacterHP => Ok(Box::new(CharacterHPNode)),
+        _ => Err(format!("Cannot convert {:?} to NumberNode", config)),
     }
 }
 
@@ -128,7 +128,7 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_simple_tokens() {
+    fn test_convert_simple_nodes() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
@@ -140,13 +140,13 @@ mod tests {
             ],
         };
         
-        let token_rules = convert_to_token_rules(&rule_set).unwrap();
-        assert_eq!(token_rules.len(), 1);
-        // Note: token_rules[0] is now a single chained ActionResolver, not a vector
+        let node_rules = convert_to_node_rules(&rule_set).unwrap();
+        assert_eq!(node_rules.len(), 1);
+        // Note: node_rules[0] is now a single chained ActionResolver, not a vector
     }
 
     #[test]
-    fn test_convert_complex_tokens() {
+    fn test_convert_complex_nodes() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
@@ -165,13 +165,13 @@ mod tests {
             ],
         };
         
-        let token_rules = convert_to_token_rules(&rule_set).unwrap();
-        assert_eq!(token_rules.len(), 1);
-        // Note: token_rules[0] is now a single chained ActionResolver, not a vector
+        let node_rules = convert_to_node_rules(&rule_set).unwrap();
+        assert_eq!(node_rules.len(), 1);
+        // Note: node_rules[0] is now a single chained ActionResolver, not a vector
     }
 
     #[test]
-    fn test_convert_check_token_error_no_args_or_condition() {
+    fn test_convert_check_node_error_no_args_or_condition() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
@@ -185,7 +185,7 @@ mod tests {
             ],
         };
         
-        let result = convert_to_token_rules(&rule_set);
+        let result = convert_to_node_rules(&rule_set);
         assert!(result.is_err());
         if let Err(error_msg) = result {
             assert!(error_msg.contains("Check token requires args"));
@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_greater_than_token_error_insufficient_args() {
+    fn test_convert_greater_than_node_error_insufficient_args() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
@@ -209,7 +209,7 @@ mod tests {
             ],
         };
         
-        let result = convert_to_token_rules(&rule_set);
+        let result = convert_to_node_rules(&rule_set);
         assert!(result.is_err());
         if let Err(error_msg) = result {
             assert!(error_msg.contains("GreaterThan token requires args array with 2 elements"));
@@ -217,7 +217,7 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_character_hp_token_no_args_or_character() {
+    fn test_convert_character_hp_node_no_args_or_character() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
@@ -229,7 +229,7 @@ mod tests {
         };
         
         // This should fail because CharacterHP cannot be used as a direct action
-        let result = convert_to_token_rules(&rule_set);
+        let result = convert_to_node_rules(&rule_set);
         assert!(result.is_err());
         if let Err(error_msg) = result {
             assert!(error_msg.contains("cannot be used directly in rule chain"));
@@ -237,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_character_hp_token_success() {
+    fn test_convert_character_hp_node_success() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
@@ -256,7 +256,7 @@ mod tests {
             ],
         };
         
-        let result = convert_to_token_rules(&rule_set);
+        let result = convert_to_node_rules(&rule_set);
         assert!(result.is_ok());
     }
 
@@ -280,7 +280,7 @@ mod tests {
             ],
         };
         
-        let result = convert_to_token_rules(&rule_set);
+        let result = convert_to_node_rules(&rule_set);
         assert!(result.is_ok());
     }
 
@@ -288,7 +288,7 @@ mod tests {
 
 
     #[test]
-    fn test_valid_continue_token_with_following_action() {
+    fn test_valid_continue_node_with_following_action() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
@@ -302,15 +302,15 @@ mod tests {
             ],
         };
         
-        let result = convert_to_token_rules(&rule_set);
+        let result = convert_to_node_rules(&rule_set);
         assert!(result.is_ok());
-        let token_rules = result.unwrap();
-        assert_eq!(token_rules.len(), 1);
-        // Note: token_rules[0] is now a single chained ActionResolver, not a vector
+        let node_rules = result.unwrap();
+        assert_eq!(node_rules.len(), 1);
+        // Note: node_rules[0] is now a single chained ActionResolver, not a vector
     }
 
     #[test]
-    fn test_action_token_at_end_is_valid() {
+    fn test_action_node_at_end_is_valid() {
         let rule_set = RuleSet {
             rules: vec![
                 RuleChain {
@@ -321,10 +321,10 @@ mod tests {
             ],
         };
         
-        let result = convert_to_token_rules(&rule_set);
+        let result = convert_to_node_rules(&rule_set);
         assert!(result.is_ok());
-        let token_rules = result.unwrap();
-        assert_eq!(token_rules.len(), 1);
-        // Note: token_rules[0] is now a single chained ActionResolver, not a vector
+        let node_rules = result.unwrap();
+        assert_eq!(node_rules.len(), 1);
+        // Note: node_rules[0] is now a single chained ActionResolver, not a vector
     }
 }

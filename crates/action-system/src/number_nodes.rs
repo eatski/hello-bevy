@@ -1,38 +1,38 @@
-// Number tokens - tokens that evaluate to numeric values
+// Number nodes - nodes that evaluate to numeric values
 
-// Trait for tokens that evaluate to numbers
-pub trait NumberToken: Send + Sync + std::fmt::Debug {
+// Trait for nodes that evaluate to numbers
+pub trait NumberNode: Send + Sync + std::fmt::Debug {
     fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> i32;
 }
 
-impl NumberToken for Box<dyn NumberToken> {
+impl NumberNode for Box<dyn NumberNode> {
     fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> i32 {
         (**self).evaluate(character, rng)
     }
 }
 
-// Concrete number token implementations
+// Concrete number node implementations
 #[derive(Debug)]
-pub struct ConstantToken {
+pub struct ConstantNode {
     value: i32,
 }
 
-impl ConstantToken {
+impl ConstantNode {
     pub fn new(value: i32) -> Self {
         Self { value: value.clamp(1, 100) }
     }
 }
 
-impl NumberToken for ConstantToken {
+impl NumberNode for ConstantNode {
     fn evaluate(&self, _character: &crate::Character, _rng: &mut dyn rand::RngCore) -> i32 {
         self.value
     }
 }
 
 #[derive(Debug)]
-pub struct CharacterHPToken;
+pub struct CharacterHPNode;
 
-impl NumberToken for CharacterHPToken {
+impl NumberNode for CharacterHPNode {
     fn evaluate(&self, character: &crate::Character, _rng: &mut dyn rand::RngCore) -> i32 {
         character.hp
     }
@@ -46,22 +46,22 @@ mod tests {
     use rand::SeedableRng;
 
     #[test]
-    fn test_constant_token() {
+    fn test_constant_node() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
         let mut rng = StdRng::from_entropy();
         
-        // Test Constant token
-        let number_token = ConstantToken::new(42);
-        assert_eq!(number_token.evaluate(&character, &mut rng), 42);
+        // Test Constant node
+        let number_node = ConstantNode::new(42);
+        assert_eq!(number_node.evaluate(&character, &mut rng), 42);
     }
 
     #[test]
-    fn test_character_hp_token() {
+    fn test_character_hp_node() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
         let mut rng = StdRng::from_entropy();
         
-        // Test CharacterHP token
-        let char_hp_token = CharacterHPToken;
-        assert_eq!(char_hp_token.evaluate(&character, &mut rng), 100);
+        // Test CharacterHP node
+        let char_hp_node = CharacterHPNode;
+        assert_eq!(char_hp_node.evaluate(&character, &mut rng), 100);
     }
 }
