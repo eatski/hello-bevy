@@ -1,0 +1,15 @@
+services:
+  claude-dev:
+    build: .
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+    working_dir: /workspace
+    environment:
+      - NODE_ENV=development
+    stdin_open: true
+    tty: true
+    command: bash
+
+volumes:
+  node_modules:
