@@ -237,10 +237,10 @@ hello-bevy (root バイナリ)
 cargo test --workspace
 
 # 個別クレートのテスト
-cargo test -p action-system    # 11テスト
-cargo test -p rule-system      # 12テスト
-cargo test -p battle-core      # 26テスト
-cargo test -p ui               # 0テスト
+cargo test -p action-system
+cargo test -p rule-system
+cargo test -p battle-core
+cargo test -p ui
 
 # 特定テストパターン
 cargo test -p battle-core -- integration_tests
