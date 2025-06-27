@@ -3,9 +3,8 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 
 use bevy_frontend::{GameBattle, CurrentRules, GameState, GameMode, load_font, setup_ui, handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui, handle_rule_editing, update_rule_display, update_token_inventory_display, update_instruction_display, handle_battle_reset, update_right_panel_visibility, update_battle_info_display};
-use game_logic::{Battle, Character as GameCharacter, RuleNode};
+use game_logic::{Battle, Character as GameCharacter};
 use rule_parser::{load_rules_from_file, convert_to_node_rules};
-use combat_engine;
 
 fn main() {
     App::new()
@@ -33,41 +32,19 @@ fn setup_battle(mut commands: Commands) {
     let player = GameCharacter::new("勇者".to_string(), 100, 80, 25);
     let enemy = GameCharacter::new("スライム".to_string(), 200, 30, 15);
     
-    // Load player rules from JSON file, fallback to hardcoded rules
-    let player_rules = match load_rules_from_file("rules/player_rules.json") {
-        Ok(rule_set) => match convert_to_node_rules(&rule_set) {
-            Ok(rules) => {
-                println!("Loaded player rules from JSON");
-                rules
-            },
-            Err(e) => {
-                println!("Error converting player rules: {}, using fallback", e);
-                get_fallback_player_rules()
-            }
-        },
-        Err(e) => {
-            println!("Error loading player rules: {}, using fallback", e);
-            get_fallback_player_rules()
-        }
-    };
+    // Load player rules from JSON file
+    let rule_set = load_rules_from_file("rules/player_rules.json")
+        .expect("Failed to load player rules from JSON file");
+    let player_rules = convert_to_node_rules(&rule_set)
+        .expect("Failed to convert player rules");
+    println!("Loaded player rules from JSON");
     
-    // Load enemy rules from JSON file, fallback to hardcoded rules
-    let enemy_rules = match load_rules_from_file("rules/enemy_rules.json") {
-        Ok(rule_set) => match convert_to_node_rules(&rule_set) {
-            Ok(rules) => {
-                println!("Loaded enemy rules from JSON");
-                rules
-            },
-            Err(e) => {
-                println!("Error converting enemy rules: {}, using fallback", e);
-                get_fallback_enemy_rules()
-            }
-        },
-        Err(e) => {
-            println!("Error loading enemy rules: {}, using fallback", e);
-            get_fallback_enemy_rules()
-        }
-    };
+    // Load enemy rules from JSON file
+    let rule_set = load_rules_from_file("rules/enemy_rules.json")
+        .expect("Failed to load enemy rules from JSON file");
+    let enemy_rules = convert_to_node_rules(&rule_set)
+        .expect("Failed to convert enemy rules");
+    println!("Loaded enemy rules from JSON");
     
     let rng = StdRng::from_entropy();
     let battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
@@ -75,38 +52,6 @@ fn setup_battle(mut commands: Commands) {
     commands.insert_resource(GameBattle(battle));
 }
 
-fn get_fallback_player_rules() -> Vec<RuleNode> {
-    vec![
-        // First rule: TrueOrFalse -> TrueOrFalse -> Heal
-        Box::new(combat_engine::CheckNode::new(
-            Box::new(combat_engine::TrueOrFalseRandomNode),
-            Box::new(combat_engine::CheckNode::new(
-                Box::new(combat_engine::TrueOrFalseRandomNode),
-                Box::new(combat_engine::HealAction),
-            )),
-        )),
-        // Second rule: Strike (no condition)
-        Box::new(combat_engine::StrikeAction),
-    ]
-}
-
-fn get_fallback_enemy_rules() -> Vec<RuleNode> {
-    vec![
-        // First rule: HP check -> Random -> Heal
-        Box::new(combat_engine::CheckNode::new(
-            Box::new(combat_engine::GreaterThanNode::new(
-                Box::new(combat_engine::ConstantNode::new(30)),
-                Box::new(combat_engine::CharacterHPNode),
-            )),
-            Box::new(combat_engine::CheckNode::new(
-                Box::new(combat_engine::TrueOrFalseRandomNode),
-                Box::new(combat_engine::HealAction),
-            )),
-        )),
-        // Second rule: Strike
-        Box::new(combat_engine::StrikeAction),
-    ]
-}
 
 fn handle_restart(
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -117,22 +62,16 @@ fn handle_restart(
         let player = GameCharacter::new("勇者".to_string(), 100, 50, 25);
         let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15);
         
-        // Load rules from JSON or use fallback
-        let player_rules = match load_rules_from_file("rules/player_rules.json") {
-            Ok(rule_set) => match convert_to_node_rules(&rule_set) {
-                Ok(rules) => rules,
-                Err(_) => get_fallback_player_rules()
-            },
-            Err(_) => get_fallback_player_rules()
-        };
+        // Load rules from JSON
+        let rule_set = load_rules_from_file("rules/player_rules.json")
+            .expect("Failed to load player rules from JSON file");
+        let player_rules = convert_to_node_rules(&rule_set)
+            .expect("Failed to convert player rules");
         
-        let enemy_rules = match load_rules_from_file("rules/enemy_rules.json") {
-            Ok(rule_set) => match convert_to_node_rules(&rule_set) {
-                Ok(rules) => rules,
-                Err(_) => get_fallback_enemy_rules()
-            },
-            Err(_) => get_fallback_enemy_rules()
-        };
+        let rule_set = load_rules_from_file("rules/enemy_rules.json")
+            .expect("Failed to load enemy rules from JSON file");
+        let enemy_rules = convert_to_node_rules(&rule_set)
+            .expect("Failed to convert enemy rules");
         
         let rng = StdRng::from_entropy();
         game_battle.0 = Battle::new(player, enemy, player_rules, enemy_rules, rng);
@@ -153,8 +92,11 @@ fn apply_rules_to_battle(
         // UIで作成したルールを変換
         let player_rules = current_rules.convert_to_rule_nodes();
         
-        // 敵のルールはデフォルトを使用
-        let enemy_rules = get_fallback_enemy_rules();
+        // 敵のルールをJSONから読み込み
+        let rule_set = load_rules_from_file("rules/enemy_rules.json")
+            .expect("Failed to load enemy rules from JSON file");
+        let enemy_rules = convert_to_node_rules(&rule_set)
+            .expect("Failed to convert enemy rules");
         
         let rng = StdRng::from_entropy();
         game_battle.0 = Battle::new(player, enemy, player_rules, enemy_rules, rng);
