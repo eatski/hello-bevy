@@ -42,13 +42,6 @@ pub struct TokenSelectionHeader;
 #[derive(Component)]
 pub struct BattleInfo;
 
-// UITokenType用のヘルパー関数
-fn get_token_color(token: &UITokenType) -> Color {
-    match token {
-        UITokenType::Heal => Color::srgb(0.4, 0.2, 1.0), // 紫
-        _ => Color::srgb(0.2, 0.6, 1.0), // 青 (default for all others)
-    }
-}
 
 // 現在設定されているルール（キー操作用）
 #[derive(Resource, Default)]
