@@ -2,10 +2,10 @@ use bevy::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
-use ui::{GameBattle, CurrentRules, GameState, GameMode, load_font, setup_ui, handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui, handle_rule_editing, update_rule_display, update_token_inventory_display, update_instruction_display, handle_battle_reset, update_right_panel_visibility, update_battle_info_display};
-use battle_core::{Battle, Character as GameCharacter, RuleNode};
-use rule_system::{load_rules_from_file, convert_to_node_rules};
-use action_system;
+use bevy_frontend::{GameBattle, CurrentRules, GameState, GameMode, load_font, setup_ui, handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui, handle_rule_editing, update_rule_display, update_token_inventory_display, update_instruction_display, handle_battle_reset, update_right_panel_visibility, update_battle_info_display};
+use game_logic::{Battle, Character as GameCharacter, RuleNode};
+use rule_parser::{load_rules_from_file, convert_to_node_rules};
+use combat_engine;
 
 fn main() {
     App::new()
@@ -78,33 +78,33 @@ fn setup_battle(mut commands: Commands) {
 fn get_fallback_player_rules() -> Vec<RuleNode> {
     vec![
         // First rule: TrueOrFalse -> TrueOrFalse -> Heal
-        Box::new(action_system::CheckNode::new(
-            Box::new(action_system::TrueOrFalseRandomNode),
-            Box::new(action_system::CheckNode::new(
-                Box::new(action_system::TrueOrFalseRandomNode),
-                Box::new(action_system::HealAction),
+        Box::new(combat_engine::CheckNode::new(
+            Box::new(combat_engine::TrueOrFalseRandomNode),
+            Box::new(combat_engine::CheckNode::new(
+                Box::new(combat_engine::TrueOrFalseRandomNode),
+                Box::new(combat_engine::HealAction),
             )),
         )),
         // Second rule: Strike (no condition)
-        Box::new(action_system::StrikeAction),
+        Box::new(combat_engine::StrikeAction),
     ]
 }
 
 fn get_fallback_enemy_rules() -> Vec<RuleNode> {
     vec![
         // First rule: HP check -> Random -> Heal
-        Box::new(action_system::CheckNode::new(
-            Box::new(action_system::GreaterThanNode::new(
-                Box::new(action_system::ConstantNode::new(30)),
-                Box::new(action_system::CharacterHPNode),
+        Box::new(combat_engine::CheckNode::new(
+            Box::new(combat_engine::GreaterThanNode::new(
+                Box::new(combat_engine::ConstantNode::new(30)),
+                Box::new(combat_engine::CharacterHPNode),
             )),
-            Box::new(action_system::CheckNode::new(
-                Box::new(action_system::TrueOrFalseRandomNode),
-                Box::new(action_system::HealAction),
+            Box::new(combat_engine::CheckNode::new(
+                Box::new(combat_engine::TrueOrFalseRandomNode),
+                Box::new(combat_engine::HealAction),
             )),
         )),
         // Second rule: Strike
-        Box::new(action_system::StrikeAction),
+        Box::new(combat_engine::StrikeAction),
     ]
 }
 

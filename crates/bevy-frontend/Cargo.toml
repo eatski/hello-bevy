@@ -1,0 +1,10 @@
+[package]
+name = "bevy-frontend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.16.0"
+game-logic = { path = "../game-logic" }
+combat-engine = { path = "../combat-engine" }
+rule-parser = { path = "../rule-parser" }

@@ -1,0 +1,9 @@
+[package]
+name = "game-logic"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+combat-engine = { path = "../combat-engine" }
+rule-parser = { path = "../rule-parser" }
+rand = "0.8.5"

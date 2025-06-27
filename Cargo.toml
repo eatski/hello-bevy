@@ -1,9 +1,9 @@
 [workspace]
 members = [
-    "crates/action-system",
-    "crates/rule-system",
-    "crates/battle-core",
-    "crates/ui",
+    "crates/combat-engine",
+    "crates/rule-parser",
+    "crates/game-logic",
+    "crates/bevy-frontend",
 ]
 
 [package]
@@ -14,8 +14,8 @@ edition = "2021"
 [dependencies]
 bevy = "0.16.0"
 rand = "0.8.5"
-action-system = { path = "crates/action-system" }
-rule-system = { path = "crates/rule-system" }
-battle-core = { path = "crates/battle-core" }
-ui = { path = "crates/ui" }
+combat-engine = { path = "crates/combat-engine" }
+rule-parser = { path = "crates/rule-parser" }
+game-logic = { path = "crates/game-logic" }
+bevy-frontend = { path = "crates/bevy-frontend" }
 

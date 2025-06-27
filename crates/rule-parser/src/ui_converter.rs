@@ -2,7 +2,7 @@
 
 use crate::rule_input_model::{RuleSet, RuleChain, TokenConfig};
 use crate::rule_loader::convert_to_node_rules;
-use action_system::RuleNode;
+use combat_engine::RuleNode;
 
 // UI側のトークンタイプの定義
 #[derive(Clone, Debug, PartialEq)]

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use battle_core::Battle;
-use action_system;
-use rule_system::ui_converter::{UITokenType, convert_ui_rules_to_nodes};
+use game_logic::Battle;
+use combat_engine;
+use rule_parser::ui_converter::{UITokenType, convert_ui_rules_to_nodes};
 
 #[derive(Resource)]
 pub struct GameFont {
@@ -65,7 +65,7 @@ impl CurrentRules {
     }
 
     // UIのUITokenTypeからrule-systemを経由してaction-systemのRuleNodeに変換
-    pub fn convert_to_rule_nodes(&self) -> Vec<action_system::RuleNode> {
+    pub fn convert_to_rule_nodes(&self) -> Vec<combat_engine::RuleNode> {
         convert_ui_rules_to_nodes(&self.rules)
     }
 }
