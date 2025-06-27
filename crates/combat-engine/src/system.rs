@@ -37,17 +37,17 @@ impl ActionCalculationSystem {
 mod tests {
     use super::*;
     use crate::Character;
-    use crate::{CheckNode, StrikeAction, HealAction, TrueOrFalseRandomNode, GreaterThanNode, ConstantNode, CharacterHPNode};
+    use crate::{ConditionCheckNode, StrikeActionNode, HealActionNode, RandomConditionNode, GreaterThanConditionNode, ConstantValueNode, CharacterHpValueNode};
     use rand::SeedableRng;
 
     #[test]
     fn test_action_calculation_system() {
         let rules: Vec<RuleNode> = vec![
-            Box::new(CheckNode::new(
-                Box::new(TrueOrFalseRandomNode),
-                Box::new(HealAction),
+            Box::new(ConditionCheckNode::new(
+                Box::new(RandomConditionNode),
+                Box::new(HealActionNode),
             )),
-            Box::new(StrikeAction),
+            Box::new(StrikeActionNode),
         ];
         let rng = StdRng::from_entropy();
         let mut system = ActionCalculationSystem::new(rules, rng);
@@ -69,11 +69,11 @@ mod tests {
         
         let create_rules = || -> Vec<RuleNode> {
             vec![
-                Box::new(CheckNode::new(
-                    Box::new(TrueOrFalseRandomNode),
-                    Box::new(HealAction),
+                Box::new(ConditionCheckNode::new(
+                    Box::new(RandomConditionNode),
+                    Box::new(HealActionNode),
                 )),
-                Box::new(StrikeAction),
+                Box::new(StrikeActionNode),
             ]
         };
         
@@ -118,14 +118,14 @@ mod tests {
         
         // Create HP-based rules
         let hp_rules: Vec<RuleNode> = vec![
-            Box::new(CheckNode::new(
-                Box::new(GreaterThanNode::new(
-                    Box::new(ConstantNode::new(50)),
-                    Box::new(CharacterHPNode),
+            Box::new(ConditionCheckNode::new(
+                Box::new(GreaterThanConditionNode::new(
+                    Box::new(ConstantValueNode::new(50)),
+                    Box::new(CharacterHpValueNode),
                 )),
-                Box::new(HealAction),
+                Box::new(HealActionNode),
             )),
-            Box::new(StrikeAction),
+            Box::new(StrikeActionNode),
         ];
         
         let rng = StdRng::from_entropy();

@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use combat_engine::{RuleNode, CheckNode, ActionResolver, BoolNode, NumberNode, ConstantNode, CharacterHPNode, TrueOrFalseRandomNode, GreaterThanNode, StrikeAction, HealAction};
+use combat_engine::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, CharacterHpValueNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
 use crate::rule_input_model::{RuleSet, TokenConfig};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
@@ -40,10 +40,10 @@ fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
     for token_config in tokens.iter().rev() {
         match token_config {
             TokenConfig::Strike => {
-                result = Some(Box::new(StrikeAction));
+                result = Some(Box::new(StrikeActionNode));
             }
             TokenConfig::Heal => {
-                result = Some(Box::new(HealAction));
+                result = Some(Box::new(HealActionNode));
             }
             TokenConfig::Check { args } => {
                 let bool_node = if !args.is_empty() {
@@ -53,7 +53,7 @@ fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
                 };
                 
                 if let Some(next) = result {
-                    result = Some(Box::new(CheckNode::new(bool_node, next)));
+                    result = Some(Box::new(ConditionCheckNode::new(bool_node, next)));
                 } else {
                     return Err("Check token must have a following token".to_string());
                 }
@@ -67,27 +67,27 @@ fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
     result.ok_or_else(|| "Failed to build node chain".to_string())
 }
 
-fn convert_bool_node_config(config: &TokenConfig) -> Result<Box<dyn BoolNode>, String> {
+fn convert_bool_node_config(config: &TokenConfig) -> Result<Box<dyn ConditionNode>, String> {
     match config {
-        TokenConfig::TrueOrFalseRandom => Ok(Box::new(TrueOrFalseRandomNode)),
+        TokenConfig::TrueOrFalseRandom => Ok(Box::new(RandomConditionNode)),
         TokenConfig::GreaterThan { args } => {
             if args.len() >= 2 {
                 let left_node = convert_number_node_config(&args[0])?;
                 let right_node = convert_number_node_config(&args[1])?;
-                Ok(Box::new(GreaterThanNode::new(left_node, right_node)))
+                Ok(Box::new(GreaterThanConditionNode::new(left_node, right_node)))
             } else {
                 Err("GreaterThan token requires args array with 2 elements".to_string())
             }
         },
-        _ => Err(format!("Cannot convert {:?} to BoolNode", config)),
+        _ => Err(format!("Cannot convert {:?} to ConditionNode", config)),
     }
 }
 
-fn convert_number_node_config(config: &TokenConfig) -> Result<Box<dyn NumberNode>, String> {
+fn convert_number_node_config(config: &TokenConfig) -> Result<Box<dyn ValueNode>, String> {
     match config {
-        TokenConfig::Number { value } => Ok(Box::new(ConstantNode::new(*value))),
-        TokenConfig::CharacterHP => Ok(Box::new(CharacterHPNode)),
-        _ => Err(format!("Cannot convert {:?} to NumberNode", config)),
+        TokenConfig::Number { value } => Ok(Box::new(ConstantValueNode::new(*value))),
+        TokenConfig::CharacterHP => Ok(Box::new(CharacterHpValueNode)),
+        _ => Err(format!("Cannot convert {:?} to ValueNode", config)),
     }
 }
 

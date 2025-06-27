@@ -1,38 +1,39 @@
-// Number nodes - nodes that evaluate to numeric values
+// Value nodes - nodes that evaluate to numeric values for calculations
 
-// Trait for nodes that evaluate to numbers
-pub trait NumberNode: Send + Sync + std::fmt::Debug {
+// Trait for nodes that evaluate to numeric values
+pub trait ValueNode: Send + Sync + std::fmt::Debug {
     fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> i32;
 }
 
-impl NumberNode for Box<dyn NumberNode> {
+impl ValueNode for Box<dyn ValueNode> {
     fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> i32 {
         (**self).evaluate(character, rng)
     }
 }
 
-// Concrete number node implementations
+// Constant value node - returns a fixed numeric value
 #[derive(Debug)]
-pub struct ConstantNode {
+pub struct ConstantValueNode {
     value: i32,
 }
 
-impl ConstantNode {
+impl ConstantValueNode {
     pub fn new(value: i32) -> Self {
         Self { value: value.clamp(1, 100) }
     }
 }
 
-impl NumberNode for ConstantNode {
+impl ValueNode for ConstantValueNode {
     fn evaluate(&self, _character: &crate::Character, _rng: &mut dyn rand::RngCore) -> i32 {
         self.value
     }
 }
 
+// Character HP value node - returns character's current HP
 #[derive(Debug)]
-pub struct CharacterHPNode;
+pub struct CharacterHpValueNode;
 
-impl NumberNode for CharacterHPNode {
+impl ValueNode for CharacterHpValueNode {
     fn evaluate(&self, character: &crate::Character, _rng: &mut dyn rand::RngCore) -> i32 {
         character.hp
     }
@@ -46,22 +47,22 @@ mod tests {
     use rand::SeedableRng;
 
     #[test]
-    fn test_constant_node() {
+    fn test_constant_value_node() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
         let mut rng = StdRng::from_entropy();
         
-        // Test Constant node
-        let number_node = ConstantNode::new(42);
-        assert_eq!(number_node.evaluate(&character, &mut rng), 42);
+        // Test Constant value node
+        let value_node = ConstantValueNode::new(42);
+        assert_eq!(value_node.evaluate(&character, &mut rng), 42);
     }
 
     #[test]
-    fn test_character_hp_node() {
+    fn test_character_hp_value_node() {
         let character = Character::new("Test".to_string(), 100, 50, 25);
         let mut rng = StdRng::from_entropy();
         
-        // Test CharacterHP node
-        let char_hp_node = CharacterHPNode;
+        // Test CharacterHP value node
+        let char_hp_node = CharacterHpValueNode;
         assert_eq!(char_hp_node.evaluate(&character, &mut rng), 100);
     }
 }
