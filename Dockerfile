@@ -24,6 +24,19 @@ RUN apt-get update && apt-get install -y curl && \
 # Install the Claude CLI globally
 RUN npm install -g @anthropic-ai/claude-code
 
+# ユーザーとグループ作成
+RUN useradd -m -u 1000 -s /bin/bash claude_user
+
+# 作業ディレクトリ作成と権限付与
+RUN mkdir -p /workspace && \
+    chown -R claude_user:claude_user /workspace && \
+    chmod -R 755 /workspace
+
+USER claude_user
+
+# Switch to the new user
+USER claude_user
+
 # Set the working directory to match docker-compose.yml
 WORKDIR /workspace
 
