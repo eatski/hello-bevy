@@ -7,6 +7,8 @@ services:
     working_dir: /workspace
     environment:
       - NODE_ENV=development
+      - CARGO_BUILD_TARGET_DIR=/workspace/.claude-dev/target
+      - GIT_DIR=/workspace/.claude-dev/.git
     stdin_open: true
     tty: true
     command: bash
