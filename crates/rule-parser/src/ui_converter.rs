@@ -46,87 +46,108 @@ pub fn convert_ui_rules_to_nodes(ui_rules: &[Vec<UITokenType>]) -> Vec<RuleNode>
     convert_to_node_rules(&rule_set).unwrap_or_default()
 }
 
-// UIトークン行をrule-systemのRuleChainに変換
+// UIトークン行をrule-systemのRuleChainに変換（再帰実装）
 fn convert_ui_token_row_to_rule_chain(token_row: &[UITokenType]) -> Option<RuleChain> {
     if token_row.is_empty() {
         return None;
     }
     
     let mut token_configs = Vec::new();
-    let mut i = 0;
-    
-    while i < token_row.len() {
-        match &token_row[i] {
-            UITokenType::Check => {
-                if i + 1 < token_row.len() {
-                    if let Some((condition_config, consumed)) = convert_ui_condition_tokens_with_count(&token_row[i+1..]) {
-                        token_configs.push(TokenConfig::Check {
-                            args: vec![condition_config],
-                        });
-                        i += consumed + 1;
-                    } else {
-                        return None;
-                    }
-                } else {
-                    return None;
-                }
-            }
-            UITokenType::Strike => {
-                token_configs.push(TokenConfig::Strike);
-                i += 1;
-            }
-            UITokenType::Heal => {
-                token_configs.push(TokenConfig::Heal);
-                i += 1;
-            }
-            _ => {
-                return None;
-            }
-        }
-    }
+    convert_tokens_recursive(token_row, 0, &mut token_configs)?;
     
     if token_configs.is_empty() {
         None
     } else {
-        Some(RuleChain {
-            tokens: token_configs,
-        })
+        Some(RuleChain { tokens: token_configs })
     }
 }
 
-// UI条件部分をTokenConfigに変換し、消費したトークン数も返す
-fn convert_ui_condition_tokens_with_count(tokens: &[UITokenType]) -> Option<(TokenConfig, usize)> {
-    if tokens.is_empty() {
-        return None;
+// トークン変換を再帰的に実行
+fn convert_tokens_recursive(
+    token_row: &[UITokenType], 
+    index: usize, 
+    token_configs: &mut Vec<TokenConfig>
+) -> Option<()> {
+    if index >= token_row.len() {
+        return Some(());
     }
     
-    match &tokens[0] {
-        UITokenType::TrueOrFalse => {
-            Some((TokenConfig::TrueOrFalseRandom, 1))
-        }
-        UITokenType::GreaterThan => {
-            if tokens.len() >= 3 {
-                let left = convert_ui_single_token_to_config(&tokens[1])?;
-                let right = convert_ui_single_token_to_config(&tokens[2])?;
-                Some((
-                    TokenConfig::GreaterThan {
-                        args: vec![left, right],
-                    },
-                    3
-                ))
+    match &token_row[index] {
+        UITokenType::Check => {
+            if index + 1 < token_row.len() {
+                if let Some((condition_config, consumed)) = 
+                    convert_ui_condition_tokens_recursive(&token_row[index + 1..]) {
+                    token_configs.push(TokenConfig::Check {
+                        args: vec![condition_config],
+                    });
+                    convert_tokens_recursive(token_row, index + consumed + 1, token_configs)
+                } else {
+                    None
+                }
             } else {
                 None
             }
+        }
+        UITokenType::Strike => {
+            token_configs.push(TokenConfig::Strike);
+            convert_tokens_recursive(token_row, index + 1, token_configs)
+        }
+        UITokenType::Heal => {
+            token_configs.push(TokenConfig::Heal);
+            convert_tokens_recursive(token_row, index + 1, token_configs)
         }
         _ => None,
     }
 }
 
-// 単一のUIトークンをTokenConfigに変換
-fn convert_ui_single_token_to_config(token: &UITokenType) -> Option<TokenConfig> {
-    match token {
-        UITokenType::Number(n) => Some(TokenConfig::Number { value: *n as i32 }),
-        UITokenType::HP => Some(TokenConfig::CharacterHP),
+// UI条件部分をTokenConfigに変換し、消費したトークン数も返す（再帰実装）
+fn convert_ui_condition_tokens_recursive(tokens: &[UITokenType]) -> Option<(TokenConfig, usize)> {
+    parse_condition_recursive(tokens, 0)
+}
+
+// 条件トークンを再帰的に解析
+fn parse_condition_recursive(tokens: &[UITokenType], index: usize) -> Option<(TokenConfig, usize)> {
+    if index >= tokens.len() {
+        return None;
+    }
+    
+    match &tokens[index] {
+        UITokenType::TrueOrFalse => {
+            Some((TokenConfig::TrueOrFalseRandom, 1))
+        }
+        UITokenType::GreaterThan => {
+            parse_binary_operator_recursive(tokens, index)
+        }
+        _ => None,
+    }
+}
+
+// 二項演算子を再帰的に解析
+fn parse_binary_operator_recursive(tokens: &[UITokenType], index: usize) -> Option<(TokenConfig, usize)> {
+    if index + 2 >= tokens.len() {
+        return None;
+    }
+    
+    let (left, left_consumed) = parse_value_token_recursive(tokens, index + 1)?;
+    let (right, right_consumed) = parse_value_token_recursive(tokens, index + 1 + left_consumed)?;
+    
+    Some((
+        TokenConfig::GreaterThan {
+            args: vec![left, right],
+        },
+        1 + left_consumed + right_consumed
+    ))
+}
+
+// 値トークンを再帰的に解析（消費トークン数も返す）
+fn parse_value_token_recursive(tokens: &[UITokenType], index: usize) -> Option<(TokenConfig, usize)> {
+    if index >= tokens.len() {
+        return None;
+    }
+    
+    match &tokens[index] {
+        UITokenType::Number(n) => Some((TokenConfig::Number { value: *n as i32 }, 1)),
+        UITokenType::HP => Some((TokenConfig::CharacterHP, 1)),
         _ => None,
     }
 }
