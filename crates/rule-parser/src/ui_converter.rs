@@ -1,8 +1,6 @@
-// UI converter - converts UI tokens to rule-system format
+// UI converter - converts UI tokens directly to nodes
 
-use crate::rule_input_model::{RuleSet, RuleChain, TokenConfig};
-use crate::rule_loader::convert_to_node_rules;
-use combat_engine::RuleNode;
+use combat_engine::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, CharacterHpFromNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
 
 // UI側のトークンタイプの定義
 #[derive(Clone, Debug, PartialEq)]
@@ -33,144 +31,114 @@ impl UITokenType {
     }
 }
 
-// UIルールをaction-systemのRuleNodeに変換
+// UIルールを直接RuleNodeに変換
 pub fn convert_ui_rules_to_nodes(ui_rules: &[Vec<UITokenType>]) -> Vec<RuleNode> {
-    let rule_chains: Vec<RuleChain> = ui_rules
+    ui_rules
         .iter()
         .filter(|rule_row| !rule_row.is_empty())
-        .filter_map(|rule_row| convert_ui_token_row_to_rule_chain(rule_row))
-        .collect();
-    
-    let rule_set = RuleSet { rules: rule_chains };
-    
-    convert_to_node_rules(&rule_set).unwrap_or_default()
+        .filter_map(|rule_row| convert_ui_token_row_to_node(rule_row))
+        .collect()
 }
 
-// UIトークン行をrule-systemのRuleChainに変換（再帰実装）
-fn convert_ui_token_row_to_rule_chain(token_row: &[UITokenType]) -> Option<RuleChain> {
+// UIトークン行を直接RuleNodeに変換
+fn convert_ui_token_row_to_node(token_row: &[UITokenType]) -> Option<RuleNode> {
     if token_row.is_empty() {
         return None;
     }
     
-    let mut token_configs = Vec::new();
-    convert_tokens_recursive(token_row, 0, &mut token_configs)?;
-    
-    if token_configs.is_empty() {
-        None
-    } else {
-        Some(RuleChain { tokens: token_configs })
-    }
+    convert_ui_tokens_to_resolver(token_row, 0).ok()
 }
 
-// トークン変換を再帰的に実行
-fn convert_tokens_recursive(
-    token_row: &[UITokenType], 
-    index: usize, 
-    token_configs: &mut Vec<TokenConfig>
-) -> Option<()> {
+// UIトークンを直接ActionResolverに変換（再帰実装）
+fn convert_ui_tokens_to_resolver(token_row: &[UITokenType], index: usize) -> Result<Box<dyn ActionResolver>, String> {
     if index >= token_row.len() {
-        return Some(());
+        return Err("No tokens to convert".to_string());
     }
     
     match &token_row[index] {
         UITokenType::Check => {
             if index + 1 < token_row.len() {
-                if let Some((condition_config, condition_consumed)) = 
-                    convert_ui_condition_tokens_recursive(&token_row[index + 1..]) {
-                    
-                    let action_index = index + 1 + condition_consumed;
-                    if action_index < token_row.len() {
-                        if let Some((action_config, action_consumed)) = 
-                            convert_ui_action_token(&token_row[action_index]) {
-                            token_configs.push(TokenConfig::Check {
-                                condition: Box::new(condition_config),
-                                then_action: Box::new(action_config),
-                            });
-                            convert_tokens_recursive(token_row, action_index + action_consumed, token_configs)
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
+                let (condition_node, condition_consumed) = 
+                    convert_ui_condition_tokens(&token_row[index + 1..])?;
+                
+                let action_index = index + 1 + condition_consumed;
+                if action_index < token_row.len() {
+                    let (action_node, _action_consumed) = 
+                        convert_ui_action_token(&token_row[action_index])?;
+                    Ok(Box::new(ConditionCheckNode::new(condition_node, action_node)))
                 } else {
-                    None
+                    Err("Check token requires an action".to_string())
                 }
             } else {
-                None
+                Err("Check token requires condition".to_string())
             }
         }
         UITokenType::Strike => {
-            token_configs.push(TokenConfig::Strike);
-            convert_tokens_recursive(token_row, index + 1, token_configs)
+            Ok(Box::new(StrikeActionNode))
         }
         UITokenType::Heal => {
-            token_configs.push(TokenConfig::Heal);
-            convert_tokens_recursive(token_row, index + 1, token_configs)
+            Ok(Box::new(HealActionNode))
         }
-        _ => None,
+        _ => Err(format!("Token {:?} cannot be used as action", token_row[index])),
     }
 }
 
-// UI条件部分をTokenConfigに変換し、消費したトークン数も返す（再帰実装）
-fn convert_ui_condition_tokens_recursive(tokens: &[UITokenType]) -> Option<(TokenConfig, usize)> {
-    parse_condition_recursive(tokens, 0)
+// UI条件部分を直接ConditionNodeに変換し、消費したトークン数も返す
+fn convert_ui_condition_tokens(tokens: &[UITokenType]) -> Result<(Box<dyn ConditionNode>, usize), String> {
+    parse_ui_condition(tokens, 0)
 }
 
-// 条件トークンを再帰的に解析
-fn parse_condition_recursive(tokens: &[UITokenType], index: usize) -> Option<(TokenConfig, usize)> {
+// 条件トークンを解析
+fn parse_ui_condition(tokens: &[UITokenType], index: usize) -> Result<(Box<dyn ConditionNode>, usize), String> {
     if index >= tokens.len() {
-        return None;
+        return Err("No condition tokens".to_string());
     }
     
     match &tokens[index] {
         UITokenType::TrueOrFalse => {
-            Some((TokenConfig::TrueOrFalseRandom, 1))
+            Ok((Box::new(RandomConditionNode), 1))
         }
         UITokenType::GreaterThan => {
-            parse_binary_operator_recursive(tokens, index)
+            parse_ui_binary_operator(tokens, index)
         }
-        _ => None,
+        _ => Err(format!("Token {:?} cannot be used as condition", tokens[index])),
     }
 }
 
-// 二項演算子を再帰的に解析
-fn parse_binary_operator_recursive(tokens: &[UITokenType], index: usize) -> Option<(TokenConfig, usize)> {
+// 二項演算子を解析
+fn parse_ui_binary_operator(tokens: &[UITokenType], index: usize) -> Result<(Box<dyn ConditionNode>, usize), String> {
     if index + 2 >= tokens.len() {
-        return None;
+        return Err("GreaterThan requires two operands".to_string());
     }
     
-    let (left, left_consumed) = parse_value_token_recursive(tokens, index + 1)?;
-    let (right, right_consumed) = parse_value_token_recursive(tokens, index + 1 + left_consumed)?;
+    let (left, left_consumed) = parse_ui_value_token(tokens, index + 1)?;
+    let (right, right_consumed) = parse_ui_value_token(tokens, index + 1 + left_consumed)?;
     
-    Some((
-        TokenConfig::GreaterThan {
-            left: Box::new(left),
-            right: Box::new(right),
-        },
+    Ok((
+        Box::new(GreaterThanConditionNode::new(left, right)),
         1 + left_consumed + right_consumed
     ))
 }
 
-// 値トークンを再帰的に解析（消費トークン数も返す）
-fn parse_value_token_recursive(tokens: &[UITokenType], index: usize) -> Option<(TokenConfig, usize)> {
+// 値トークンを解析（消費トークン数も返す）
+fn parse_ui_value_token(tokens: &[UITokenType], index: usize) -> Result<(Box<dyn ValueNode>, usize), String> {
     if index >= tokens.len() {
-        return None;
+        return Err("No value tokens".to_string());
     }
     
     match &tokens[index] {
-        UITokenType::Number(n) => Some((TokenConfig::Number { value: *n as i32 }, 1)),
-        UITokenType::HP => Some((TokenConfig::CharacterHP, 1)),
-        _ => None,
+        UITokenType::Number(n) => Ok((Box::new(ConstantValueNode::new(*n as i32)), 1)),
+        UITokenType::HP => Ok((Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))), 1)),
+        _ => Err(format!("Token {:?} cannot be used as value", tokens[index])),
     }
 }
 
 // UIアクショントークンを変換（消費トークン数も返す）
-fn convert_ui_action_token(token: &UITokenType) -> Option<(TokenConfig, usize)> {
+fn convert_ui_action_token(token: &UITokenType) -> Result<(Box<dyn ActionResolver>, usize), String> {
     match token {
-        UITokenType::Strike => Some((TokenConfig::Strike, 1)),
-        UITokenType::Heal => Some((TokenConfig::Heal, 1)),
-        _ => None,
+        UITokenType::Strike => Ok((Box::new(StrikeActionNode), 1)),
+        UITokenType::Heal => Ok((Box::new(HealActionNode), 1)),
+        _ => Err(format!("Token {:?} cannot be used as action", token)),
     }
 }
 

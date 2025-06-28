@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 use combat_engine::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, CharacterHpFromNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
-use crate::rule_input_model::{RuleSet, TokenConfig};
+use crate::rule_input_model::{RuleSet, JsonTokenInput};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
     let content = fs::read_to_string(path)
@@ -29,7 +29,7 @@ pub fn convert_to_node_rules(rule_set: &RuleSet) -> Result<Vec<RuleNode>, String
     Ok(node_rules)
 }
 
-fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
+fn convert_node_chain(tokens: &[JsonTokenInput]) -> Result<RuleNode, String> {
     if tokens.is_empty() {
         return Err("Empty token chain".to_string());
     }
@@ -39,13 +39,13 @@ fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
     // Process tokens in reverse order to build the chain
     for token_config in tokens.iter().rev() {
         match token_config {
-            TokenConfig::Strike => {
+            JsonTokenInput::Strike => {
                 result = Some(Box::new(StrikeActionNode));
             }
-            TokenConfig::Heal => {
+            JsonTokenInput::Heal => {
                 result = Some(Box::new(HealActionNode));
             }
-            TokenConfig::Check { condition, then_action } => {
+            JsonTokenInput::Check { condition, then_action } => {
                 let bool_node = convert_bool_node_config(condition)?;
                 let action_node = convert_single_token_to_resolver(then_action)?;
                 
@@ -66,10 +66,10 @@ fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
     result.ok_or_else(|| "Failed to build node chain".to_string())
 }
 
-fn convert_bool_node_config(config: &TokenConfig) -> Result<Box<dyn ConditionNode>, String> {
+fn convert_bool_node_config(config: &JsonTokenInput) -> Result<Box<dyn ConditionNode>, String> {
     match config {
-        TokenConfig::TrueOrFalseRandom => Ok(Box::new(RandomConditionNode)),
-        TokenConfig::GreaterThan { left, right } => {
+        JsonTokenInput::TrueOrFalseRandom => Ok(Box::new(RandomConditionNode)),
+        JsonTokenInput::GreaterThan { left, right } => {
             let left_node = convert_number_node_config(left)?;
             let right_node = convert_number_node_config(right)?;
             Ok(Box::new(GreaterThanConditionNode::new(left_node, right_node)))
@@ -78,19 +78,19 @@ fn convert_bool_node_config(config: &TokenConfig) -> Result<Box<dyn ConditionNod
     }
 }
 
-fn convert_number_node_config(config: &TokenConfig) -> Result<Box<dyn ValueNode>, String> {
+fn convert_number_node_config(config: &JsonTokenInput) -> Result<Box<dyn ValueNode>, String> {
     match config {
-        TokenConfig::Number { value } => Ok(Box::new(ConstantValueNode::new(*value))),
-        TokenConfig::CharacterHP => Ok(Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode)))),
+        JsonTokenInput::Number { value } => Ok(Box::new(ConstantValueNode::new(*value))),
+        JsonTokenInput::CharacterHP => Ok(Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode)))),
         _ => Err(format!("Cannot convert {:?} to ValueNode", config)),
     }
 }
 
-fn convert_single_token_to_resolver(config: &TokenConfig) -> Result<Box<dyn ActionResolver>, String> {
+fn convert_single_token_to_resolver(config: &JsonTokenInput) -> Result<Box<dyn ActionResolver>, String> {
     match config {
-        TokenConfig::Strike => Ok(Box::new(StrikeActionNode)),
-        TokenConfig::Heal => Ok(Box::new(HealActionNode)),
-        TokenConfig::Check { condition, then_action } => {
+        JsonTokenInput::Strike => Ok(Box::new(StrikeActionNode)),
+        JsonTokenInput::Heal => Ok(Box::new(HealActionNode)),
+        JsonTokenInput::Check { condition, then_action } => {
             let bool_node = convert_bool_node_config(condition)?;
             let action_node = convert_single_token_to_resolver(then_action)?;
             Ok(Box::new(ConditionCheckNode::new(bool_node, action_node)))
@@ -141,8 +141,8 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::Strike,
-                        TokenConfig::Heal,
+                        JsonTokenInput::Strike,
+                        JsonTokenInput::Heal,
                     ],
                 },
             ],
@@ -159,14 +159,14 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::Check {
-                            condition: Box::new(TokenConfig::GreaterThan {
-                                left: Box::new(TokenConfig::Number { value: 50 }),
-                                right: Box::new(TokenConfig::CharacterHP),
+                        JsonTokenInput::Check {
+                            condition: Box::new(JsonTokenInput::GreaterThan {
+                                left: Box::new(JsonTokenInput::Number { value: 50 }),
+                                right: Box::new(JsonTokenInput::CharacterHP),
                             }),
-                            then_action: Box::new(TokenConfig::Heal),
+                            then_action: Box::new(JsonTokenInput::Heal),
                         },
-                        TokenConfig::Heal, // Changed to Heal to make it different from the first rule
+                        JsonTokenInput::Heal, // Changed to Heal to make it different from the first rule
                     ],
                 },
             ],
@@ -183,11 +183,11 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::Check {
-                            condition: Box::new(TokenConfig::TrueOrFalseRandom),
-                            then_action: Box::new(TokenConfig::Strike),
+                        JsonTokenInput::Check {
+                            condition: Box::new(JsonTokenInput::TrueOrFalseRandom),
+                            then_action: Box::new(JsonTokenInput::Strike),
                         },
-                        TokenConfig::Strike, // Add action to make validation pass first
+                        JsonTokenInput::Strike, // Add action to make validation pass first
                     ],
                 },
             ],
@@ -203,14 +203,14 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::Check {
-                            condition: Box::new(TokenConfig::GreaterThan {
-                                left: Box::new(TokenConfig::Number { value: 50 }),
-                                right: Box::new(TokenConfig::Number { value: 30 }),
+                        JsonTokenInput::Check {
+                            condition: Box::new(JsonTokenInput::GreaterThan {
+                                left: Box::new(JsonTokenInput::Number { value: 50 }),
+                                right: Box::new(JsonTokenInput::Number { value: 30 }),
                             }),
-                            then_action: Box::new(TokenConfig::Strike),
+                            then_action: Box::new(JsonTokenInput::Strike),
                         },
-                        TokenConfig::Strike, // Add action to make validation pass first
+                        JsonTokenInput::Strike, // Add action to make validation pass first
                     ],
                 },
             ],
@@ -226,7 +226,7 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::CharacterHP,
+                        JsonTokenInput::CharacterHP,
                     ],
                 },
             ],
@@ -246,14 +246,14 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::Check {
-                            condition: Box::new(TokenConfig::GreaterThan {
-                                left: Box::new(TokenConfig::Number { value: 50 }),
-                                right: Box::new(TokenConfig::CharacterHP),
+                        JsonTokenInput::Check {
+                            condition: Box::new(JsonTokenInput::GreaterThan {
+                                left: Box::new(JsonTokenInput::Number { value: 50 }),
+                                right: Box::new(JsonTokenInput::CharacterHP),
                             }),
-                            then_action: Box::new(TokenConfig::Heal),
+                            then_action: Box::new(JsonTokenInput::Heal),
                         },
-                        TokenConfig::Strike,
+                        JsonTokenInput::Strike,
                     ],
                 },
             ],
@@ -269,14 +269,14 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::Check {
-                            condition: Box::new(TokenConfig::GreaterThan {
-                                left: Box::new(TokenConfig::Number { value: 50 }),
-                                right: Box::new(TokenConfig::CharacterHP),
+                        JsonTokenInput::Check {
+                            condition: Box::new(JsonTokenInput::GreaterThan {
+                                left: Box::new(JsonTokenInput::Number { value: 50 }),
+                                right: Box::new(JsonTokenInput::CharacterHP),
                             }),
-                            then_action: Box::new(TokenConfig::Heal),
+                            then_action: Box::new(JsonTokenInput::Heal),
                         },
-                        TokenConfig::Strike,
+                        JsonTokenInput::Strike,
                     ],
                 },
             ],
@@ -295,11 +295,11 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::Check {
-                            condition: Box::new(TokenConfig::TrueOrFalseRandom),
-                            then_action: Box::new(TokenConfig::Strike),
+                        JsonTokenInput::Check {
+                            condition: Box::new(JsonTokenInput::TrueOrFalseRandom),
+                            then_action: Box::new(JsonTokenInput::Strike),
                         },
-                        TokenConfig::Strike, // Valid: action follows continue token
+                        JsonTokenInput::Strike, // Valid: action follows continue token
                     ],
                 },
             ],
@@ -318,7 +318,7 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        TokenConfig::Strike, // Action tokens can be at the end
+                        JsonTokenInput::Strike, // Action tokens can be at the end
                     ],
                 },
             ],

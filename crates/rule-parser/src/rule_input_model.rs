@@ -7,23 +7,23 @@ pub struct RuleSet {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RuleChain {
-    pub tokens: Vec<TokenConfig>,
+    pub tokens: Vec<JsonTokenInput>,
 }
 
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type")]
-pub enum TokenConfig {
+pub enum JsonTokenInput {
     Strike,
     Heal,
     TrueOrFalseRandom,
     Check {
-        condition: Box<TokenConfig>,
-        then_action: Box<TokenConfig>,
+        condition: Box<JsonTokenInput>,
+        then_action: Box<JsonTokenInput>,
     },
     GreaterThan {
-        left: Box<TokenConfig>,
-        right: Box<TokenConfig>,
+        left: Box<JsonTokenInput>,
+        right: Box<JsonTokenInput>,
     },
     Number {
         value: i32,
