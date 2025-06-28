@@ -12,5 +12,5 @@ impl ConditionNode for Box<dyn ConditionNode> {
 }
 
 // Re-export individual condition node modules
-pub use crate::random_condition_node::RandomConditionNode;
-pub use crate::greater_than_condition_node::GreaterThanConditionNode;
+pub use super::random_condition_node::RandomConditionNode;
+pub use super::greater_than_condition_node::GreaterThanConditionNode;

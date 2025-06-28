@@ -34,5 +34,5 @@ impl CharacterNode for Box<dyn CharacterNode> {
 }
 
 // Re-export individual character node modules
-pub use crate::acting_character_node::ActingCharacterNode;
-pub use crate::random_character_node::RandomCharacterNode;
+pub use super::acting_character_node::ActingCharacterNode;
+pub use super::random_character_node::RandomCharacterNode;

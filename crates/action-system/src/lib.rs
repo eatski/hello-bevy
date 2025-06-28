@@ -4,8 +4,11 @@ pub mod core;
 pub mod nodes;
 pub mod system;
 
-// Re-export public types
-pub use core::*;
-pub use nodes::*;
+// Re-export essential types only
+pub use core::{Character, ActionResolver, ActionResolverResult, ActionType, RuleNode};
+pub use nodes::condition::{ConditionNode, ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode};
+pub use nodes::value::{ValueNode, ConstantValueNode};
+pub use nodes::character::{BattleContext, ActingCharacterNode, RandomCharacterNode, CharacterHpFromNode};
+pub use nodes::action::{StrikeActionNode, HealActionNode};
 pub use system::ActionCalculationSystem;
 
