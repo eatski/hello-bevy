@@ -1,9 +1,9 @@
 [package]
-name = "ui"
+name = "ui-core"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.16.0"
-battle = { path = "../battle" }
 action-system = { path = "../action-system" }
+battle = { path = "../battle" }
+rand = "0.8.5"

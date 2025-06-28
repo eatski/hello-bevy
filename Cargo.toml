@@ -3,7 +3,8 @@ members = [
     "crates/action-system",
     "crates/json-rule",
     "crates/battle",
-    "crates/ui",
+    "crates/ui-core",
+    "crates/bevy-ui",
 ]
 
 [package]
@@ -17,5 +18,6 @@ rand = "0.8.5"
 action-system = { path = "crates/action-system" }
 json-rule = { path = "crates/json-rule" }
 battle = { path = "crates/battle" }
-ui = { path = "crates/ui" }
+ui-core = { path = "crates/ui-core" }
+bevy-ui = { path = "crates/bevy-ui" }
 

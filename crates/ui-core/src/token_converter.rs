@@ -14,22 +14,7 @@ pub enum UITokenType {
     TrueOrFalse,
 }
 
-impl UITokenType {
-    pub fn display_text(&self) -> &str {
-        match self {
-            UITokenType::Check => "Check",
-            UITokenType::Strike => "Strike",
-            UITokenType::Heal => "Heal",
-            UITokenType::Number(n) => match n {
-                50 => "50",
-                _ => "Num",
-            },
-            UITokenType::HP => "HP",
-            UITokenType::GreaterThan => "L-gt-R",
-            UITokenType::TrueOrFalse => "50/50",
-        }
-    }
-}
+// Note: Display text logic moved to bevy-ui crate
 
 // UIルールを直接RuleNodeに変換
 pub fn convert_ui_rules_to_nodes(ui_rules: &[Vec<UITokenType>]) -> Vec<RuleNode> {

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
-use ui::{GameBattle, CurrentRules, GameState, GameMode, load_font, setup_ui, handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui, handle_rule_editing, update_rule_display, update_token_inventory_display, update_instruction_display, handle_battle_reset, update_right_panel_visibility, update_battle_info_display};
+use bevy_ui::{GameBattle, GameMode, load_font, setup_ui, handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui, handle_rule_editing, update_rule_display, update_token_inventory_display, update_instruction_display, handle_battle_reset, update_right_panel_visibility, update_battle_info_display, BevyGameState, BevyCurrentRules};
 use battle::{Battle, Character as GameCharacter};
 use json_rule::{load_rules_from_file, convert_to_node_rules};
 
@@ -23,8 +23,8 @@ fn main() {
             update_token_inventory_display,
             update_instruction_display,
             update_right_panel_visibility,
-            update_battle_info_display
         ))
+        .add_systems(Update, update_battle_info_display)
         .run();
 }
 
@@ -80,17 +80,17 @@ fn handle_restart(
 
 // UIで作成したルールを戦闘システムに適用する
 fn apply_rules_to_battle(
-    game_state: Res<GameState>,
-    current_rules: Res<CurrentRules>,
+    game_state: Res<BevyGameState>,
+    current_rules: Res<BevyCurrentRules>,
     mut game_battle: ResMut<GameBattle>,
 ) {
     // ルール作成モードから戦闘モードに切り替わった瞬間に新しいバトルを開始
-    if game_state.is_changed() && game_state.mode == GameMode::Battle {
+    if game_state.is_changed() && game_state.0.mode == GameMode::Battle {
         let player = GameCharacter::new("勇者".to_string(), 100, 50, 25);
         let enemy = GameCharacter::new("スライム".to_string(), 60, 30, 15);
         
         // UIで作成したルールを変換
-        let player_rules = current_rules.convert_to_rule_nodes();
+        let player_rules = current_rules.0.convert_to_rule_nodes();
         
         // 敵のルールをJSONから読み込み
         let rule_set = load_rules_from_file("rules/enemy_rules.json")
@@ -101,6 +101,6 @@ fn apply_rules_to_battle(
         let rng = StdRng::from_entropy();
         game_battle.0 = Battle::new(player, enemy, player_rules, enemy_rules, rng);
         
-        println!("新しいバトルを開始しました。プレイヤールール数: {}", current_rules.convert_to_rule_nodes().len());
+        println!("新しいバトルを開始しました。プレイヤールール数: {}", current_rules.0.convert_to_rule_nodes().len());
     }
 }
