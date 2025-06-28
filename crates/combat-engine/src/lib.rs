@@ -8,6 +8,15 @@ pub mod control_nodes;
 pub mod action_nodes;
 pub mod system;
 
+// Individual struct modules
+pub mod strike_action_node;
+pub mod heal_action_node;
+pub mod random_condition_node;
+pub mod greater_than_condition_node;
+pub mod condition_check_node;
+pub mod constant_value_node;
+pub mod character_hp_value_node;
+
 // Re-export public types
 pub use character::Character;
 pub use core::{ActionResolver, ActionType, RuleNode};
@@ -16,3 +25,4 @@ pub use value_nodes::{ValueNode, ConstantValueNode, CharacterHpValueNode};
 pub use control_nodes::ConditionCheckNode;
 pub use action_nodes::{StrikeActionNode, HealActionNode};
 pub use system::ActionCalculationSystem;
+
