@@ -77,8 +77,10 @@ fn convert_tokens_recursive(
             if index + 1 < token_row.len() {
                 if let Some((condition_config, consumed)) = 
                     convert_ui_condition_tokens_recursive(&token_row[index + 1..]) {
+                    // then_actionはここでは適当なStrikeを設定（後続処理で実際の値に置き換わる想定）
                     token_configs.push(TokenConfig::Check {
-                        args: vec![condition_config],
+                        condition: Box::new(condition_config),
+                        then_action: Box::new(TokenConfig::Strike),
                     });
                     convert_tokens_recursive(token_row, index + consumed + 1, token_configs)
                 } else {
@@ -133,7 +135,8 @@ fn parse_binary_operator_recursive(tokens: &[UITokenType], index: usize) -> Opti
     
     Some((
         TokenConfig::GreaterThan {
-            args: vec![left, right],
+            left: Box::new(left),
+            right: Box::new(right),
         },
         1 + left_consumed + right_consumed
     ))

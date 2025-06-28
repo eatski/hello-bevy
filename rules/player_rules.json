@@ -4,18 +4,19 @@
       "tokens": [
         {
           "type": "Check",
-          "args": [{
+          "condition": {
             "type": "GreaterThan",
-            "args": [
-              {
-                "type": "Number",
-                "value": 50
-              },
-              {
-                "type": "CharacterHP"
-              }
-            ]
-          }]
+            "left": {
+              "type": "Number",
+              "value": 50
+            },
+            "right": {
+              "type": "CharacterHP"
+            }
+          },
+          "then_action": {
+            "type": "Heal"
+          }
         },
         {
           "type": "Heal"

@@ -4,28 +4,25 @@
       "tokens": [
         {
           "type": "Check",
-          "args": [
-            {
-              "type": "GreaterThan",
-              "args": [
-                {
-                  "type": "Number",
-                  "value": 30
-                },
-                {
-                  "type": "CharacterHP"
-                }
-              ]
+          "condition": {
+            "type": "GreaterThan",
+            "left": {
+              "type": "Number",
+              "value": 30
+            },
+            "right": {
+              "type": "CharacterHP"
             }
-          ]
-        },
-        {
-          "type": "Check",
-          "args": [
-            {
+          },
+          "then_action": {
+            "type": "Check",
+            "condition": {
               "type": "TrueOrFalseRandom"
+            },
+            "then_action": {
+              "type": "Heal"
             }
-          ]
+          }
         },
         {
           "type": "Heal"

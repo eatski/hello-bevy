@@ -45,12 +45,8 @@ fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
             TokenConfig::Heal => {
                 result = Some(Box::new(HealActionNode));
             }
-            TokenConfig::Check { args } => {
-                let bool_node = if !args.is_empty() {
-                    convert_bool_node_config(&args[0])?
-                } else {
-                    return Err("Check token requires args".to_string());
-                };
+            TokenConfig::Check { condition, then_action: _ } => {
+                let bool_node = convert_bool_node_config(condition)?;
                 
                 if let Some(next) = result {
                     result = Some(Box::new(ConditionCheckNode::new(bool_node, next)));
@@ -70,14 +66,10 @@ fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
 fn convert_bool_node_config(config: &TokenConfig) -> Result<Box<dyn ConditionNode>, String> {
     match config {
         TokenConfig::TrueOrFalseRandom => Ok(Box::new(RandomConditionNode)),
-        TokenConfig::GreaterThan { args } => {
-            if args.len() >= 2 {
-                let left_node = convert_number_node_config(&args[0])?;
-                let right_node = convert_number_node_config(&args[1])?;
-                Ok(Box::new(GreaterThanConditionNode::new(left_node, right_node)))
-            } else {
-                Err("GreaterThan token requires args array with 2 elements".to_string())
-            }
+        TokenConfig::GreaterThan { left, right } => {
+            let left_node = convert_number_node_config(left)?;
+            let right_node = convert_number_node_config(right)?;
+            Ok(Box::new(GreaterThanConditionNode::new(left_node, right_node)))
         },
         _ => Err(format!("Cannot convert {:?} to ConditionNode", config)),
     }
@@ -152,12 +144,11 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            args: vec![TokenConfig::GreaterThan {
-                                args: vec![
-                                    TokenConfig::Number { value: 50 },
-                                    TokenConfig::CharacterHP,
-                                ],
-                            }],
+                            condition: Box::new(TokenConfig::GreaterThan {
+                                left: Box::new(TokenConfig::Number { value: 50 }),
+                                right: Box::new(TokenConfig::CharacterHP),
+                            }),
+                            then_action: Box::new(TokenConfig::Heal),
                         },
                         TokenConfig::Heal, // Changed to Heal to make it different from the first rule
                     ],
@@ -177,7 +168,8 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            args: vec![],
+                            condition: Box::new(TokenConfig::TrueOrFalseRandom),
+                            then_action: Box::new(TokenConfig::Strike),
                         },
                         TokenConfig::Strike, // Add action to make validation pass first
                     ],
@@ -186,10 +178,7 @@ mod tests {
         };
         
         let result = convert_to_node_rules(&rule_set);
-        assert!(result.is_err());
-        if let Err(error_msg) = result {
-            assert!(error_msg.contains("Check token requires args"));
-        }
+        assert!(result.is_ok()); // This should now be valid
     }
 
     #[test]
@@ -199,9 +188,11 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            args: vec![TokenConfig::GreaterThan {
-                                args: vec![TokenConfig::Number { value: 50 }], // Only 1 arg, need 2
-                            }],
+                            condition: Box::new(TokenConfig::GreaterThan {
+                                left: Box::new(TokenConfig::Number { value: 50 }),
+                                right: Box::new(TokenConfig::Number { value: 30 }),
+                            }),
+                            then_action: Box::new(TokenConfig::Strike),
                         },
                         TokenConfig::Strike, // Add action to make validation pass first
                     ],
@@ -210,10 +201,7 @@ mod tests {
         };
         
         let result = convert_to_node_rules(&rule_set);
-        assert!(result.is_err());
-        if let Err(error_msg) = result {
-            assert!(error_msg.contains("GreaterThan token requires args array with 2 elements"));
-        }
+        assert!(result.is_ok()); // This should now be valid
     }
 
     #[test]
@@ -243,12 +231,11 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            args: vec![TokenConfig::GreaterThan {
-                                args: vec![
-                                    TokenConfig::Number { value: 50 },
-                                    TokenConfig::CharacterHP,
-                                ],
-                            }],
+                            condition: Box::new(TokenConfig::GreaterThan {
+                                left: Box::new(TokenConfig::Number { value: 50 }),
+                                right: Box::new(TokenConfig::CharacterHP),
+                            }),
+                            then_action: Box::new(TokenConfig::Heal),
                         },
                         TokenConfig::Strike,
                     ],
@@ -267,12 +254,11 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            args: vec![TokenConfig::GreaterThan {
-                                args: vec![
-                                    TokenConfig::Number { value: 50 },
-                                    TokenConfig::CharacterHP,
-                                ],
-                            }],
+                            condition: Box::new(TokenConfig::GreaterThan {
+                                left: Box::new(TokenConfig::Number { value: 50 }),
+                                right: Box::new(TokenConfig::CharacterHP),
+                            }),
+                            then_action: Box::new(TokenConfig::Heal),
                         },
                         TokenConfig::Strike,
                     ],
@@ -294,7 +280,8 @@ mod tests {
                 RuleChain {
                     tokens: vec![
                         TokenConfig::Check {
-                            args: vec![TokenConfig::TrueOrFalseRandom],
+                            condition: Box::new(TokenConfig::TrueOrFalseRandom),
+                            then_action: Box::new(TokenConfig::Strike),
                         },
                         TokenConfig::Strike, // Valid: action follows continue token
                     ],

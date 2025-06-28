@@ -18,10 +18,12 @@ pub enum TokenConfig {
     Heal,
     TrueOrFalseRandom,
     Check {
-        args: Vec<TokenConfig>,
+        condition: Box<TokenConfig>,
+        then_action: Box<TokenConfig>,
     },
     GreaterThan {
-        args: Vec<TokenConfig>,
+        left: Box<TokenConfig>,
+        right: Box<TokenConfig>,
     },
     Number {
         value: i32,
