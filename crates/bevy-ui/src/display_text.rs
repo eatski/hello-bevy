@@ -16,6 +16,7 @@ impl UITokenDisplay for UITokenType {
                 50 => "50",
                 _ => "Num",
             },
+            UITokenType::ActingCharacter => "ActingChar",
             UITokenType::HP => "HP",
             UITokenType::GreaterThan => "L-gt-R",
             UITokenType::TrueOrFalse => "50/50",
@@ -47,6 +48,7 @@ mod tests {
         assert_eq!(UITokenType::Heal.display_text(), "Heal");
         assert_eq!(UITokenType::Number(50).display_text(), "50");
         assert_eq!(UITokenType::Number(100).display_text(), "Num");
+        assert_eq!(UITokenType::ActingCharacter.display_text(), "ActingChar");
         assert_eq!(UITokenType::HP.display_text(), "HP");
         assert_eq!(UITokenType::GreaterThan.display_text(), "L-gt-R");
         assert_eq!(UITokenType::TrueOrFalse.display_text(), "50/50");
@@ -64,11 +66,12 @@ mod tests {
             UITokenType::Check,
             UITokenType::Number(50),
             UITokenType::GreaterThan,
+            UITokenType::ActingCharacter,
             UITokenType::HP,
             UITokenType::Heal
         ];
         let formatted = format_rule_tokens(&complex_rule);
-        assert_eq!(formatted, "Check → 50 → L-gt-R → HP → Heal");
+        assert_eq!(formatted, "Check → 50 → L-gt-R → ActingChar → HP → Heal");
     }
     
     #[test]
@@ -77,12 +80,13 @@ mod tests {
             UITokenType::Check,
             UITokenType::Number(50),
             UITokenType::GreaterThan,
+            UITokenType::ActingCharacter,
             UITokenType::HP,
             UITokenType::Heal
         ];
         
         let formatted = format_rule_tokens(&rule_tokens);
-        assert_eq!(formatted, "Check → 50 → L-gt-R → HP → Heal");
+        assert_eq!(formatted, "Check → 50 → L-gt-R → ActingChar → HP → Heal");
         
         // Test empty rule
         let empty_rule = vec![];

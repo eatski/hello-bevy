@@ -1,8 +1,8 @@
 // Integration tests for UI core functionality
 
-use crate::{GameState, GameMode, CurrentRules, UITokenType};
+use crate::{GameState, CurrentRules, UITokenType};
 use battle::{Battle, Character as GameCharacter};
-use action_system::{ActionCalculationSystem, ActionType};
+use action_system::ActionCalculationSystem;
 use rand::{SeedableRng, rngs::StdRng};
 
 fn create_test_rng() -> StdRng {
@@ -40,11 +40,12 @@ mod tests {
     fn test_complex_rule_integration_with_battle() {
         let mut rules = CurrentRules::new();
         
-        // Create complex rule: Check → 50 → GreaterThan → HP → Heal
+        // Create complex rule: Check → GreaterThan → Number(50) → HP → ActingCharacter → Heal
         rules.add_token_to_current_row(UITokenType::Check);
-        rules.add_token_to_current_row(UITokenType::Number(50));
         rules.add_token_to_current_row(UITokenType::GreaterThan);
+        rules.add_token_to_current_row(UITokenType::Number(50));
         rules.add_token_to_current_row(UITokenType::HP);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         rules.add_token_to_current_row(UITokenType::Heal);
         
         // Add fallback rule: Strike
@@ -118,6 +119,7 @@ mod tests {
         // Create rules in rule creation mode
         assert!(game_state.is_rule_creation_mode());
         
+        rules.add_token_to_current_row(UITokenType::Check);
         rules.add_token_to_current_row(UITokenType::TrueOrFalse);
         rules.add_token_to_current_row(UITokenType::Heal);
         rules.select_next_row();
@@ -162,9 +164,10 @@ mod tests {
         // Valid pattern: Complex conditional
         let mut rules3 = CurrentRules::new();
         rules3.add_token_to_current_row(UITokenType::Check);
-        rules3.add_token_to_current_row(UITokenType::Number(50));
         rules3.add_token_to_current_row(UITokenType::GreaterThan);
+        rules3.add_token_to_current_row(UITokenType::Number(50));
         rules3.add_token_to_current_row(UITokenType::HP);
+        rules3.add_token_to_current_row(UITokenType::ActingCharacter);
         rules3.add_token_to_current_row(UITokenType::Heal);
         assert!(rules3.has_valid_rules());
         let nodes3 = rules3.convert_to_rule_nodes();
@@ -208,7 +211,7 @@ mod tests {
             vec![UITokenType::Check, UITokenType::TrueOrFalse, UITokenType::Heal],
             vec![UITokenType::Strike],
             vec![],
-            vec![UITokenType::Check, UITokenType::Number(50), UITokenType::GreaterThan, UITokenType::HP, UITokenType::Strike],
+            vec![UITokenType::Check, UITokenType::GreaterThan, UITokenType::Number(50), UITokenType::HP, UITokenType::ActingCharacter, UITokenType::Strike],
             vec![]
         ];
         

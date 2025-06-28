@@ -94,23 +94,28 @@ Bevy Engineで開発されたRustベースのターンベースRPGバトルゲ�
 
 ### 🏗️ アーキテクチャ概要
 
-このプロジェクトは責任分離の原則に基づいて5つのクレートに分割されています：
+このプロジェクトは責任分離の原則に基づいて6つのクレートに分割されています：
 
-#### 🎮 `hello-bevy` (ルートバイナリ)
+#### 🎮 `turn-based-rpg` (ルートバイナリ)
 - **役割**: Bevyエンジン統合・ゲーム統合バイナリ
 - **責任**: ゲーム固有設定（「勇者」「スライム」などの具体的なキャラクター設定）
 
-#### 🖼️ `ui` クレート
-- **役割**: Bevy UI コンポーネント・システム
-- **責任**: 汎用的なUI表示・入力処理・画面描画
-- **特徴**: ゲーム固有設定に依存しない再利用可能なUIシステム
+#### 🖼️ `bevy-ui` クレート
+- **役割**: Bevy UI コンポーネント・システム（Bevy依存）
+- **責任**: Bevy固有のUI表示・入力処理・画面描画、文字列表示ロジック
+- **特徴**: Bevy Engineに依存したUI実装
 
-#### ⚔️ `battle-core` クレート
+#### 🎨 `ui-core` クレート
+- **役割**: UI中核ロジック（Bevy非依存）
+- **責任**: ルール管理、トークン変換、ゲーム状態管理
+- **特徴**: 完全にBevy非依存の汎用的なUIロジック
+
+#### ⚔️ `battle` クレート
 - **役割**: バトル管理・戦闘ロジック
 - **責任**: 戦闘状態管理、ターン制御、戦闘結果判定
 - **テスト**: 26の統合テストで戦闘ロジックを完全カバー
 
-#### 📝 `rule-system` クレート
+#### 📝 `json-rule` クレート
 - **役割**: JSON ルール読み込み・変換システム
 - **責任**: 外部設定ファイルの読み込み、JSON解析、トークンルール変換
 - **特徴**: フォールバック機構付きでJSON読み込み失敗時も動作継続
@@ -123,14 +128,16 @@ Bevy Engineで開発されたRustベースのターンベースRPGバトルゲ�
 ### 🔗 クレート依存関係
 
 ```
-hello-bevy (root)
-├── ui ← battle-core ← rule-system ← action-system
-├── battle-core ← action-system
-├── rule-system ← action-system
+turn-based-rpg (root)
+├── bevy-ui ← ui-core ← battle ← json-rule ← action-system
+├── ui-core ← battle ← action-system
+├── battle ← action-system
+├── json-rule ← action-system
 └── action-system (完全独立)
 ```
 
 **循環依存回避**: 階層的な依存関係により循環依存を完全に排除
+**関心の分離**: Bevy依存とBevy非依存のUIを明確に分離
 
 ## 🧪 テスト・ビルド
 
@@ -140,9 +147,11 @@ hello-bevy (root)
 cargo test --workspace
 
 # 個別クレートのテスト
-cargo test -p action-system    # 11テスト
-cargo test -p rule-system      # 12テスト  
-cargo test -p battle-core      # 26テスト
+cargo test -p action-system    # 15テスト
+cargo test -p json-rule        # 12テスト  
+cargo test -p battle           # 26テスト
+cargo test -p ui-core          # 17テスト
+cargo test -p bevy-ui          # 6テスト
 ```
 
 ### ビルド・チェック
@@ -161,7 +170,7 @@ cargo build --workspace --release
 cargo run
 
 # デバッグモードでの実行
-cargo run --bin hello-bevy
+cargo run --bin turn-based-rpg
 ```
 
 ## 📁 プロジェクト構成
@@ -171,9 +180,10 @@ cargo run --bin hello-bevy
 ├── src/main.rs         # ゲーム統合バイナリ
 ├── crates/             # 各機能クレート
 │   ├── action-system/  # トークンベース行動計算
-│   ├── rule-system/    # JSON設定読み込み
-│   ├── battle-core/    # 戦闘管理ロジック
-│   └── ui/             # Bevy UIシステム
+│   ├── json-rule/      # JSON設定読み込み
+│   ├── battle/         # 戦闘管理ロジック
+│   ├── ui-core/        # UIロジック（Bevy非依存）
+│   └── bevy-ui/        # Bevy UIシステム
 └── rules/              # JSON設定ファイル
     ├── player_rules.json
     └── enemy_rules.json
@@ -188,5 +198,6 @@ cargo run --bin hello-bevy
 `action-system` クレートの `Token` トレイトを実装することで新しいトークンタイプを追加できます。
 
 ### UI のカスタマイズ
-`ui` クレートを編集することで、ゲームの見た目や操作感をカスタマイズできます。
+`bevy-ui` クレートを編集することで、ゲームの見た目や操作感をカスタマイズできます。
+`ui-core` クレートを編集することで、UIロジックをカスタマイズできます。
 

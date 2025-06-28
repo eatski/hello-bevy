@@ -9,7 +9,8 @@ pub enum UITokenType {
     Strike,
     Heal,
     Number(u32),
-    HP,
+    ActingCharacter,  // 行動するキャラクター
+    HP,               // HP値
     GreaterThan,
     TrueOrFalse,
 }
@@ -113,7 +114,18 @@ fn parse_ui_value_token(tokens: &[UITokenType], index: usize) -> Result<(Box<dyn
     
     match &tokens[index] {
         UITokenType::Number(n) => Ok((Box::new(ConstantValueNode::new(*n as i32)), 1)),
-        UITokenType::HP => Ok((Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))), 1)),
+        UITokenType::HP => {
+            // HPの後にCharacterトークンがあるかチェック
+            if index + 1 < tokens.len() && tokens[index + 1] == UITokenType::ActingCharacter {
+                Ok((Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))), 2))
+            } else {
+                Err("HP must be followed by a Character token (e.g., ActingCharacter)".to_string())
+            }
+        }
+        UITokenType::ActingCharacter => {
+            // 単独のActingCharacterは許可しない - HPと組み合わせて使用
+            Err("ActingCharacter must be preceded by HP".to_string())
+        }
         _ => Err(format!("Token {:?} cannot be used as value", tokens[index])),
     }
 }
@@ -149,6 +161,7 @@ mod tests {
                 UITokenType::GreaterThan,
                 UITokenType::Number(50),
                 UITokenType::HP,
+                UITokenType::ActingCharacter,
                 UITokenType::Heal,
             ],
         ];

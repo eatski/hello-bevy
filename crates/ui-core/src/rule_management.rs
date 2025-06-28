@@ -195,9 +195,10 @@ mod tests {
         
         // Create a complex rule pattern
         rules.add_token_to_current_row(UITokenType::Check);
-        rules.add_token_to_current_row(UITokenType::Number(50));
         rules.add_token_to_current_row(UITokenType::GreaterThan);
+        rules.add_token_to_current_row(UITokenType::Number(50));
         rules.add_token_to_current_row(UITokenType::HP);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         rules.add_token_to_current_row(UITokenType::Heal);
         
         let rule_nodes = rules.convert_to_rule_nodes();

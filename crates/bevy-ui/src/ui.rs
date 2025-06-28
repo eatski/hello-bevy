@@ -92,6 +92,7 @@ impl MenuState {
                 UITokenType::GreaterThan,
                 UITokenType::Number(50),
                 UITokenType::HP,
+                UITokenType::ActingCharacter,
             ],
         }
     }
@@ -681,47 +682,50 @@ mod tests {
 
     #[test]
     fn test_convert_greater_than_number_hp_pattern() {
-        // Test: Check → GreaterThan → Number(50) → HP → Strike
+        // Test: Check → GreaterThan → Number(50) → HP → ActingCharacter → Strike
         let mut current_rules = CurrentRules::new();
         current_rules.rules[0] = vec![
             UITokenType::Check,
             UITokenType::GreaterThan,
             UITokenType::Number(50),
             UITokenType::HP,
+            UITokenType::ActingCharacter,
             UITokenType::Strike,
         ];
         
         let rule_nodes = current_rules.convert_to_rule_nodes();
-        assert_eq!(rule_nodes.len(), 1, "Check → GreaterThan → Number → HP → Strike should be valid");
+        assert_eq!(rule_nodes.len(), 1, "Check → GreaterThan → Number → HP → ActingCharacter → Strike should be valid");
     }
     
     #[test]
     fn test_all_valid_hp_patterns() {
-        // Test: Check → GreaterThan → HP → Number → Strike (HP > Number)
+        // Test: Check → GreaterThan → HP → ActingCharacter → Number → Strike (HP > Number)
         let mut current_rules1 = CurrentRules::new();
         current_rules1.rules[0] = vec![
             UITokenType::Check,
             UITokenType::GreaterThan,
             UITokenType::HP,
+            UITokenType::ActingCharacter,
             UITokenType::Number(50),
             UITokenType::Strike,
         ];
         
         let rule_nodes1 = current_rules1.convert_to_rule_nodes();
-        assert_eq!(rule_nodes1.len(), 1, "Check → GreaterThan → HP → Number → Strike should be valid (HP > Number)");
+        assert_eq!(rule_nodes1.len(), 1, "Check → GreaterThan → HP → ActingCharacter → Number → Strike should be valid (HP > Number)");
         
-        // Test: Check → GreaterThan → Number → HP → Strike (Number > HP)
+        // Test: Check → GreaterThan → Number → HP → ActingCharacter → Strike (Number > HP)
         let mut current_rules2 = CurrentRules::new();
         current_rules2.rules[0] = vec![
             UITokenType::Check,
             UITokenType::GreaterThan,
             UITokenType::Number(50),
             UITokenType::HP,
+            UITokenType::ActingCharacter,
             UITokenType::Strike,
         ];
         
         let rule_nodes2 = current_rules2.convert_to_rule_nodes();
-        assert_eq!(rule_nodes2.len(), 1, "Check → GreaterThan → Number → HP → Strike should be valid (Number > HP)");
+        assert_eq!(rule_nodes2.len(), 1, "Check → GreaterThan → Number → HP → ActingCharacter → Strike should be valid (Number > HP)");
     }
     
     
@@ -736,6 +740,7 @@ mod tests {
             UITokenType::GreaterThan,
             UITokenType::Number(30),
             UITokenType::HP,
+            UITokenType::ActingCharacter,
             UITokenType::Heal,
         ];
         
@@ -745,6 +750,7 @@ mod tests {
             UITokenType::Check,
             UITokenType::GreaterThan,
             UITokenType::HP,
+            UITokenType::ActingCharacter,
             UITokenType::Number(30),
             UITokenType::Heal,
         ];

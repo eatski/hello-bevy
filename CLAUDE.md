@@ -40,6 +40,8 @@ cargo build --workspace --release
 - **JSON設定**: キャラクターのruleはJSON外部ファイルから読み込み可能になった（フォールバック機構付き）
 - **UI検証**: トークン配置の有効性検証ロジックは削除済み - 実際の変換処理でのみ妥当性が確認される
 - **変換アーキテクチャ**: UIの直接変換を廃止し、rule-parserを経由する統一パイプラインに変更（UI TokenType → rule-parser RuleSet → combat-engine RuleToken）
+- **UI関心分離**: UI層をBevy依存（bevy-ui）とBevy非依存（ui-core）に完全分離、文字列表示はBevy層に集約
+- **トークン原子性**: UITokenType::HPを分割し、ActingCharacterとHPを個別トークンとして管理する原子的設計に変更
 
 ## 🏗️ アーキテクチャ設計
 
