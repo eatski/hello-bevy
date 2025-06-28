@@ -826,7 +826,7 @@ mod integration_tests {
             Box::new(combat_engine::ConditionCheckNode::new(
                 Box::new(combat_engine::GreaterThanConditionNode::new(
                     Box::new(combat_engine::ConstantValueNode::new(50)),
-                    Box::new(combat_engine::CharacterHpValueNode),
+                    Box::new(combat_engine::CharacterHpFromNode::new(Box::new(combat_engine::ActingCharacterNode))),
                 )),
                 Box::new(combat_engine::HealActionNode),
             )),
@@ -855,7 +855,7 @@ mod integration_tests {
             Box::new(combat_engine::ConditionCheckNode::new(
                 Box::new(combat_engine::GreaterThanConditionNode::new(
                     Box::new(combat_engine::ConstantValueNode::new(50)),
-                    Box::new(combat_engine::CharacterHpValueNode),
+                    Box::new(combat_engine::CharacterHpFromNode::new(Box::new(combat_engine::ActingCharacterNode))),
                 )),
                 Box::new(combat_engine::HealActionNode),
             )),
@@ -893,7 +893,7 @@ mod integration_tests {
             Box::new(combat_engine::ConditionCheckNode::new(
                 Box::new(combat_engine::GreaterThanConditionNode::new(
                     Box::new(combat_engine::ConstantValueNode::new(50)),
-                    Box::new(combat_engine::CharacterHpValueNode),
+                    Box::new(combat_engine::CharacterHpFromNode::new(Box::new(combat_engine::ActingCharacterNode))),
                 )),
                 Box::new(combat_engine::HealActionNode),
             )),

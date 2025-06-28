@@ -37,7 +37,7 @@ impl ActionCalculationSystem {
 mod tests {
     use super::*;
     use crate::Character;
-    use crate::{ConditionCheckNode, StrikeActionNode, HealActionNode, RandomConditionNode, GreaterThanConditionNode, ConstantValueNode, CharacterHpValueNode};
+    use crate::{ConditionCheckNode, StrikeActionNode, HealActionNode, RandomConditionNode, GreaterThanConditionNode, ConstantValueNode, ActingCharacterNode, CharacterHpFromNode};
     use rand::SeedableRng;
 
     #[test]
@@ -121,7 +121,7 @@ mod tests {
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanConditionNode::new(
                     Box::new(ConstantValueNode::new(50)),
-                    Box::new(CharacterHpValueNode),
+                    Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))),
                 )),
                 Box::new(HealActionNode),
             )),

@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use combat_engine::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, CharacterHpValueNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
+use combat_engine::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, CharacterHpFromNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
 use crate::rule_input_model::{RuleSet, TokenConfig};
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
@@ -86,7 +86,7 @@ fn convert_bool_node_config(config: &TokenConfig) -> Result<Box<dyn ConditionNod
 fn convert_number_node_config(config: &TokenConfig) -> Result<Box<dyn ValueNode>, String> {
     match config {
         TokenConfig::Number { value } => Ok(Box::new(ConstantValueNode::new(*value))),
-        TokenConfig::CharacterHP => Ok(Box::new(CharacterHpValueNode)),
+        TokenConfig::CharacterHP => Ok(Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode)))),
         _ => Err(format!("Cannot convert {:?} to ValueNode", config)),
     }
 }

@@ -4,6 +4,7 @@ pub mod character;
 pub mod core;
 pub mod condition_nodes;
 pub mod value_nodes;
+pub mod character_nodes;
 pub mod control_nodes;
 pub mod action_nodes;
 pub mod system;
@@ -16,12 +17,16 @@ pub mod greater_than_condition_node;
 pub mod condition_check_node;
 pub mod constant_value_node;
 pub mod character_hp_value_node;
+pub mod acting_character_node;
+pub mod character_hp_from_node;
 
 // Re-export public types
 pub use character::Character;
 pub use core::{ActionResolver, ActionType, RuleNode};
 pub use condition_nodes::{ConditionNode, RandomConditionNode, GreaterThanConditionNode};
 pub use value_nodes::{ValueNode, ConstantValueNode, CharacterHpValueNode};
+pub use character_hp_from_node::CharacterHpFromNode;
+pub use character_nodes::{CharacterNode, ActingCharacterNode};
 pub use control_nodes::ConditionCheckNode;
 pub use action_nodes::{StrikeActionNode, HealActionNode};
 pub use system::ActionCalculationSystem;
