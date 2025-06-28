@@ -17,6 +17,7 @@ impl UITokenDisplay for UITokenType {
                 _ => "Num",
             },
             UITokenType::ActingCharacter => "ActingChar",
+            UITokenType::RandomCharacter => "RandomChar",
             UITokenType::HP => "HP",
             UITokenType::GreaterThan => "L-gt-R",
             UITokenType::TrueOrFalse => "50/50",
@@ -49,6 +50,7 @@ mod tests {
         assert_eq!(UITokenType::Number(50).display_text(), "50");
         assert_eq!(UITokenType::Number(100).display_text(), "Num");
         assert_eq!(UITokenType::ActingCharacter.display_text(), "ActingChar");
+        assert_eq!(UITokenType::RandomCharacter.display_text(), "RandomChar");
         assert_eq!(UITokenType::HP.display_text(), "HP");
         assert_eq!(UITokenType::GreaterThan.display_text(), "L-gt-R");
         assert_eq!(UITokenType::TrueOrFalse.display_text(), "50/50");

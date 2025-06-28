@@ -93,6 +93,7 @@ impl MenuState {
                 UITokenType::Number(50),
                 UITokenType::HP,
                 UITokenType::ActingCharacter,
+                UITokenType::RandomCharacter,
             ],
         }
     }
@@ -726,6 +727,20 @@ mod tests {
         
         let rule_nodes2 = current_rules2.convert_to_rule_nodes();
         assert_eq!(rule_nodes2.len(), 1, "Check → GreaterThan → Number → HP → ActingCharacter → Strike should be valid (Number > HP)");
+        
+        // Test: Check → GreaterThan → Number → HP → RandomCharacter → Strike (Number > RandomChar.HP)
+        let mut current_rules3 = CurrentRules::new();
+        current_rules3.rules[0] = vec![
+            UITokenType::Check,
+            UITokenType::GreaterThan,
+            UITokenType::Number(50),
+            UITokenType::HP,
+            UITokenType::RandomCharacter,
+            UITokenType::Strike,
+        ];
+        
+        let rule_nodes3 = current_rules3.convert_to_rule_nodes();
+        assert_eq!(rule_nodes3.len(), 1, "Check → GreaterThan → Number → HP → RandomCharacter → Strike should be valid (Number > RandomChar.HP)");
     }
     
     

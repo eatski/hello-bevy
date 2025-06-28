@@ -19,6 +19,7 @@ pub mod condition_check_node;
 pub mod constant_value_node;
 pub mod character_hp_value_node;
 pub mod acting_character_node;
+pub mod random_character_node;
 pub mod character_hp_from_node;
 
 // Re-export public types
@@ -27,7 +28,7 @@ pub use core::{ActionResolver, ActionType, RuleNode};
 pub use condition_nodes::{ConditionNode, RandomConditionNode, GreaterThanConditionNode};
 pub use value_nodes::{ValueNode, ConstantValueNode, CharacterHpValueNode};
 pub use character_hp_from_node::CharacterHpFromNode;
-pub use character_nodes::{CharacterNode, ActingCharacterNode};
+pub use character_nodes::{CharacterNode, BattleContext, ActingCharacterNode, RandomCharacterNode};
 pub use control_nodes::ConditionCheckNode;
 pub use action_nodes::{StrikeActionNode, HealActionNode};
 pub use actions::{StrikeActionNode as StrikeAction, HealActionNode as HealAction};

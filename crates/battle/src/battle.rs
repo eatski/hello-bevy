@@ -1,4 +1,4 @@
-use action_system::{ActionCalculationSystem, ActionType, RuleNode, Character};
+use action_system::{ActionCalculationSystem, ActionType, RuleNode, Character, BattleContext};
 use rand::rngs::StdRng;
 use rand::{SeedableRng, Rng};
 
@@ -44,7 +44,8 @@ impl Battle {
             return;
         }
 
-        if let Some(action) = self.player_action_system.calculate_action(&self.player) {
+        let battle_context = BattleContext::new(&self.player, &self.player, &self.enemy);
+        if let Some(action) = self.player_action_system.calculate_action(&battle_context) {
             self.execute_action(action, true);
         } else {
             self.battle_log.push(format!("ターン{}: {}は何もしなかった", self.current_turn + 1, self.player.name));
@@ -59,7 +60,8 @@ impl Battle {
             return;
         }
 
-        if let Some(action) = self.enemy_action_system.calculate_action(&self.enemy) {
+        let battle_context = BattleContext::new(&self.enemy, &self.player, &self.enemy);
+        if let Some(action) = self.enemy_action_system.calculate_action(&battle_context) {
             self.execute_action(action, false);
         } else {
             self.battle_log.push(format!("ターン{}: {}は何もしなかった", self.current_turn + 1, self.enemy.name));
@@ -338,7 +340,8 @@ mod integration_tests {
         let mut action_system = ActionCalculationSystem::new(rules, rng);
         
         let _initial_mp = player.mp;
-        if let Some(ActionType::Heal) = action_system.calculate_action(&player) {
+        let battle_context = BattleContext::new(&player, &player, &_enemy);
+        if let Some(ActionType::Heal) = action_system.calculate_action(&battle_context) {
             if player.consume_mp(10) {
                 player.heal(20);
                 assert_eq!(player.mp, _initial_mp - 10, "MP should be consumed for heal");
@@ -350,6 +353,7 @@ mod integration_tests {
     #[test]
     fn test_low_mp_behavior() {
         let mut player = Character::new("Player".to_string(), 50, 5, 25);
+        let _enemy = Character::new("Enemy".to_string(), 100, 50, 25);
         player.take_damage(30);
         
         let rules: Vec<RuleNode> = vec![
@@ -366,7 +370,8 @@ mod integration_tests {
         let mut strike_actions = 0;
         
         for _ in 0..20 {
-            if let Some(action) = action_system.calculate_action(&player) {
+            let battle_context = BattleContext::new(&player, &player, &_enemy);
+            if let Some(action) = action_system.calculate_action(&battle_context) {
                 match action {
                     ActionType::Heal => {
                         _heal_attempts += 1;
@@ -560,8 +565,10 @@ mod integration_tests {
         let rng = create_test_rng();
         let mut action_system = ActionCalculationSystem::new(rules, rng);
         
-        let damaged_action = action_system.calculate_action(&damaged_player);
-        let healthy_action = action_system.calculate_action(&healthy_player);
+        let damaged_battle_context = BattleContext::new(&damaged_player, &damaged_player, &healthy_player);
+        let damaged_action = action_system.calculate_action(&damaged_battle_context);
+        let healthy_battle_context = BattleContext::new(&healthy_player, &damaged_player, &healthy_player);
+        let healthy_action = action_system.calculate_action(&healthy_battle_context);
         
         assert!(damaged_action.is_some());
         assert!(healthy_action.is_some());
@@ -580,11 +587,13 @@ mod integration_tests {
             let rng = create_test_rng();
             let mut system = ActionCalculationSystem::new(rules, rng);
             
-            if let Some(ActionType::Heal) = system.calculate_action(&damaged_player) {
+            let damaged_battle_context = BattleContext::new(&damaged_player, &damaged_player, &healthy_player);
+            if let Some(ActionType::Heal) = system.calculate_action(&damaged_battle_context) {
                 heal_for_damaged = true;
             }
             
-            if let Some(ActionType::Strike) = system.calculate_action(&healthy_player) {
+            let healthy_battle_context = BattleContext::new(&healthy_player, &damaged_player, &healthy_player);
+            if let Some(ActionType::Strike) = system.calculate_action(&healthy_battle_context) {
                 strike_for_healthy = true;
             }
             

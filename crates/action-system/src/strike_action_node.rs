@@ -6,8 +6,8 @@ use super::core::{ActionResolver, ActionResolverResult, ActionType};
 pub struct StrikeActionNode;
 
 impl ActionResolver for StrikeActionNode {
-    fn resolve(&self, character: &crate::Character, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
-        if character.hp > 0 {
+    fn resolve(&self, battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+        if battle_context.get_acting_character().hp > 0 {
             ActionResolverResult::Action(ActionType::Strike)
         } else {
             ActionResolverResult::Break
@@ -24,17 +24,22 @@ mod tests {
 
     #[test]
     fn test_strike_action_node() {
-        let character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+        
+        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
         let strike = StrikeActionNode;
         let mut rng = StdRng::from_entropy();
         
-        match strike.resolve(&character, &mut rng) {
+        match strike.resolve(&battle_context, &mut rng) {
             ActionResolverResult::Action(ActionType::Strike) => assert!(true),
             _ => panic!("StrikeActionNode should return Action(Strike) for alive character"),
         }
         
         let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
-        match strike.resolve(&dead_character, &mut rng) {
+        let dead_battle_context = crate::BattleContext::new(&dead_character, &player, &enemy);
+        match strike.resolve(&dead_battle_context, &mut rng) {
             ActionResolverResult::Break => assert!(true),
             _ => panic!("StrikeActionNode should return Break for dead character"),
         }

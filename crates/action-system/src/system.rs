@@ -2,6 +2,7 @@
 
 use rand::rngs::StdRng;
 use super::core::{ActionType, ActionResolverResult, RuleNode};
+use crate::BattleContext;
 
 pub struct ActionCalculationSystem {
     pub rules: Vec<RuleNode>,
@@ -16,11 +17,11 @@ impl ActionCalculationSystem {
         }
     }
 
-    pub fn calculate_action(&mut self, character: &crate::Character) -> Option<ActionType> {
+    pub fn calculate_action(&mut self, battle_context: &BattleContext) -> Option<ActionType> {
         let rng = &mut self.rng;
 
         for rule in &self.rules {
-            match rule.resolve(character, rng) {
+            match rule.resolve(battle_context, rng) {
                 ActionResolverResult::Action(action_type) => {
                     return Some(action_type);
                 }
@@ -51,9 +52,12 @@ mod tests {
         ];
         let rng = StdRng::from_entropy();
         let mut system = ActionCalculationSystem::new(rules, rng);
-        let character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let battle_context = BattleContext::new(&acting_character, &player, &enemy);
         
-        let action = system.calculate_action(&character);
+        let action = system.calculate_action(&battle_context);
         assert!(action.is_some(), "Should return some action");
         
         match action.unwrap() {
@@ -83,19 +87,24 @@ mod tests {
         let mut system1 = ActionCalculationSystem::new(create_rules(), rng1);
         let mut system2 = ActionCalculationSystem::new(create_rules(), rng2);
         
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+        
         // Test with multiple attempts to verify both Strike and Heal can occur
         let mut strike_count = 0;
         let mut heal_count = 0;
         
         // Test 20 attempts to get both actions
         for _ in 0..20 {
-            if let Some(action) = system1.calculate_action(&damaged_character) {
+            let battle_context = BattleContext::new(&damaged_character, &player, &enemy);
+            if let Some(action) = system1.calculate_action(&battle_context) {
                 match action {
                     ActionType::Strike => strike_count += 1,
                     ActionType::Heal => heal_count += 1,
                 }
             }
-            if let Some(action) = system2.calculate_action(&damaged_character) {
+            let battle_context = BattleContext::new(&damaged_character, &player, &enemy);
+            if let Some(action) = system2.calculate_action(&battle_context) {
                 match action {
                     ActionType::Strike => strike_count += 1,
                     ActionType::Heal => heal_count += 1,
@@ -131,12 +140,17 @@ mod tests {
         let rng = StdRng::from_entropy();
         let mut system = ActionCalculationSystem::new(hp_rules, rng);
         
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+        
         // Low HP character should heal
-        let low_hp_action = system.calculate_action(&low_hp_character);
+        let low_hp_battle_context = BattleContext::new(&low_hp_character, &player, &enemy);
+        let low_hp_action = system.calculate_action(&low_hp_battle_context);
         assert_eq!(low_hp_action, Some(ActionType::Heal), "Low HP character should choose Heal");
         
         // High HP character should strike
-        let high_hp_action = system.calculate_action(&high_hp_character);
+        let high_hp_battle_context = BattleContext::new(&high_hp_character, &player, &enemy);
+        let high_hp_action = system.calculate_action(&high_hp_battle_context);
         assert_eq!(high_hp_action, Some(ActionType::Strike), "High HP character should choose Strike");
     }
 }

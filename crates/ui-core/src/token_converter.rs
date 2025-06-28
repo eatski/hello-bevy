@@ -1,6 +1,6 @@
 // UI converter - converts UI tokens directly to nodes
 
-use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, CharacterHpFromNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
+use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, RandomCharacterNode, CharacterHpFromNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
 
 // UI側のトークンタイプの定義
 #[derive(Clone, Debug, PartialEq)]
@@ -10,6 +10,7 @@ pub enum UITokenType {
     Heal,
     Number(u32),
     ActingCharacter,  // 行動するキャラクター
+    RandomCharacter,  // ランダムなキャラクター
     HP,               // HP値
     GreaterThan,
     TrueOrFalse,
@@ -116,15 +117,27 @@ fn parse_ui_value_token(tokens: &[UITokenType], index: usize) -> Result<(Box<dyn
         UITokenType::Number(n) => Ok((Box::new(ConstantValueNode::new(*n as i32)), 1)),
         UITokenType::HP => {
             // HPの後にCharacterトークンがあるかチェック
-            if index + 1 < tokens.len() && tokens[index + 1] == UITokenType::ActingCharacter {
-                Ok((Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))), 2))
+            if index + 1 < tokens.len() {
+                match &tokens[index + 1] {
+                    UITokenType::ActingCharacter => {
+                        Ok((Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))), 2))
+                    }
+                    UITokenType::RandomCharacter => {
+                        Ok((Box::new(CharacterHpFromNode::new(Box::new(RandomCharacterNode::new()))), 2))
+                    }
+                    _ => Err("HP must be followed by a Character token (e.g., ActingCharacter, RandomCharacter)".to_string())
+                }
             } else {
-                Err("HP must be followed by a Character token (e.g., ActingCharacter)".to_string())
+                Err("HP must be followed by a Character token (e.g., ActingCharacter, RandomCharacter)".to_string())
             }
         }
         UITokenType::ActingCharacter => {
             // 単独のActingCharacterは許可しない - HPと組み合わせて使用
             Err("ActingCharacter must be preceded by HP".to_string())
+        }
+        UITokenType::RandomCharacter => {
+            // 単独のRandomCharacterは許可しない - HPと組み合わせて使用
+            Err("RandomCharacter must be preceded by HP".to_string())
         }
         _ => Err(format!("Token {:?} cannot be used as value", tokens[index])),
     }
@@ -162,6 +175,23 @@ mod tests {
                 UITokenType::Number(50),
                 UITokenType::HP,
                 UITokenType::ActingCharacter,
+                UITokenType::Heal,
+            ],
+        ];
+        
+        let rule_nodes = convert_ui_rules_to_nodes(&ui_rules);
+        assert_eq!(rule_nodes.len(), 1);
+    }
+
+    #[test]
+    fn test_convert_random_character_rule() {
+        let ui_rules = vec![
+            vec![
+                UITokenType::Check,
+                UITokenType::GreaterThan,
+                UITokenType::Number(30),
+                UITokenType::HP,
+                UITokenType::RandomCharacter,
                 UITokenType::Heal,
             ],
         ];

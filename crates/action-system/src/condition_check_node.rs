@@ -16,10 +16,10 @@ impl ConditionCheckNode {
 }
 
 impl ActionResolver for ConditionCheckNode {
-    fn resolve(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
-        if self.condition.evaluate(character, rng) {
+    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+        if self.condition.evaluate(battle_context, rng) {
             // Continue: delegate to next node
-            self.next.resolve(character, rng)
+            self.next.resolve(battle_context, rng)
         } else {
             ActionResolverResult::Break
         }
@@ -36,14 +36,18 @@ mod tests {
 
     #[test]
     fn test_condition_check_node() {
-        let character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
+        
         let check_random = ConditionCheckNode::new(
             Box::new(RandomConditionNode),
             Box::new(StrikeActionNode),
         );
         let mut rng = StdRng::from_entropy();
         
-        match check_random.resolve(&character, &mut rng) {
+        match check_random.resolve(&battle_context, &mut rng) {
             ActionResolverResult::Action(_) | ActionResolverResult::Break => assert!(true),
         }
     }

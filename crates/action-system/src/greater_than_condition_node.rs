@@ -16,8 +16,8 @@ impl GreaterThanConditionNode {
 }
 
 impl ConditionNode for GreaterThanConditionNode {
-    fn evaluate(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> bool {
-        self.left.evaluate(character, rng) > self.right.evaluate(character, rng)
+    fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> bool {
+        self.left.evaluate(battle_context, rng) > self.right.evaluate(battle_context, rng)
     }
 }
 
@@ -31,7 +31,11 @@ mod tests {
 
     #[test]
     fn test_greater_than_condition_node() {
-        let character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
+        
         let mut rng = StdRng::from_entropy();
         
         // Test GreaterThanConditionNode
@@ -39,12 +43,12 @@ mod tests {
             Box::new(ConstantValueNode::new(60)),
             Box::new(ConstantValueNode::new(40)),
         );
-        assert_eq!(greater_than_node.evaluate(&character, &mut rng), true);
+        assert_eq!(greater_than_node.evaluate(&battle_context, &mut rng), true);
         
         let greater_than_node_false = GreaterThanConditionNode::new(
             Box::new(ConstantValueNode::new(30)),
             Box::new(ConstantValueNode::new(50)),
         );
-        assert_eq!(greater_than_node_false.evaluate(&character, &mut rng), false);
+        assert_eq!(greater_than_node_false.evaluate(&battle_context, &mut rng), false);
     }
 }

@@ -2,7 +2,7 @@
 
 use crate::{GameState, CurrentRules, UITokenType};
 use battle::{Battle, Character as GameCharacter};
-use action_system::ActionCalculationSystem;
+use action_system::{ActionCalculationSystem, BattleContext};
 use rand::{SeedableRng, rngs::StdRng};
 
 fn create_test_rng() -> StdRng {
@@ -138,8 +138,11 @@ mod tests {
         let rng = create_test_rng();
         let mut action_system = ActionCalculationSystem::new(rule_nodes, rng);
         
-        let character = GameCharacter::new("Test".to_string(), 50, 30, 25);
-        let action = action_system.calculate_action(&character);
+        let player = GameCharacter::new("Player".to_string(), 100, 50, 25);
+        let enemy = GameCharacter::new("Enemy".to_string(), 80, 30, 20);
+        let acting_character = GameCharacter::new("Test".to_string(), 50, 30, 25);
+        let battle_context = BattleContext::new(&acting_character, &player, &enemy);
+        let action = action_system.calculate_action(&battle_context);
         assert!(action.is_some());
     }
     
@@ -224,5 +227,21 @@ mod tests {
         assert_eq!(rule_nodes.len(), 3);
         
         // Note: String formatting tests moved to bevy-ui crate
+    }
+    
+    #[test]
+    fn test_random_character_integration() {
+        let mut rules = CurrentRules::new();
+        
+        // Create rule: Check → GreaterThan → Number(30) → HP → RandomCharacter → Heal
+        rules.add_token_to_current_row(UITokenType::Check);
+        rules.add_token_to_current_row(UITokenType::GreaterThan);
+        rules.add_token_to_current_row(UITokenType::Number(30));
+        rules.add_token_to_current_row(UITokenType::HP);
+        rules.add_token_to_current_row(UITokenType::RandomCharacter);
+        rules.add_token_to_current_row(UITokenType::Heal);
+        
+        let rule_nodes = rules.convert_to_rule_nodes();
+        assert_eq!(rule_nodes.len(), 1, "RandomCharacter rule should convert successfully");
     }
 }

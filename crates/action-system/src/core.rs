@@ -2,12 +2,12 @@
 
 // Trait for nodes that can resolve to actions or break
 pub trait ActionResolver: Send + Sync + std::fmt::Debug {
-    fn resolve(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult;
+    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> ActionResolverResult;
 }
 
 impl ActionResolver for Box<dyn ActionResolver> {
-    fn resolve(&self, character: &crate::Character, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
-        (**self).resolve(character, rng)
+    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+        (**self).resolve(battle_context, rng)
     }
 }
 
