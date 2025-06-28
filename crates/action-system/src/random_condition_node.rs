@@ -55,22 +55,28 @@ mod tests {
     }
 
     #[test]
-    fn test_seeded_random_deterministic() {
+    fn test_single_rng_multiple_evaluations_differ() {
+        // 1つのRNGで複数回評価し、結果が変わることを検証
         let player = Character::new("Player".to_string(), 100, 50, 25);
         let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
         let acting_character = Character::new("Test".to_string(), 100, 50, 25);
         let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
         
         let random = RandomConditionNode;
+        let mut rng = StdRng::seed_from_u64(42);
         
-        // Test deterministic behavior with seed
-        let seed = 12345;
-        let mut rng1 = StdRng::seed_from_u64(seed);
-        let mut rng2 = StdRng::seed_from_u64(seed);
+        let mut results = Vec::new();
         
-        let result1 = random.evaluate(&battle_context, &mut rng1);
-        let result2 = random.evaluate(&battle_context, &mut rng2);
+        // 同一RNGで20回評価
+        for _ in 0..20 {
+            let result = random.evaluate(&battle_context, &mut rng);
+            results.push(result);
+        }
         
-        assert_eq!(result1, result2);
+        // 全て同じ結果ではないことを確認
+        let first_result = results[0];
+        let has_different_result = results.iter().any(|&result| result != first_result);
+        
+        assert!(has_different_result, "Multiple evaluations with same RNG should produce different results");
     }
 }

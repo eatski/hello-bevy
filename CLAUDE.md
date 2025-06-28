@@ -217,20 +217,31 @@ hello-bevy (root バイナリ)
    - ワークスペースのCargo.tomlに追加
 
 ## 🧪 テスト設計（クレート別）
-### 統合テスト (49テスト)
-- **`combat-engine` クレート**: 11テスト - 単体テスト + トークンシステムテスト
+### 統合テスト (83テスト)
+- **`action-system` クレート**: 20テスト - アクションシステム・乱数テスト
   - ActionResolver, Token, 各種トークンの動作テスト
   - ActionCalculationSystemの統合テスト
-- **`rule-parser` クレート**: 12テスト - ルール読み込み・変換テスト
-  - JSON読み込み・解析テスト
-  - TokenConfig → ActionResolver変換テスト
-  - エラーハンドリングテスト
-- **`game-logic` クレート**: 26テスト - バトルシステムテスト
+  - **seed固定乱数テスト**: 複数seed・複数実行の検証
+    - `test_multiple_seeds_produce_different_results`: 複数seedで異なる結果が出ることを検証
+    - `test_same_seed_multiple_executions_can_differ`: 同一seedで複数回実行時のRNG状態変化検証
+    - `test_single_rng_multiple_evaluations_differ`: RandomConditionNodeで1つのRNGでの複数評価検証
+    - `test_single_rng_multiple_character_selections_vary`: RandomCharacterNodeで1つのRNGでの複数選択検証
+- **`battle` クレート**: 26テスト - バトルシステムテスト
   - Battle, Character の単体テスト
   - 様々なルールパターンテスト（攻撃専用/回復専用/複雑なチェイン）
   - 戦闘ロジック統合テスト
-- **`bevy-frontend` クレート**: 0テスト - UI関連（Bevyテストは別途）
-- **`hello-bevy` (root)**: 0テスト - 統合バイナリ
+- **`json-rule` クレート**: 12テスト - ルール読み込み・変換テスト
+  - JSON読み込み・解析テスト
+  - TokenConfig → ActionResolver変換テスト
+  - エラーハンドリングテスト
+- **`ui-core` クレート**: 19テスト - UIロジック・統合テスト
+  - ルール管理・変換システムテスト
+  - UIトークン変換・バリデーションテスト
+  - ゲームステート管理テスト
+- **`bevy-ui` クレート**: 6テスト - Bevy UI表示テスト
+  - UI表示・フォーマットテスト
+  - トークン表示テキストテスト
+- その他クレート: 0テスト
 
 ### テスト実行方法
 ```bash
@@ -238,13 +249,14 @@ hello-bevy (root バイナリ)
 cargo test --workspace
 
 # 個別クレートのテスト
-cargo test -p combat-engine
-cargo test -p rule-parser
-cargo test -p game-logic
-cargo test -p bevy-frontend
+cargo test -p action-system
+cargo test -p battle
+cargo test -p json-rule
+cargo test -p ui-core
+cargo test -p bevy-ui
 
 # 特定テストパターン
-cargo test -p game-logic -- integration_tests
-cargo test -p combat-engine -- token
-cargo test -p rule-parser -- loader
+cargo test -p action-system -- seed  # seed固定乱数テスト
+cargo test -p battle -- integration_tests
+cargo test -p json-rule -- loader
 ```

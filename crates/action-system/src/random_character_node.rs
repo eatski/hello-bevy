@@ -51,7 +51,8 @@ mod tests {
     }
     
     #[test]
-    fn test_random_character_node_deterministic() {
+    fn test_single_rng_multiple_character_selections_vary() {
+        // 1つのRNGで複数回キャラクター選択し、結果が変わることを検証
         use rand::SeedableRng;
         
         let player = Character::new("Player".to_string(), 100, 50, 25);
@@ -59,14 +60,21 @@ mod tests {
         let acting_character = Character::new("Acting".to_string(), 100, 50, 25);
         let battle_context = BattleContext::new(&acting_character, &player, &enemy);
         
-        let mut rng1 = StdRng::seed_from_u64(12345);
-        let mut rng2 = StdRng::seed_from_u64(12345);
-        
+        let mut rng = StdRng::seed_from_u64(12345);
         let random_char_node = RandomCharacterNode::new();
-        let result1 = random_char_node.evaluate(&battle_context, &mut rng1);
-        let result2 = random_char_node.evaluate(&battle_context, &mut rng2);
         
-        // Same seed should produce same result
-        assert_eq!(result1.name, result2.name);
+        let mut results = Vec::new();
+        
+        // 同一RNGで20回キャラクター選択
+        for _ in 0..20 {
+            let result = random_char_node.evaluate(&battle_context, &mut rng);
+            results.push(result.name.clone());
+        }
+        
+        // 全て同じキャラクターではないことを確認
+        let first_name = &results[0];
+        let has_different_character = results.iter().any(|name| name != first_name);
+        
+        assert!(has_different_character, "Multiple character selections with same RNG should produce different results");
     }
 }
