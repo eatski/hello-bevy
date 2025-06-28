@@ -75,14 +75,24 @@ fn convert_tokens_recursive(
     match &token_row[index] {
         UITokenType::Check => {
             if index + 1 < token_row.len() {
-                if let Some((condition_config, consumed)) = 
+                if let Some((condition_config, condition_consumed)) = 
                     convert_ui_condition_tokens_recursive(&token_row[index + 1..]) {
-                    // then_actionはここでは適当なStrikeを設定（後続処理で実際の値に置き換わる想定）
-                    token_configs.push(TokenConfig::Check {
-                        condition: Box::new(condition_config),
-                        then_action: Box::new(TokenConfig::Strike),
-                    });
-                    convert_tokens_recursive(token_row, index + consumed + 1, token_configs)
+                    
+                    let action_index = index + 1 + condition_consumed;
+                    if action_index < token_row.len() {
+                        if let Some((action_config, action_consumed)) = 
+                            convert_ui_action_token(&token_row[action_index]) {
+                            token_configs.push(TokenConfig::Check {
+                                condition: Box::new(condition_config),
+                                then_action: Box::new(action_config),
+                            });
+                            convert_tokens_recursive(token_row, action_index + action_consumed, token_configs)
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -151,6 +161,15 @@ fn parse_value_token_recursive(tokens: &[UITokenType], index: usize) -> Option<(
     match &tokens[index] {
         UITokenType::Number(n) => Some((TokenConfig::Number { value: *n as i32 }, 1)),
         UITokenType::HP => Some((TokenConfig::CharacterHP, 1)),
+        _ => None,
+    }
+}
+
+// UIアクショントークンを変換（消費トークン数も返す）
+fn convert_ui_action_token(token: &UITokenType) -> Option<(TokenConfig, usize)> {
+    match token {
+        UITokenType::Strike => Some((TokenConfig::Strike, 1)),
+        UITokenType::Heal => Some((TokenConfig::Heal, 1)),
         _ => None,
     }
 }

@@ -45,13 +45,16 @@ fn convert_node_chain(tokens: &[TokenConfig]) -> Result<RuleNode, String> {
             TokenConfig::Heal => {
                 result = Some(Box::new(HealActionNode));
             }
-            TokenConfig::Check { condition, then_action: _ } => {
+            TokenConfig::Check { condition, then_action } => {
                 let bool_node = convert_bool_node_config(condition)?;
+                let action_node = convert_single_token_to_resolver(then_action)?;
                 
-                if let Some(next) = result {
-                    result = Some(Box::new(ConditionCheckNode::new(bool_node, next)));
+                if let Some(_next) = result {
+                    // Chain: if condition -> action_node, else -> next
+                    let chained_action = Box::new(ConditionCheckNode::new(bool_node, action_node));
+                    result = Some(chained_action);
                 } else {
-                    return Err("Check token must have a following token".to_string());
+                    result = Some(Box::new(ConditionCheckNode::new(bool_node, action_node)));
                 }
             }
             _ => {
@@ -80,6 +83,19 @@ fn convert_number_node_config(config: &TokenConfig) -> Result<Box<dyn ValueNode>
         TokenConfig::Number { value } => Ok(Box::new(ConstantValueNode::new(*value))),
         TokenConfig::CharacterHP => Ok(Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode)))),
         _ => Err(format!("Cannot convert {:?} to ValueNode", config)),
+    }
+}
+
+fn convert_single_token_to_resolver(config: &TokenConfig) -> Result<Box<dyn ActionResolver>, String> {
+    match config {
+        TokenConfig::Strike => Ok(Box::new(StrikeActionNode)),
+        TokenConfig::Heal => Ok(Box::new(HealActionNode)),
+        TokenConfig::Check { condition, then_action } => {
+            let bool_node = convert_bool_node_config(condition)?;
+            let action_node = convert_single_token_to_resolver(then_action)?;
+            Ok(Box::new(ConditionCheckNode::new(bool_node, action_node)))
+        }
+        _ => Err(format!("Cannot convert {:?} to single ActionResolver", config)),
     }
 }
 
