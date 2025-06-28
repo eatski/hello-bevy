@@ -4,6 +4,7 @@ services:
     volumes:
       - .:/workspace
     working_dir: /workspace
+    network_mode: host
     environment:
       - NODE_ENV=development
       - CARGO_BUILD_TARGET_DIR=/workspace/.claude-dev/target
