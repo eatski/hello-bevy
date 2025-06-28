@@ -1,6 +1,6 @@
 // Character HP from node - returns HP from a character node
 
-use super::value_nodes::ValueNode;
+use crate::nodes::value::ValueNode;
 use super::character_nodes::CharacterNode;
 
 #[derive(Debug)]

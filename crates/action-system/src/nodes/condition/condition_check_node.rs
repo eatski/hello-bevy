@@ -1,6 +1,6 @@
 // Condition check node - evaluates condition and delegates to next node or breaks
 
-use super::core::{ActionResolver, ActionResolverResult};
+use crate::core::{ActionResolver, ActionResolverResult};
 use super::condition_nodes::ConditionNode;
 
 #[derive(Debug)]

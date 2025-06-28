@@ -1,6 +1,6 @@
 // Strike action node - resolves to strike action
 
-use super::core::{ActionResolver, ActionResolverResult, ActionType};
+use crate::core::{ActionResolver, ActionResolverResult, ActionType};
 
 #[derive(Debug)]
 pub struct StrikeActionNode;

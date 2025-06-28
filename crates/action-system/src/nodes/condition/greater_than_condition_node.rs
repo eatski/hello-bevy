@@ -1,7 +1,7 @@
 // Greater than condition node - compares two values
 
 use super::condition_nodes::ConditionNode;
-use super::value_nodes::ValueNode;
+use crate::nodes::value::ValueNode;
 
 #[derive(Debug)]
 pub struct GreaterThanConditionNode {

@@ -1,6 +1,6 @@
 // Heal action node - resolves to heal action
 
-use super::core::{ActionResolver, ActionResolverResult, ActionType};
+use crate::core::{ActionResolver, ActionResolverResult, ActionType};
 
 #[derive(Debug)]
 pub struct HealActionNode;
