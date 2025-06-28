@@ -126,13 +126,13 @@ mod tests {
     #[test]
     fn test_load_player_rules_file() {
         let rule_set = load_rules_from_file("../../rules/player_rules.json").unwrap();
-        assert!(rule_set.rules.len() > 0);
+        assert_ne!(rule_set.rules.len(), 0);
     }
 
     #[test]
     fn test_load_enemy_rules_file() {
         let rule_set = load_rules_from_file("../../rules/enemy_rules.json").unwrap();
-        assert!(rule_set.rules.len() > 0);
+        assert_ne!(rule_set.rules.len(), 0);
     }
 
     #[test]
@@ -194,7 +194,7 @@ mod tests {
         };
         
         let result = convert_to_node_rules(&rule_set);
-        assert!(result.is_ok()); // This should now be valid
+        assert_eq!(result.is_ok(), true); // This should now be valid
     }
 
     #[test]
@@ -217,7 +217,7 @@ mod tests {
         };
         
         let result = convert_to_node_rules(&rule_set);
-        assert!(result.is_ok()); // This should now be valid
+        assert_eq!(result.is_ok(), true); // This should now be valid
     }
 
     #[test]
@@ -234,9 +234,9 @@ mod tests {
         
         // This should fail because CharacterHP cannot be used as a direct action
         let result = convert_to_node_rules(&rule_set);
-        assert!(result.is_err());
+        assert_eq!(result.is_err(), true);
         if let Err(error_msg) = result {
-            assert!(error_msg.contains("cannot be used directly in rule chain"));
+            assert_eq!(error_msg.contains("cannot be used directly in rule chain"), true);
         }
     }
 

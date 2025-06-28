@@ -116,8 +116,8 @@ mod tests {
         let rules = CurrentRules::new();
         assert_eq!(rules.rules.len(), 5);
         assert_eq!(rules.selected_row, 0);
-        assert!(rules.is_current_row_empty());
-        assert!(!rules.has_valid_rules());
+        assert_eq!(rules.is_current_row_empty(), true);
+        assert_eq!(rules.has_valid_rules(), false);
     }
     
     #[test]
@@ -129,8 +129,8 @@ mod tests {
         rules.add_token_to_current_row(UITokenType::Heal);
         
         assert_eq!(rules.rules[0].len(), 2);
-        assert!(!rules.is_current_row_empty());
-        assert!(rules.has_valid_rules());
+        assert_eq!(rules.is_current_row_empty(), false);
+        assert_eq!(rules.has_valid_rules(), true);
         
         // Remove last token
         rules.remove_last_token_from_current_row();
@@ -138,8 +138,8 @@ mod tests {
         
         // Clear current row
         rules.clear_current_row();
-        assert!(rules.is_current_row_empty());
-        assert!(!rules.has_valid_rules());
+        assert_eq!(rules.is_current_row_empty(), true);
+        assert_eq!(rules.has_valid_rules(), false);
     }
     
     #[test]
@@ -170,12 +170,12 @@ mod tests {
         let mut rules = CurrentRules::new();
         
         assert_eq!(rules.non_empty_rule_count(), 0);
-        assert!(!rules.has_valid_rules());
+        assert_eq!(rules.has_valid_rules(), false);
         
         // Add tokens to first row
         rules.add_token_to_current_row(UITokenType::Strike);
         assert_eq!(rules.non_empty_rule_count(), 1);
-        assert!(rules.has_valid_rules());
+        assert_eq!(rules.has_valid_rules(), true);
         
         // Add tokens to second row
         rules.select_next_row();
@@ -185,7 +185,7 @@ mod tests {
         // Clear all
         rules.clear_all();
         assert_eq!(rules.non_empty_rule_count(), 0);
-        assert!(!rules.has_valid_rules());
+        assert_eq!(rules.has_valid_rules(), false);
         assert_eq!(rules.selected_row, 0);
     }
     
@@ -202,7 +202,7 @@ mod tests {
         rules.add_token_to_current_row(UITokenType::Heal);
         
         let rule_nodes = rules.convert_to_rule_nodes();
-        assert!(!rule_nodes.is_empty(), "Should convert to valid rule nodes");
+        assert_ne!(rule_nodes.len(), 0, "Should convert to valid rule nodes");
     }
     
     // Note: String formatting tests moved to bevy-ui crate
@@ -219,6 +219,6 @@ mod tests {
         assert_eq!(rules.rules, initial_rules);
         assert_eq!(rules.selected_row, 0);
         assert_eq!(rules.non_empty_rule_count(), 2);
-        assert!(rules.has_valid_rules());
+        assert_eq!(rules.has_valid_rules(), true);
     }
 }

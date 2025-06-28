@@ -11,7 +11,7 @@ impl ActionResolver for Box<dyn ActionResolver> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ActionResolverResult {
     Action(ActionType),  // 行はActionを決定
     Break,               // 行を中断

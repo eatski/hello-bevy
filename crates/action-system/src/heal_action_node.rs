@@ -33,16 +33,12 @@ mod tests {
         let heal = HealActionNode;
         let mut rng = StdRng::from_entropy();
         
-        match heal.resolve(&battle_context, &mut rng) {
-            ActionResolverResult::Action(ActionType::Heal) => assert!(true),
-            _ => panic!("HealActionNode should return Action(Heal) for alive character"),
-        }
+        let result = heal.resolve(&battle_context, &mut rng);
+        assert_eq!(result, ActionResolverResult::Action(ActionType::Heal), "HealActionNode should return Action(Heal) for alive character");
         
         let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
         let dead_battle_context = crate::BattleContext::new(&dead_character, &player, &enemy);
-        match heal.resolve(&dead_battle_context, &mut rng) {
-            ActionResolverResult::Break => assert!(true),
-            _ => panic!("HealActionNode should return Break for dead character"),
-        }
+        let result = heal.resolve(&dead_battle_context, &mut rng);
+        assert_eq!(result, ActionResolverResult::Break, "HealActionNode should return Break for dead character");
     }
 }

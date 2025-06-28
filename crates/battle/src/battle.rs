@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(character.mp, 50);
         assert_eq!(character.max_mp, 50);
         assert_eq!(character.attack, 25);
-        assert!(character.is_alive());
+        assert_eq!(character.is_alive(), true);
     }
 
     #[test]
@@ -165,7 +165,7 @@ mod tests {
         
         character.take_damage(30);
         assert_eq!(character.hp, 70);
-        assert!(character.is_alive());
+        assert_eq!(character.is_alive(), true);
         
         character.heal(20);
         assert_eq!(character.hp, 90);
@@ -175,7 +175,7 @@ mod tests {
         
         character.take_damage(150);
         assert_eq!(character.hp, 0);
-        assert!(!character.is_alive());
+        assert_eq!(character.is_alive(), false);
     }
 
     #[test]
@@ -185,10 +185,10 @@ mod tests {
         assert_eq!(character.mp, 50);
         assert_eq!(character.max_mp, 50);
         
-        assert!(character.consume_mp(20));
+        assert_eq!(character.consume_mp(20), true);
         assert_eq!(character.mp, 30);
         
-        assert!(!character.consume_mp(40));
+        assert_eq!(character.consume_mp(40), false);
         assert_eq!(character.mp, 30);
         
         // Test MP restoration by directly setting mp values
@@ -211,9 +211,9 @@ mod tests {
         assert_eq!(battle.player.name, "Player");
         assert_eq!(battle.enemy.name, "Enemy");
         assert_eq!(battle.current_turn, 0);
-        assert!(!battle.battle_over);
-        assert!(battle.winner.is_none());
-        assert!(battle.is_player_turn());
+        assert_eq!(battle.battle_over, false);
+        assert_eq!(battle.winner.is_none(), true);
+        assert_eq!(battle.is_player_turn(), true);
     }
 
     #[test]
@@ -225,13 +225,13 @@ mod tests {
         let rng = create_test_rng();
         let mut battle = Battle::new(player, enemy, player_rules, enemy_rules, rng);
         
-        assert!(battle.is_player_turn());
+        assert_eq!(battle.is_player_turn(), true);
         
         battle.execute_player_action();
-        assert!(!battle.is_player_turn());
+        assert_eq!(battle.is_player_turn(), false);
         
         battle.execute_enemy_action();
-        assert!(battle.is_player_turn());
+        assert_eq!(battle.is_player_turn(), true);
     }
 }
 
@@ -268,10 +268,10 @@ mod integration_tests {
         // With the new random logic, action may or may not occur
         // But turn should always advance and battle should not be over initially
         assert_eq!(battle.current_turn, 1);
-        assert!(!battle.battle_over);
+        assert_eq!(battle.battle_over, false);
         
         // Check that the battle log has an entry (either action or "did nothing")
-        assert!(!battle.battle_log.is_empty(), "Battle log should have at least one entry");
+        assert_eq!(battle.battle_log.is_empty(), false, "Battle log should have at least one entry");
         
         // Try multiple attempts to verify that actions can occur
         let mut action_occurred = false;
@@ -292,7 +292,7 @@ mod integration_tests {
             }
         }
         
-        assert!(action_occurred, "At least one action should occur across multiple attempts");
+        assert_eq!(action_occurred, true, "At least one action should occur across multiple attempts");
     }
 
     #[test]
@@ -316,10 +316,10 @@ mod integration_tests {
         
         assert!(battle.battle_over || turn_count == max_turns, "Battle should end or reach max turns");
         if battle.battle_over {
-            assert!(battle.winner.is_some(), "Winner should be determined");
+            assert_eq!(battle.winner.is_some(), true, "Winner should be determined");
             assert!(!battle.player.is_alive() || !battle.enemy.is_alive(), "One character should be defeated");
         }
-        assert!(!battle.battle_log.is_empty(), "Battle log should contain actions");
+        assert_eq!(battle.battle_log.is_empty(), false, "Battle log should contain actions");
     }
 
     #[test]
@@ -432,8 +432,8 @@ mod integration_tests {
         // The test verifies that the battle system can handle random action selection
         assert!(battle1.player.hp > 0 || battle1.enemy.hp > 0, "At least one character should be alive in battle1");
         assert!(battle2.player.hp > 0 || battle2.enemy.hp > 0, "At least one character should be alive in battle2");
-        assert!(battle1.battle_log.len() > 0, "Battle1 should have logged actions");
-        assert!(battle2.battle_log.len() > 0, "Battle2 should have logged actions");
+        assert_ne!(battle1.battle_log.len(), 0, "Battle1 should have logged actions");
+        assert_ne!(battle2.battle_log.len(), 0, "Battle2 should have logged actions");
     }
 
     #[test]
@@ -450,7 +450,7 @@ mod integration_tests {
         
         assert_ne!((battle.player.hp, battle.enemy.hp, battle.current_turn), initial_state);
         assert_eq!(battle.current_turn, 2);
-        assert!(!battle.battle_log.is_empty());
+        assert_eq!(battle.battle_log.is_empty(), false);
     }
 
     #[test]
@@ -508,7 +508,7 @@ mod integration_tests {
             turns += 1;
         }
         
-        assert!(battle.battle_over, "Battle should end when enemy is defeated");
+        assert_eq!(battle.battle_over, true, "Battle should end when enemy is defeated");
         assert!(battle.winner.is_some(), "Winner should be determined");
         assert!(!battle.enemy.is_alive() || !battle.player.is_alive(), "One character should be defeated");
         
@@ -516,7 +516,7 @@ mod integration_tests {
             .iter()
             .filter(|log| log.contains("勝利"))
             .collect();
-        assert!(!victory_log.is_empty(), "Should have victory message in log");
+        assert_eq!(victory_log.is_empty(), false, "Should have victory message in log");
     }
 
     #[test]
@@ -545,7 +545,7 @@ mod integration_tests {
                 .collect();
             
             if !mp_insufficient_logs.is_empty() {
-                assert!(true, "MP depletion handled correctly");
+                // MP depletion handled correctly
             }
         }
     }
@@ -570,8 +570,8 @@ mod integration_tests {
         let healthy_battle_context = BattleContext::new(&healthy_player, &damaged_player, &healthy_player);
         let healthy_action = action_system.calculate_action(&healthy_battle_context);
         
-        assert!(damaged_action.is_some());
-        assert!(healthy_action.is_some());
+        assert_eq!(damaged_action.is_some(), true);
+        assert_eq!(healthy_action.is_some(), true);
         
         let mut heal_for_damaged = false;
         let mut strike_for_healthy = false;
@@ -652,7 +652,7 @@ mod integration_tests {
             assert_eq!(battle.current_turn, pre_turn + 1, "Turn should increment by 1");
             
             if !pre_battle_over && battle.battle_over {
-                assert!(battle.winner.is_some(), "Winner should be set when battle ends");
+                assert_eq!(battle.winner.is_some(), true, "Winner should be set when battle ends");
                 assert!(!battle.player.is_alive() || !battle.enemy.is_alive(), "One character should be defeated");
             }
             
@@ -753,8 +753,8 @@ mod integration_tests {
             }
         }
         
-        assert!(action_count > 0, "Complex rules should produce some actions");
-        assert!(!battle.battle_log.is_empty(), "Should have battle log entries");
+        assert_ne!(action_count, 0, "Complex rules should produce some actions");
+        assert_eq!(battle.battle_log.is_empty(), false, "Should have battle log entries");
     }
 
     #[test]
@@ -809,13 +809,13 @@ mod integration_tests {
         let defensive_damage = enemy.hp - defensive_battle.enemy.hp;
         
         if aggressive_damage > 0 && defensive_damage == 0 {
-            assert!(true, "Aggressive strategy should deal more damage");
+            // Aggressive strategy should deal more damage
         } else if defensive_damage > 0 && aggressive_damage == 0 {
-            assert!(true, "Defensive strategy might heal instead of attack");
+            // Defensive strategy might heal instead of attack
         }
         
-        assert!(aggressive_battle.battle_log.len() > 0, "Should have action logs");
-        assert!(defensive_battle.battle_log.len() > 0, "Should have action logs");
+        assert_ne!(aggressive_battle.battle_log.len(), 0, "Should have action logs");
+        assert_ne!(defensive_battle.battle_log.len(), 0, "Should have action logs");
     }
 
     #[test]
@@ -963,16 +963,16 @@ mod integration_tests {
             }
         }
         
-        let low_hp_heal_count = low_hp_battle.battle_log.iter()
+        let _low_hp_heal_count = low_hp_battle.battle_log.iter()
             .filter(|log| log.contains("回復"))
             .count();
-        let high_hp_heal_count = high_hp_battle.battle_log.iter()
+        let _high_hp_heal_count = high_hp_battle.battle_log.iter()
             .filter(|log| log.contains("回復"))
             .count();
         
         // Both counts should be non-negative by definition (they're usize)
         // The test verifies that the action system at least attempts actions
-        assert!(true, "Both heal counts are valid: low_hp={}, high_hp={}", low_hp_heal_count, high_hp_heal_count);
+        // Both heal counts are valid: low_hp={}, high_hp={}
     }
 
     #[test]

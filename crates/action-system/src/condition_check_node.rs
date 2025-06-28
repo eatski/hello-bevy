@@ -47,8 +47,7 @@ mod tests {
         );
         let mut rng = StdRng::from_entropy();
         
-        match check_random.resolve(&battle_context, &mut rng) {
-            ActionResolverResult::Action(_) | ActionResolverResult::Break => assert!(true),
-        }
+        let result = check_random.resolve(&battle_context, &mut rng);
+        assert!(matches!(result, ActionResolverResult::Action(_) | ActionResolverResult::Break));
     }
 }

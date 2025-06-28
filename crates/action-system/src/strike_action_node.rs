@@ -32,16 +32,12 @@ mod tests {
         let strike = StrikeActionNode;
         let mut rng = StdRng::from_entropy();
         
-        match strike.resolve(&battle_context, &mut rng) {
-            ActionResolverResult::Action(ActionType::Strike) => assert!(true),
-            _ => panic!("StrikeActionNode should return Action(Strike) for alive character"),
-        }
+        let result = strike.resolve(&battle_context, &mut rng);
+        assert_eq!(result, ActionResolverResult::Action(ActionType::Strike), "StrikeActionNode should return Action(Strike) for alive character");
         
         let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
         let dead_battle_context = crate::BattleContext::new(&dead_character, &player, &enemy);
-        match strike.resolve(&dead_battle_context, &mut rng) {
-            ActionResolverResult::Break => assert!(true),
-            _ => panic!("StrikeActionNode should return Break for dead character"),
-        }
+        let result = strike.resolve(&dead_battle_context, &mut rng);
+        assert_eq!(result, ActionResolverResult::Break, "StrikeActionNode should return Break for dead character");
     }
 }

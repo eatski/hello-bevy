@@ -50,8 +50,8 @@ mod tests {
             }
         }
         
-        assert!(true_count > 0, "Should have some true results");
-        assert!(false_count > 0, "Should have some false results");
+        assert_ne!(true_count, 0, "Should have some true results");
+        assert_ne!(false_count, 0, "Should have some false results");
     }
 
     #[test]
@@ -77,6 +77,6 @@ mod tests {
         let first_result = results[0];
         let has_different_result = results.iter().any(|&result| result != first_result);
         
-        assert!(has_different_result, "Multiple evaluations with same RNG should produce different results");
+        assert_eq!(has_different_result, true, "Multiple evaluations with same RNG should produce different results");
     }
 }

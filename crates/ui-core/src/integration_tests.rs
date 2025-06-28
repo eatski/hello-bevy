@@ -19,21 +19,21 @@ mod tests {
         let mut rules = CurrentRules::new();
         
         // Start in rule creation mode
-        assert!(game_state.is_rule_creation_mode());
-        assert!(!rules.has_valid_rules());
+        assert_eq!(game_state.is_rule_creation_mode(), true);
+        assert_eq!(rules.has_valid_rules(), false);
         
         // Create a simple strike rule
         rules.add_token_to_current_row(UITokenType::Strike);
-        assert!(rules.has_valid_rules());
+        assert_eq!(rules.has_valid_rules(), true);
         assert_eq!(rules.non_empty_rule_count(), 1);
         
         // Switch to battle mode
         game_state.switch_to_battle();
-        assert!(game_state.is_battle_mode());
+        assert_eq!(game_state.is_battle_mode(), true);
         
         // Convert rules to battle system
         let rule_nodes = rules.convert_to_rule_nodes();
-        assert!(!rule_nodes.is_empty());
+        assert_ne!(rule_nodes.len(), 0);
     }
     
     #[test]
@@ -94,7 +94,7 @@ mod tests {
         
         // Clear row
         rules.clear_current_row();
-        assert!(rules.is_current_row_empty());
+        assert_eq!(rules.is_current_row_empty(), true);
         
         // Test multi-row editing
         rules.add_token_to_current_row(UITokenType::Strike);
@@ -117,7 +117,7 @@ mod tests {
         let mut rules = CurrentRules::new();
         
         // Create rules in rule creation mode
-        assert!(game_state.is_rule_creation_mode());
+        assert_eq!(game_state.is_rule_creation_mode(), true);
         
         rules.add_token_to_current_row(UITokenType::Check);
         rules.add_token_to_current_row(UITokenType::TrueOrFalse);
@@ -129,7 +129,7 @@ mod tests {
         
         // Switch to battle and verify rules work
         game_state.switch_to_battle();
-        assert!(game_state.is_battle_mode());
+        assert_eq!(game_state.is_battle_mode(), true);
         
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_eq!(rule_nodes.len(), 2);
@@ -143,7 +143,7 @@ mod tests {
         let acting_character = GameCharacter::new("Test".to_string(), 50, 30, 25);
         let battle_context = BattleContext::new(&acting_character, &player, &enemy);
         let action = action_system.calculate_action(&battle_context);
-        assert!(action.is_some());
+        assert_eq!(action.is_some(), true);
     }
     
     #[test]
@@ -153,14 +153,14 @@ mod tests {
         // Valid pattern: Strike only
         let mut rules1 = CurrentRules::new();
         rules1.add_token_to_current_row(UITokenType::Strike);
-        assert!(rules1.has_valid_rules());
+        assert_eq!(rules1.has_valid_rules(), true);
         let nodes1 = rules1.convert_to_rule_nodes();
-        assert!(!nodes1.is_empty());
+        assert_ne!(nodes1.len(), 0);
         
         // Valid pattern: Heal only  
         let mut rules2 = CurrentRules::new();
         rules2.add_token_to_current_row(UITokenType::Heal);
-        assert!(rules2.has_valid_rules());
+        assert_eq!(rules2.has_valid_rules(), true);
         let nodes2 = rules2.convert_to_rule_nodes();
         assert!(!nodes2.is_empty());
         

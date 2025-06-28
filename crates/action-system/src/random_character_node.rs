@@ -29,9 +29,10 @@ mod tests {
 
     #[test]
     fn test_random_character_node_creation() {
-        let _random_char_node = RandomCharacterNode::new();
-        // Just test that creation works
-        assert!(true);
+        let random_char_node = RandomCharacterNode::new();
+        // Just test that creation works without panicking
+        // No additional assertions needed for construction test
+        drop(random_char_node);
     }
 
     #[test]
@@ -47,7 +48,8 @@ mod tests {
         let returned_char = random_char_node.evaluate(&battle_context, &mut rng);
         
         // Should return either player or enemy
-        assert!(returned_char.name == "Player" || returned_char.name == "Enemy");
+        let name = &returned_char.name;
+        assert!(name == "Player" || name == "Enemy", "Expected 'Player' or 'Enemy', got '{}'", name);
     }
     
     #[test]
