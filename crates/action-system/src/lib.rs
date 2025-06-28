@@ -7,6 +7,7 @@ pub mod value_nodes;
 pub mod character_nodes;
 pub mod control_nodes;
 pub mod action_nodes;
+pub mod actions;
 pub mod system;
 
 // Individual struct modules
@@ -29,5 +30,6 @@ pub use character_hp_from_node::CharacterHpFromNode;
 pub use character_nodes::{CharacterNode, ActingCharacterNode};
 pub use control_nodes::ConditionCheckNode;
 pub use action_nodes::{StrikeActionNode, HealActionNode};
+pub use actions::{StrikeActionNode as StrikeAction, HealActionNode as HealAction};
 pub use system::ActionCalculationSystem;
 

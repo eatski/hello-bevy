@@ -1,7 +1,8 @@
 [package]
-name = "combat-engine"
+name = "battle"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+action-system = { path = "../action-system" }
 rand = "0.8.5"

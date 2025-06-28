@@ -1,0 +1,9 @@
+[package]
+name = "ui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.16.0"
+battle = { path = "../battle" }
+action-system = { path = "../action-system" }

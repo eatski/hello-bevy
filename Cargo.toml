@@ -1,21 +1,21 @@
 [workspace]
 members = [
-    "crates/combat-engine",
-    "crates/rule-parser",
-    "crates/game-logic",
-    "crates/bevy-frontend",
+    "crates/action-system",
+    "crates/json-rule",
+    "crates/battle",
+    "crates/ui",
 ]
 
 [package]
-name = "hello-bevy"
+name = "turn-based-rpg"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 bevy = "0.16.0"
 rand = "0.8.5"
-combat-engine = { path = "crates/combat-engine" }
-rule-parser = { path = "crates/rule-parser" }
-game-logic = { path = "crates/game-logic" }
-bevy-frontend = { path = "crates/bevy-frontend" }
+action-system = { path = "crates/action-system" }
+json-rule = { path = "crates/json-rule" }
+battle = { path = "crates/battle" }
+ui = { path = "crates/ui" }
 

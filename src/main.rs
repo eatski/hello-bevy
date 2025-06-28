@@ -2,9 +2,9 @@ use bevy::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
-use bevy_frontend::{GameBattle, CurrentRules, GameState, GameMode, load_font, setup_ui, handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui, handle_rule_editing, update_rule_display, update_token_inventory_display, update_instruction_display, handle_battle_reset, update_right_panel_visibility, update_battle_info_display};
-use game_logic::{Battle, Character as GameCharacter};
-use rule_parser::{load_rules_from_file, convert_to_node_rules};
+use ui::{GameBattle, CurrentRules, GameState, GameMode, load_font, setup_ui, handle_battle_input, update_battle_ui, update_log_ui, update_latest_log_ui, handle_rule_editing, update_rule_display, update_token_inventory_display, update_instruction_display, handle_battle_reset, update_right_panel_visibility, update_battle_info_display};
+use battle::{Battle, Character as GameCharacter};
+use json_rule::{load_rules_from_file, convert_to_node_rules};
 
 fn main() {
     App::new()
