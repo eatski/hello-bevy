@@ -46,6 +46,7 @@ cargo build --workspace --release
 - **UI最適化**: Rule設定セクションを小さくし、戦闘ログを削除してUIをコンパクト化
 - **ランダムターゲット実装**: Strikeアクションで標的をランダムに決定するよう変更（以前は最初に見つかった生存キャラクターを攻撃）
 - **1v1戦闘完全削除**: Battle構造体、impl Battle、1v1戦闘関連テスト（26個）を完全削除し、チーム戦闘のみのシステムに統一
+- **main.rsリファクタリング**: 起動処理のみに集中、具体的なロジックをbevy-uiクレートに委譲（DI的なアーキテクチャ）
 
 ## 🏗️ アーキテクチャ設計
 
@@ -53,7 +54,7 @@ cargo build --workspace --release
 ```
 ├── Cargo.toml          - ワークスペース設定
 ├── src/
-│   └── main.rs         - Bevyエンジン統合・ゲーム統合バイナリ
+│   └── main.rs         - アプリケーション起動（DI的な役割）
 ├── crates/
 │   ├── combat-engine/  - トークンベース行動計算システム
 │   │   ├── Cargo.toml
@@ -76,22 +77,25 @@ cargo build --workspace --release
 │   │   └── src/
 │   │       ├── lib.rs  - クレートエントリポイント
 │   │       └── battle.rs - バトル管理ロジック
-│   └── bevy-frontend/  - Bevy UIコンポーネント・システム
+│   └── bevy-ui/        - Bevy UIコンポーネント・システム・プラグイン
 │       ├── Cargo.toml
 │       └── src/
-│           ├── lib.rs  - クレートエントリポイント
-│           └── ui.rs   - UI表示・入力処理・画面描画
+│           ├── lib.rs     - クレートエントリポイント
+│           ├── ui.rs      - UI表示・コンポーネント定義
+│           ├── systems.rs - ゲームシステム実装
+│           └── plugin.rs  - Bevyプラグイン統合
 └── rules/
     ├── player_rules.json - プレイヤーのデフォルトルール設定
     └── enemy_rules.json  - 敵のデフォルトルール設定
 ```
 
 ### 🎯 クレート分離設計
-- **アプリ層**: `hello-bevy` (root) - Bevyエンジン統合・ゲーム統合バイナリ
-- **UI層**: `bevy-frontend` クレート - Bevy UIコンポーネント・システム
-- **ドメイン層**: `game-logic` クレート - バトル管理・戦闘ロジック
-- **設定層**: `rule-parser` クレート - JSON ルール読み込み・変換システム
-- **計算層**: `combat-engine` クレート - トークンベース行動計算システム
+- **アプリ層**: `hello-bevy` (root) - アプリケーション起動・DI的な役割
+- **UI・システム層**: `bevy-ui` クレート - Bevy UIコンポーネント・システム・プラグイン統合
+- **戦闘層**: `battle` クレート - チーム戦闘管理・戦闘ロジック
+- **設定層**: `json-rule` クレート - JSON ルール読み込み・変換システム
+- **計算層**: `action-system` クレート - トークンベース行動計算システム
+- **UI Core層**: `ui-core` クレート - Bevy非依存のUIロジック
   - `character.rs` - Character型定義（循環依存回避）
   - `core.rs` - 基本トレイト・型定義
   - `actions.rs` - アクショントークン実装

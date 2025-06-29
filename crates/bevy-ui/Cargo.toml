@@ -7,3 +7,5 @@ edition = "2021"
 bevy = "0.16.0"
 battle = { path = "../battle" }
 ui-core = { path = "../ui-core" }
+json-rule = { path = "../json-rule" }
+rand = "0.8"
