@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use battle::Battle;
+use battle::TeamBattle;
 use ui_core::{GameState, GameMode, CurrentRules, UITokenType};
 use crate::display_text::{format_rule_tokens, UITokenDisplay};
 
@@ -9,13 +9,11 @@ pub struct GameFont {
 }
 
 #[derive(Resource)]
-pub struct GameBattle(pub Battle);
+pub struct GameTeamBattle(pub TeamBattle);
 
 #[derive(Component)]
 pub struct BattleUI;
 
-#[derive(Component)]
-pub struct LogUI;
 
 #[derive(Component)]
 pub struct LatestLogUI;
@@ -41,6 +39,15 @@ pub struct TokenSelectionHeader;
 
 #[derive(Component)]
 pub struct BattleInfo;
+
+#[derive(Component)]
+pub struct TeamBattleUI;
+
+#[derive(Component)]
+pub struct TeamDisplay;
+
+#[derive(Component)]
+pub struct TeamMemberDisplay;
 
 
 // Bevy Resource wrappers for ui-core types
@@ -155,24 +162,6 @@ pub fn setup_ui(
         BattleUI,
     ));
     
-    // ログ表示（下部右側）
-    commands.spawn((
-        Text::new(""),
-        TextFont {
-            font: game_font.font.clone(),
-            font_size: 16.0,
-            ..default()
-        },
-        TextColor(Color::srgb(0.8, 0.8, 0.8)),
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: Val::Px(20.0),
-            right: Val::Px(20.0),
-            width: Val::Px(300.0),
-            ..default()
-        },
-        LogUI,
-    ));
     
     // 最新ログ表示（中央上部）
     commands.spawn((
@@ -226,8 +215,8 @@ fn setup_rule_editor(commands: &mut Commands, game_font: &GameFont) {
             position_type: PositionType::Absolute,
             top: Val::Px(110.0),
             left: Val::Px(20.0),
-            width: Val::Px(600.0),
-            height: Val::Px(400.0),
+            width: Val::Px(500.0),
+            height: Val::Px(180.0),
             padding: UiRect::all(Val::Px(10.0)),
             ..default()
         },
@@ -300,118 +289,12 @@ fn setup_inventory(commands: &mut Commands, game_font: &GameFont) {
     ));
 }
 
-pub fn handle_battle_input(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut game_battle: ResMut<GameBattle>,
-    game_state: Res<BevyGameState>,
-) {
-    if game_state.0.mode != GameMode::Battle || game_battle.0.battle_over {
-        return;
-    }
-    
-    if keyboard_input.just_pressed(KeyCode::Space) {
-        if game_battle.0.is_player_turn() {
-            game_battle.0.execute_player_action();
-        } else {
-            game_battle.0.execute_enemy_action();
-        }
-    }
-}
 
 
 
 
 
-pub fn update_battle_ui(
-    game_state: Res<BevyGameState>,
-    game_battle: Res<GameBattle>,
-    mut ui_query: Query<&mut Text, With<BattleUI>>,
-) {
-    for mut text in ui_query.iter_mut() {
-        match game_state.0.mode {
-            GameMode::RuleCreation => {
-                text.0 = "ルール作成中...\nスペースキーで戦闘開始".to_string();
-            }
-            GameMode::Battle => {
-                let battle = &game_battle.0;
-                let mut display_text = String::new();
-                
-                display_text.push_str(&format!("{}:\n", battle.player.name));
-                display_text.push_str(&format!("HP {}/{}\n", battle.player.hp, battle.player.max_hp));
-                display_text.push_str(&format!("MP {}/{}\n", battle.player.mp, battle.player.max_mp));
-                
-                display_text.push_str("\n");
-                
-                display_text.push_str(&format!("{}:\n", battle.enemy.name));
-                display_text.push_str(&format!("HP {}/{}\n", battle.enemy.hp, battle.enemy.max_hp));
-                display_text.push_str(&format!("MP {}/{}\n", battle.enemy.mp, battle.enemy.max_mp));
-                
-                display_text.push_str("\n");
-                
-                if battle.battle_over {
-                    if let Some(winner) = &battle.winner {
-                        display_text.push_str(&format!("バトル終了！{}の勝利！\n", winner));
-                        display_text.push_str("Shiftキーで戦闘リセット！\n");
-                    }
-                } else {
-                    display_text.push_str(&format!("{}のターン\n", battle.get_current_player_name()));
-                    if battle.is_player_turn() {
-                        display_text.push_str("スペースキーで行動！\n");
-                    }
-                }
-                
-                text.0 = display_text;
-            }
-        }
-    }
-}
 
-pub fn update_log_ui(
-    game_state: Res<BevyGameState>,
-    game_battle: Res<GameBattle>,
-    mut log_query: Query<&mut Text, (With<LogUI>, Without<BattleUI>, Without<LatestLogUI>)>
-) {
-    for mut text in log_query.iter_mut() {
-        match game_state.0.mode {
-            GameMode::RuleCreation => {
-                text.0 = "ルール作成中...\n戦闘開始後にログが表示されます".to_string();
-            }
-            GameMode::Battle => {
-                let battle = &game_battle.0;
-                let mut log_text = String::from("戦闘ログ:\n");
-                
-                for log in battle.get_recent_logs(8) {
-                    log_text.push_str(&format!("{}\n", log));
-                }
-                
-                text.0 = log_text;
-            }
-        }
-    }
-}
-
-pub fn update_latest_log_ui(
-    game_state: Res<BevyGameState>,
-    game_battle: Res<GameBattle>,
-    mut latest_log_query: Query<&mut Text, (With<LatestLogUI>, Without<BattleUI>, Without<LogUI>)>
-) {
-    for mut text in latest_log_query.iter_mut() {
-        match game_state.0.mode {
-            GameMode::RuleCreation => {
-                text.0 = "ルール作成モード：トークンを組み合わせて行動ルールを作成してください".to_string();
-            }
-            GameMode::Battle => {
-                let battle = &game_battle.0;
-                
-                if let Some(latest_log) = battle.battle_log.last() {
-                    text.0 = format!(">>> {}", latest_log);
-                } else {
-                    text.0 = "戦闘開始！".to_string();
-                }
-            }
-        }
-    }
-}
 
 // 戦闘リセット機能（ルール作成モードに戻る）
 pub fn handle_battle_reset(
@@ -622,10 +505,10 @@ pub fn update_right_panel_visibility(
     }
 }
 
-// 戦闘情報表示の更新
+// チーム戦闘情報表示の更新
 pub fn update_battle_info_display(
     game_state: Res<BevyGameState>,
-    game_battle: Res<GameBattle>,
+    game_team_battle: Res<GameTeamBattle>,
     current_rules: Res<BevyCurrentRules>,
     mut battle_info_query: Query<&mut Text, With<BattleInfo>>,
 ) {
@@ -634,19 +517,30 @@ pub fn update_battle_info_display(
     }
     
     for mut text in battle_info_query.iter_mut() {
-        let battle = &game_battle.0;
+        let battle = &game_team_battle.0;
         let mut display_text = String::new();
         
-        display_text.push_str("=== 戦闘情報 ===\n\n");
+        display_text.push_str("=== チーム戦闘情報 ===\n\n");
         
-        // キャラクター情報
-        display_text.push_str(&format!("{}:\n", battle.player.name));
-        display_text.push_str(&format!("  HP: {}/{}\n", battle.player.hp, battle.player.max_hp));
-        display_text.push_str(&format!("  MP: {}/{}\n\n", battle.player.mp, battle.player.max_mp));
+        // プレイヤーチーム情報
+        display_text.push_str(&format!("【{}】\n", battle.player_team.name));
+        for member in &battle.player_team.members {
+            let status = if member.is_alive() { "生存" } else { "戦闘不能" };
+            display_text.push_str(&format!("  {} - HP:{}/{} MP:{}/{} ({})\n", 
+                member.name, member.hp, member.max_hp, member.mp, member.max_mp, status));
+        }
         
-        display_text.push_str(&format!("{}:\n", battle.enemy.name));
-        display_text.push_str(&format!("  HP: {}/{}\n", battle.enemy.hp, battle.enemy.max_hp));
-        display_text.push_str(&format!("  MP: {}/{}\n\n", battle.enemy.mp, battle.enemy.max_mp));
+        display_text.push_str("\n");
+        
+        // 敵チーム情報
+        display_text.push_str(&format!("【{}】\n", battle.enemy_team.name));
+        for member in &battle.enemy_team.members {
+            let status = if member.is_alive() { "生存" } else { "戦闘不能" };
+            display_text.push_str(&format!("  {} - HP:{}/{} MP:{}/{} ({})\n", 
+                member.name, member.hp, member.max_hp, member.mp, member.max_mp, status));
+        }
+        
+        display_text.push_str("\n");
         
         // 設定ルール
         display_text.push_str("設定ルール:\n");

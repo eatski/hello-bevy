@@ -8,6 +8,18 @@ pub struct Character {
     pub attack: i32,
 }
 
+#[derive(Clone, Debug)]
+pub struct Team {
+    pub name: String,
+    pub members: Vec<Character>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TeamSide {
+    Player,
+    Enemy,
+}
+
 impl Character {
     pub fn new(name: String, max_hp: i32, max_mp: i32, attack: i32) -> Self {
         Self {
@@ -59,5 +71,55 @@ impl Character {
         } else {
             0.0
         }
+    }
+}
+
+impl Team {
+    pub fn new(name: String, members: Vec<Character>) -> Self {
+        Self { name, members }
+    }
+
+    pub fn alive_members(&self) -> Vec<&Character> {
+        self.members.iter().filter(|character| character.is_alive()).collect()
+    }
+
+    pub fn alive_members_mut(&mut self) -> Vec<&mut Character> {
+        self.members.iter_mut().filter(|character| character.is_alive()).collect()
+    }
+
+    pub fn is_defeated(&self) -> bool {
+        self.alive_members().is_empty()
+    }
+
+    pub fn get_member(&self, index: usize) -> Option<&Character> {
+        self.members.get(index)
+    }
+
+    pub fn get_member_mut(&mut self, index: usize) -> Option<&mut Character> {
+        self.members.get_mut(index)
+    }
+
+    pub fn get_member_by_name(&self, name: &str) -> Option<&Character> {
+        self.members.iter().find(|character| character.name == name)
+    }
+
+    pub fn get_member_by_name_mut(&mut self, name: &str) -> Option<&mut Character> {
+        self.members.iter_mut().find(|character| character.name == name)
+    }
+
+    pub fn total_hp(&self) -> i32 {
+        self.members.iter().map(|character| character.hp).sum()
+    }
+
+    pub fn total_max_hp(&self) -> i32 {
+        self.members.iter().map(|character| character.max_hp).sum()
+    }
+
+    pub fn member_count(&self) -> usize {
+        self.members.len()
+    }
+
+    pub fn alive_count(&self) -> usize {
+        self.alive_members().len()
     }
 }

@@ -42,6 +42,10 @@ cargo build --workspace --release
 - **変換アーキテクチャ**: UIの直接変換を廃止し、rule-parserを経由する統一パイプラインに変更（UI TokenType → rule-parser RuleSet → combat-engine RuleToken）
 - **UI関心分離**: UI層をBevy依存（bevy-ui）とBevy非依存（ui-core）に完全分離、文字列表示はBevy層に集約
 - **トークン原子性**: UITokenType::HPを分割し、ActingCharacterとHPを個別トークンとして管理する原子的設計に変更
+- **チーム戦闘移行**: 1vs1戦闘システムを完全に削除し、チーム戦闘システムに統一（TeamBattleクラス、Team構造体、チーム管理機能で置き換え）
+- **UI最適化**: Rule設定セクションを小さくし、戦闘ログを削除してUIをコンパクト化
+- **ランダムターゲット実装**: Strikeアクションで標的をランダムに決定するよう変更（以前は最初に見つかった生存キャラクターを攻撃）
+- **1v1戦闘完全削除**: Battle構造体、impl Battle、1v1戦闘関連テスト（26個）を完全削除し、チーム戦闘のみのシステムに統一
 
 ## 🏗️ アーキテクチャ設計
 
@@ -99,16 +103,23 @@ cargo build --workspace --release
 
 ### 1. データ構造設計
 ```rust
-// combat-engine/character.rs
+// action-system/character.rs
 struct Character {
     // ステータス管理
     hp/max_hp, mp/max_mp, attack
 }
 
-// game-logic/battle.rs  
-struct Battle {
-    // 戦闘状態管理
-    player, enemy, current_turn, battle_over
+struct Team {
+    // チーム管理
+    name, members: Vec<Character>
+}
+
+enum TeamSide { Player, Enemy }
+
+// battle/battle.rs  
+struct TeamBattle {
+    // チーム戦闘状態管理
+    player_team, enemy_team, current_turn, current_character_index, current_team, battle_over, winner
 }
 ```
 
@@ -130,40 +141,42 @@ ActionCalculationSystem::with_seed(rules, seed)
 ```
 
 ### 3. 責任分離設計（クレート別）
-- **`hello-bevy` (root)**: Bevyシステム統合・ゲーム固有設定("勇者","スライム")
-- **`bevy-frontend` クレート**: 汎用的なUI表示・入力処理・画面描画
-- **`game-logic` クレート**: バトル管理・戦闘ロジック
-- **`rule-parser` クレート**: JSON読み込み・変換システム
-- **`combat-engine` クレート**: AI行動決定・トークン処理・Character型定義
+- **`hello-bevy` (root)**: Bevyシステム統合・チーム設定("勇者パーティー","モンスター軍団")
+- **`bevy-ui` クレート**: 汎用的なUI表示・入力処理・画面描画
+- **`battle` クレート**: チーム戦闘管理・戦闘ロジック（TeamBattle）
+- **`json-rule` クレート**: JSON読み込み・変換システム
+- **`action-system` クレート**: AI行動決定・トークン処理・Character/Team型定義
 
 ### 4. 拡張性設計（クレート別）
-- **新トークン追加**: `combat-engine` クレートの`Token`トレイト実装のみ
-- **新アクション追加**: `combat-engine` クレートの`ActionType`enum拡張
-- **UI変更**: `bevy-frontend` クレートのみ修正で対応
-- **ゲーム設定変更**: `hello-bevy` (root)のみ修正で対応
-- **カスタムルール**: `rule-parser` クレートでJSON外部ファイル読み込み（フォールバック機構付き）
-- **戦闘ロジック変更**: `game-logic` クレートのみ修正で対応
+- **新トークン追加**: `action-system` クレートの`ActionResolver`トレイト実装のみ
+- **新アクション追加**: `action-system` クレートの`ActionType`enum拡張
+- **UI変更**: `bevy-ui` クレートのみ修正で対応
+- **チーム設定変更**: `hello-bevy` (root)のみ修正で対応
+- **カスタムルール**: `json-rule` クレートでJSON外部ファイル読み込み（フォールバック機構付き）
+- **戦闘ロジック変更**: `battle` クレートのみ修正で対応
+- **チーム戦闘拡張**: TeamBattleクラスでマルチチーム対応済み
 
-### 5. JSON設定システム（`rule-parser` クレート）
+### 5. JSON設定システム（`json-rule` クレート）
 ```rust
-// rule-parser/rule_input_model.rs
+// json-rule/rule_input_model.rs
 RuleSet { rules: [RuleChain{ tokens: [TokenConfig] }] }
 TokenConfig: Strike | Heal | Check{args} | GreaterThan{args} | etc.
 
-// rule-parser/rule_loader.rs
-load_rules_from_file(path) -> parse_rules_from_json(content) -> convert_to_token_rules(rule_set)
+// json-rule/rule_loader.rs
+load_rules_from_file(path) -> parse_rules_from_json(content) -> convert_to_node_rules(rule_set)
 ```
 - **入力モデル**: `rule_input_model.rs` - JSON入力専用データ構造定義
 - **ファイル読み込み**: `load_rules_from_file(path)`
 - **JSON解析**: `parse_rules_from_json(content)`
-- **変換処理**: `convert_to_token_rules(rule_set)` → `combat-engine` トークンに変換
+- **変換処理**: `convert_to_node_rules(rule_set)` → `action-system` ノードに変換
 - **フォールバック**: JSON読み込み失敗時はハードコードルールを使用
 
 ## 🔄 データフロー設計（クレート間）
 ```
-入力 → bevy-frontend クレート → game-logic クレート → combat-engine クレート → bevy-frontend クレート → 結果表示
-      ↑                          ↑                                                                      ↓
-   hello-bevy (root)           rule-parser クレート (JSON読み込み)                                  画面描画
+チーム戦闘システム:
+入力 → bevy-ui クレート → battle クレート(TeamBattle) → action-system クレート → bevy-ui クレート → 結果表示
+      ↑                   ↑                                                                     ↓
+   hello-bevy (root)    json-rule クレート (JSON読み込み)                                   画面描画
 ```
 
 ## 📦 クレート依存関係ルール
@@ -171,43 +184,44 @@ load_rules_from_file(path) -> parse_rules_from_json(content) -> convert_to_token
 ### 依存関係の階層構造（ワークスペース）
 ```
 hello-bevy (root バイナリ)
-├── bevy-frontend クレート
-│   └── game-logic クレート
-│       ├── rule-parser クレート
-│       │   └── combat-engine クレート
-│       └── combat-engine クレート
-└── 直接依存: combat-engine, rule-parser, game-logic, bevy-frontend
+├── bevy-ui クレート
+│   └── battle クレート
+│       ├── json-rule クレート
+│       │   └── action-system クレート
+│       └── action-system クレート
+├── ui-core クレート
+└── 直接依存: action-system, json-rule, battle, bevy-ui
 ```
 
 ### クレート間依存関係の制約ルール
 
 1. **階層依存のみ許可（循環依存回避）**
-   - `hello-bevy` (root) → `bevy-frontend`, `game-logic`, `rule-parser`, `combat-engine` 依存可能
-   - `bevy-frontend` → `game-logic` のみ依存
-   - `game-logic` → `rule-parser`, `combat-engine` 依存
-   - `rule-parser` → `combat-engine` のみ依存
-   - `combat-engine` → 外部クレートのみ依存（完全独立）
+   - `hello-bevy` (root) → `bevy-ui`, `battle`, `json-rule`, `action-system` 依存可能
+   - `bevy-ui` → `battle`, `ui-core` のみ依存
+   - `battle` → `json-rule`, `action-system` 依存
+   - `json-rule` → `action-system` のみ依存
+   - `action-system` → 外部クレートのみ依存（完全独立）
    - **逆方向依存は禁止** (下位クレートが上位クレートに依存してはいけない)
 
 2. **同一層内の相互依存は禁止**
-   - `bevy-frontend` ↔ `rule-parser` の直接依存は禁止（`game-logic`経由で利用）
+   - `bevy-ui` ↔ `json-rule` の直接依存は禁止（`battle`経由で利用）
 
-3. **Character型の配置戦略**
-   - `combat-engine` クレートに`Character`型を配置（循環依存回避）
-   - `game-logic` が `combat-engine::Character` を再エクスポート
+3. **Character/Team型の配置戦略**
+   - `action-system` クレートに`Character`, `Team`, `TeamSide`型を配置（循環依存回避）
+   - `battle` が `action-system::Character` を再エクスポート
 
 4. **許可される依存パターン**
    ```rust
    // ✅ 許可
-   hello-bevy → bevy-frontend, game-logic, rule-parser, combat-engine
-   bevy-frontend → game-logic
-   game-logic → rule-parser, combat-engine
-   rule-parser → combat-engine
+   hello-bevy → bevy-ui, battle, json-rule, action-system
+   bevy-ui → battle, ui-core
+   battle → json-rule, action-system
+   json-rule → action-system
    
    // ❌ 禁止
-   combat-engine → rule-parser (逆方向)
-   bevy-frontend → rule-parser (同一層)
-   combat-engine → bevy-frontend (逆方向)
+   action-system → json-rule (逆方向)
+   bevy-ui → json-rule (同一層)
+   action-system → bevy-ui (逆方向)
    ```
 
 5. **新クレート追加時のルール**
@@ -217,8 +231,8 @@ hello-bevy (root バイナリ)
    - ワークスペースのCargo.tomlに追加
 
 ## 🧪 テスト設計（クレート別）
-### 統合テスト (83テスト)
-- **`action-system` クレート**: 20テスト - アクションシステム・乱数テスト
+### 統合テスト (59テスト)
+- **`action-system` クレート**: 19テスト - アクションシステム・乱数テスト
   - ActionResolver, Token, 各種トークンの動作テスト
   - ActionCalculationSystemの統合テスト
   - **seed固定乱数テスト**: 複数seed・複数実行の検証
@@ -226,10 +240,12 @@ hello-bevy (root バイナリ)
     - `test_same_seed_multiple_executions_can_differ`: 同一seedで複数回実行時のRNG状態変化検証
     - `test_single_rng_multiple_evaluations_differ`: RandomConditionNodeで1つのRNGでの複数評価検証
     - `test_single_rng_multiple_character_selections_vary`: RandomCharacterNodeで1つのRNGでの複数選択検証
-- **`battle` クレート**: 26テスト - バトルシステムテスト
-  - Battle, Character の単体テスト
-  - 様々なルールパターンテスト（攻撃専用/回復専用/複雑なチェイン）
-  - 戦闘ロジック統合テスト
+- **`battle` クレート**: 3テスト - チーム戦闘専用テスト
+  - TeamBattle, Team構造体のテスト
+  - **チーム戦闘テスト**: TeamBattle, Team構造体のテスト
+    - `test_team_battle_creation`: チーム戦闘作成テスト
+    - `test_team_battle_turn_execution`: ターン実行テスト
+    - `test_team_battle_complete_round`: 完全ラウンドテスト
 - **`json-rule` クレート**: 12テスト - ルール読み込み・変換テスト
   - JSON読み込み・解析テスト
   - TokenConfig → ActionResolver変換テスト
@@ -258,5 +274,6 @@ cargo test -p bevy-ui
 # 特定テストパターン
 cargo test -p action-system -- seed  # seed固定乱数テスト
 cargo test -p battle -- integration_tests
+cargo test -p battle -- team_battle  # チーム戦闘テスト
 cargo test -p json-rule -- loader
 ```

@@ -1,7 +1,7 @@
 // Integration tests for UI core functionality
 
 use crate::{GameState, CurrentRules, UITokenType};
-use battle::{Battle, Character as GameCharacter};
+use battle::Character as GameCharacter;
 use action_system::{ActionCalculationSystem, BattleContext};
 use rand::{SeedableRng, rngs::StdRng};
 
@@ -37,7 +37,7 @@ mod tests {
     }
     
     #[test]
-    fn test_complex_rule_integration_with_battle() {
+    fn test_complex_rule_integration_with_action_system() {
         let mut rules = CurrentRules::new();
         
         // Create complex rule: Check → GreaterThan → Number(50) → HP → ActingCharacter → Heal
@@ -55,27 +55,17 @@ mod tests {
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_eq!(rule_nodes.len(), 2);
         
-        // Test with actual battle
+        // Test with action system
+        let rng = create_test_rng();
+        let mut action_system = ActionCalculationSystem::new(rule_nodes, rng);
+        
         let player = GameCharacter::new("Player".to_string(), 30, 50, 25); // Low HP
         let enemy = GameCharacter::new("Enemy".to_string(), 100, 50, 25);
-        let rng = create_test_rng();
-        let mut battle = Battle::new(
-            player, 
-            enemy, 
-            rule_nodes,
-            vec![Box::new(action_system::StrikeActionNode)],
-            rng
-        );
+        let acting_character = GameCharacter::new("Test".to_string(), 30, 50, 25); // Low HP
+        let battle_context = BattleContext::new(&acting_character, &player, &enemy);
         
-        let initial_player_hp = battle.player.hp;
-        let initial_player_mp = battle.player.mp;
-        
-        battle.execute_player_action();
-        
-        // Low HP character should attempt to heal
-        if battle.player.mp < initial_player_mp {
-            assert!(battle.player.hp >= initial_player_hp, "Should heal when HP is low");
-        }
+        let action = action_system.calculate_action(&battle_context);
+        assert!(action.is_some(), "Should calculate an action for low HP character");
     }
     
     #[test]
