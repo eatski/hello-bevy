@@ -10,7 +10,7 @@ use json_rule::{load_rules_from_file, convert_to_node_rules};
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Startup, (load_font, setup_ui, setup_team_battle, start_battle_mode).chain())
+        .add_systems(Startup, (load_font, setup_ui, setup_team_battle).chain())
         .add_systems(Update, (
             handle_team_battle_input, 
             handle_team_restart, 
@@ -275,8 +275,3 @@ fn update_team_latest_log_ui(
     }
 }
 
-// 戦闘モードで開始する（テスト用）
-fn start_battle_mode(mut game_state: ResMut<BevyGameState>) {
-    game_state.0.mode = GameMode::Battle;
-    println!("戦闘モードで開始しました");
-}
