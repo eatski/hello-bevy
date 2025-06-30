@@ -29,5 +29,11 @@ pub enum JsonTokenInput {
         value: i32,
     },
     CharacterHP,
+    HP {
+        character: Box<JsonTokenInput>,
+    },
+    // Character types
+    ActingCharacter,
+    RandomCharacter,
 }
 

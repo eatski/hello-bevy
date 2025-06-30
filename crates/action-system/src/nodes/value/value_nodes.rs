@@ -2,11 +2,11 @@
 
 // Trait for nodes that evaluate to numeric values
 pub trait ValueNode: Send + Sync + std::fmt::Debug {
-    fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> i32;
+    fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32>;
 }
 
 impl ValueNode for Box<dyn ValueNode> {
-    fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> i32 {
+    fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
         (**self).evaluate(battle_context, rng)
     }
 }

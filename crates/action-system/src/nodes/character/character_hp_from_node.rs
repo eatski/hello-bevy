@@ -15,9 +15,9 @@ impl CharacterHpFromNode {
 }
 
 impl ValueNode for CharacterHpFromNode {
-    fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> i32 {
-        let target_character = self.character_node.evaluate(battle_context, rng);
-        target_character.hp
+    fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
+        let target_character = self.character_node.evaluate(battle_context, rng)?;
+        Ok(target_character.hp)
     }
 }
 
@@ -39,6 +39,6 @@ mod tests {
         
         // Test CharacterHpFromNode with ActingCharacterNode
         let char_hp_from_node = CharacterHpFromNode::new(Box::new(ActingCharacterNode));
-        assert_eq!(char_hp_from_node.evaluate(&battle_context, &mut rng), 100);
+        assert_eq!(char_hp_from_node.evaluate(&battle_context, &mut rng), Ok(100));
     }
 }

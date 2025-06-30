@@ -1,6 +1,6 @@
 // Condition check node - evaluates condition and delegates to next node or breaks
 
-use crate::core::{ActionResolver, ActionResolverResult};
+use crate::core::{ActionResolver, ActionType, NodeResult, NodeError};
 use super::condition_nodes::ConditionNode;
 
 #[derive(Debug)]
@@ -16,12 +16,13 @@ impl ConditionCheckNode {
 }
 
 impl ActionResolver for ConditionCheckNode {
-    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> ActionResolverResult {
-        if self.condition.evaluate(battle_context, rng) {
+    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<ActionType> {
+        let condition_result = self.condition.evaluate(battle_context, rng)?;
+        if condition_result {
             // Continue: delegate to next node
             self.next.resolve(battle_context, rng)
         } else {
-            ActionResolverResult::Break
+            Err(NodeError::Break)
         }
     }
 }
@@ -48,6 +49,11 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         let result = check_random.resolve(&battle_context, &mut rng);
-        assert!(matches!(result, ActionResolverResult::Action(_) | ActionResolverResult::Break));
+        // Should either return an ActionType or Break error
+        match result {
+            Ok(_action_type) => assert!(true), // Got an action
+            Err(NodeError::Break) => assert!(true), // Got break
+            Err(_) => panic!("Unexpected error type"),
+        }
     }
 }

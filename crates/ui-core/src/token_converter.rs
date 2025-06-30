@@ -1,6 +1,8 @@
 // UI converter - converts UI tokens directly to nodes
 
 use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, RandomCharacterNode, CharacterHpFromNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
+use action_system::nodes::character::CharacterNode;
+
 
 // パース結果を表すEnum - 統一されたパーサーの戻り値
 #[derive(Debug)]
@@ -8,6 +10,8 @@ pub enum ParsedResolver {
     Action(Box<dyn ActionResolver>),
     Condition(Box<dyn ConditionNode>),
     Value(Box<dyn ValueNode>),
+    // Character nodes that evaluate to character references
+    Character(Box<dyn CharacterNode>),
 }
 
 // UI側のトークンタイプの定義
@@ -48,6 +52,14 @@ impl ParsedResolver {
             _ => Err(format!("Expected Value, got {:?}", self)),
         }
     }
+    
+    
+    pub fn require_character(self) -> Result<Box<dyn CharacterNode>, String> {
+        match self {
+            ParsedResolver::Character(character_node) => Ok(character_node),
+            _ => Err(format!("Expected Character, got {:?}", self)),
+        }
+    }
 }
 
 // 統一されたパーサー関数 - 全てのトークンを単一の関数でパース
@@ -72,16 +84,17 @@ pub fn parse_ui_token(tokens: &[UITokenType], index: usize) -> Result<(ParsedRes
         // Complex tokens requiring additional context
         UITokenType::Check => parse_check_action(tokens, index),
         
-        // Character tokens that must be used in context
-        UITokenType::ActingCharacter => Err("ActingCharacter must be preceded by HP".to_string()),
-        UITokenType::RandomCharacter => Err("RandomCharacter must be preceded by HP".to_string()),
+        // Character tokens - can be used standalone or with HP
+        UITokenType::ActingCharacter => Ok((ParsedResolver::Character(Box::new(ActingCharacterNode)), 1)),
+        UITokenType::RandomCharacter => Ok((ParsedResolver::Character(Box::new(RandomCharacterNode::new())), 1)),
+        
     }
 }
 
 // GreaterThan条件をパース
 fn parse_greater_than_condition(tokens: &[UITokenType], index: usize) -> Result<(ParsedResolver, usize), String> {
     if index + 2 >= tokens.len() {
-        return Err("GreaterThan requires two operands".to_string());
+        return Err("GreaterThan token requires two value operands. Format: GreaterThan → <left_value> → <right_value> (e.g., GreaterThan → Number(50) → HP(ActingCharacter))".to_string());
     }
     
     let (left_parsed, left_consumed) = parse_ui_token(tokens, index + 1)?;
@@ -99,24 +112,22 @@ fn parse_greater_than_condition(tokens: &[UITokenType], index: usize) -> Result<
 // HP値をパース
 fn parse_hp_value(tokens: &[UITokenType], index: usize) -> Result<(ParsedResolver, usize), String> {
     if index + 1 >= tokens.len() {
-        return Err("HP must be followed by a Character token".to_string());
+        return Err("HP token must be followed by a Character token. Valid combinations: HP → ActingCharacter, HP → RandomCharacter".to_string());
     }
     
-    match &tokens[index + 1] {
-        UITokenType::ActingCharacter => {
-            Ok((ParsedResolver::Value(Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode)))), 2))
-        }
-        UITokenType::RandomCharacter => {
-            Ok((ParsedResolver::Value(Box::new(CharacterHpFromNode::new(Box::new(RandomCharacterNode::new())))), 2))
-        }
-        _ => Err("HP must be followed by a Character token (ActingCharacter or RandomCharacter)".to_string())
-    }
+    let (character_parsed, character_consumed) = parse_ui_token(tokens, index + 1)?;
+    let character_node = character_parsed.require_character()?;
+    
+    Ok((
+        ParsedResolver::Value(Box::new(CharacterHpFromNode::new(character_node))),
+        1 + character_consumed
+    ))
 }
 
 // Check条件付きアクションをパース
 fn parse_check_action(tokens: &[UITokenType], index: usize) -> Result<(ParsedResolver, usize), String> {
     if index + 1 >= tokens.len() {
-        return Err("Check token requires condition".to_string());
+        return Err("Check token requires a condition and action. Format: Check → <condition> → <action>".to_string());
     }
     
     let (condition_parsed, condition_consumed) = parse_ui_token(tokens, index + 1)?;
@@ -124,7 +135,7 @@ fn parse_check_action(tokens: &[UITokenType], index: usize) -> Result<(ParsedRes
     
     let action_index = index + 1 + condition_consumed;
     if action_index >= tokens.len() {
-        return Err("Check token requires an action".to_string());
+        return Err("Check token requires an action after the condition. Format: Check → <condition> → <action>".to_string());
     }
     
     let (action_parsed, action_consumed) = parse_ui_token(tokens, action_index)?;
@@ -135,6 +146,7 @@ fn parse_check_action(tokens: &[UITokenType], index: usize) -> Result<(ParsedRes
         1 + condition_consumed + action_consumed
     ))
 }
+
 
 // UIルールを直接RuleNodeに変換 - 新しい統一パーサーを使用
 pub fn convert_ui_rules_to_nodes(ui_rules: &[Vec<UITokenType>]) -> Vec<RuleNode> {
@@ -297,4 +309,5 @@ mod tests {
         let rule_nodes = convert_ui_rules_to_nodes(&ui_rules);
         assert_eq!(rule_nodes.len(), 1);
     }
+
 }

@@ -14,8 +14,8 @@ impl ConstantValueNode {
 }
 
 impl ValueNode for ConstantValueNode {
-    fn evaluate(&self, _battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> i32 {
-        self.value
+    fn evaluate(&self, _battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
+        Ok(self.value)
     }
 }
 
@@ -37,6 +37,6 @@ mod tests {
         
         // Test Constant value node
         let value_node = ConstantValueNode::new(42);
-        assert_eq!(value_node.evaluate(&battle_context, &mut rng), 42);
+        assert_eq!(value_node.evaluate(&battle_context, &mut rng), Ok(42));
     }
 }

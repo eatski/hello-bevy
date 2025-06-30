@@ -6,8 +6,8 @@ use super::character_nodes::CharacterNode;
 pub struct ActingCharacterNode;
 
 impl CharacterNode for ActingCharacterNode {
-    fn evaluate<'a>(&self, battle_context: &crate::BattleContext<'a>, _rng: &mut dyn rand::RngCore) -> &'a crate::Character {
-        battle_context.get_acting_character()
+    fn evaluate(&self, battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<crate::Character> {
+        Ok(battle_context.get_acting_character().clone())
     }
 }
 
@@ -29,7 +29,7 @@ mod tests {
         
         // Test ActingCharacter node
         let acting_char_node = ActingCharacterNode;
-        let returned_char = acting_char_node.evaluate(&battle_context, &mut rng);
+        let returned_char = acting_char_node.evaluate(&battle_context, &mut rng).unwrap();
         assert_eq!(returned_char.hp, 100);
         assert_eq!(returned_char.name, "Test");
     }

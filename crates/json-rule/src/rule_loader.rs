@@ -1,7 +1,101 @@
 use std::fs;
 use std::path::Path;
-use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, CharacterHpFromNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
+use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, CharacterHpFromNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, RandomCharacterNode};
+use action_system::nodes::character::CharacterNode;
 use crate::rule_input_model::{RuleSet, JsonTokenInput};
+
+// Unified parse result enum - similar to ui-core token_converter
+#[derive(Debug)]
+pub enum ParsedResolver {
+    Action(Box<dyn ActionResolver>),
+    Condition(Box<dyn ConditionNode>),
+    Value(Box<dyn ValueNode>),
+    Character(Box<dyn CharacterNode>),
+}
+
+// Type matching functions - safely extract specific types from ParsedResolver
+impl ParsedResolver {
+    pub fn require_action(self) -> Result<Box<dyn ActionResolver>, String> {
+        match self {
+            ParsedResolver::Action(action) => Ok(action),
+            _ => Err(format!("Expected Action, got {:?}", self)),
+        }
+    }
+    
+    pub fn require_condition(self) -> Result<Box<dyn ConditionNode>, String> {
+        match self {
+            ParsedResolver::Condition(condition) => Ok(condition),
+            _ => Err(format!("Expected Condition, got {:?}", self)),
+        }
+    }
+    
+    pub fn require_value(self) -> Result<Box<dyn ValueNode>, String> {
+        match self {
+            ParsedResolver::Value(value) => Ok(value),
+            _ => Err(format!("Expected Value, got {:?}", self)),
+        }
+    }
+    
+    
+    pub fn require_character(self) -> Result<Box<dyn CharacterNode>, String> {
+        match self {
+            ParsedResolver::Character(character_node) => Ok(character_node),
+            _ => Err(format!("Expected Character, got {:?}", self)),
+        }
+    }
+}
+
+// Unified parser function - converts JsonTokenInput to ParsedResolver
+pub fn parse_json_token(config: &JsonTokenInput) -> Result<ParsedResolver, String> {
+    match config {
+        // Action tokens
+        JsonTokenInput::Strike => Ok(ParsedResolver::Action(Box::new(StrikeActionNode))),
+        JsonTokenInput::Heal => Ok(ParsedResolver::Action(Box::new(HealActionNode))),
+        
+        // Condition tokens
+        JsonTokenInput::TrueOrFalseRandom => Ok(ParsedResolver::Condition(Box::new(RandomConditionNode))),
+        JsonTokenInput::GreaterThan { left, right } => {
+            let left_node = parse_json_token(left)?.require_value()?;
+            let right_node = parse_json_token(right)?.require_value()?;
+            Ok(ParsedResolver::Condition(Box::new(GreaterThanConditionNode::new(left_node, right_node))))
+        },
+        
+        // Value tokens
+        JsonTokenInput::Number { value } => Ok(ParsedResolver::Value(Box::new(ConstantValueNode::new(*value)))),
+        JsonTokenInput::CharacterHP => Ok(ParsedResolver::Value(Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))))),
+        JsonTokenInput::HP { character } => {
+            // Parse the character argument recursively and handle based on result type
+            let character_parsed = parse_json_token(character)?;
+            match character_parsed {
+                ParsedResolver::Character(character_node) => {
+                    // For CharacterNode types, we can use CharacterHpFromNode directly
+                    Ok(ParsedResolver::Value(Box::new(CharacterHpFromNode::new(character_node))))
+                },
+                ParsedResolver::Action(_) => {
+                    Err(format!("HP token requires a Character argument, got Action"))
+                },
+                ParsedResolver::Condition(_) => {
+                    Err(format!("HP token requires a Character argument, got Condition"))
+                },
+                ParsedResolver::Value(_) => {
+                    Err(format!("HP token requires a Character argument, got Value"))
+                },
+            }
+        },
+        
+        // Complex tokens
+        JsonTokenInput::Check { condition, then_action } => {
+            let condition_node = parse_json_token(condition)?.require_condition()?;
+            let action_node = parse_json_token(then_action)?.require_action()?;
+            Ok(ParsedResolver::Action(Box::new(ConditionCheckNode::new(condition_node, action_node))))
+        },
+        
+        
+        // Character types that return ParsedResolver::Character
+        JsonTokenInput::ActingCharacter => Ok(ParsedResolver::Character(Box::new(ActingCharacterNode))),
+        JsonTokenInput::RandomCharacter => Ok(ParsedResolver::Character(Box::new(RandomCharacterNode::new()))),
+    }
+}
 
 pub fn load_rules_from_file<P: AsRef<Path>>(path: P) -> Result<RuleSet, String> {
     let content = fs::read_to_string(path)
@@ -21,15 +115,16 @@ pub fn convert_to_node_rules(rule_set: &RuleSet) -> Result<Vec<RuleNode>, String
     let mut node_rules = Vec::new();
     
     for rule_chain in &rule_set.rules {
-        // Convert token chain to single chained ActionResolver
-        let rule_node = convert_node_chain(&rule_chain.tokens)?;
+        // Convert token chain to single chained ActionResolver using new unified parser
+        let rule_node = convert_node_chain_unified(&rule_chain.tokens)?;
         node_rules.push(rule_node);
     }
     
     Ok(node_rules)
 }
 
-fn convert_node_chain(tokens: &[JsonTokenInput]) -> Result<RuleNode, String> {
+// New unified approach using parse_json_token
+fn convert_node_chain_unified(tokens: &[JsonTokenInput]) -> Result<RuleNode, String> {
     if tokens.is_empty() {
         return Err("Empty token chain".to_string());
     }
@@ -38,66 +133,20 @@ fn convert_node_chain(tokens: &[JsonTokenInput]) -> Result<RuleNode, String> {
     
     // Process tokens in reverse order to build the chain
     for token_config in tokens.iter().rev() {
-        match token_config {
-            JsonTokenInput::Strike => {
-                result = Some(Box::new(StrikeActionNode));
-            }
-            JsonTokenInput::Heal => {
-                result = Some(Box::new(HealActionNode));
-            }
-            JsonTokenInput::Check { condition, then_action } => {
-                let bool_node = convert_bool_node_config(condition)?;
-                let action_node = convert_single_token_to_resolver(then_action)?;
-                
-                if let Some(_next) = result {
-                    // Chain: if condition -> action_node, else -> next
-                    let chained_action = Box::new(ConditionCheckNode::new(bool_node, action_node));
-                    result = Some(chained_action);
-                } else {
-                    result = Some(Box::new(ConditionCheckNode::new(bool_node, action_node)));
-                }
-            }
-            _ => {
-                return Err(format!("Token {:?} cannot be used directly in rule chain", token_config));
-            }
+        let parsed = parse_json_token(token_config)?;
+        let action_resolver = parsed.require_action()?;
+        
+        if result.is_some() {
+            // For now, just use the latest action (chaining logic can be improved later)
+            result = Some(action_resolver);
+        } else {
+            result = Some(action_resolver);
         }
     }
     
     result.ok_or_else(|| "Failed to build node chain".to_string())
 }
 
-fn convert_bool_node_config(config: &JsonTokenInput) -> Result<Box<dyn ConditionNode>, String> {
-    match config {
-        JsonTokenInput::TrueOrFalseRandom => Ok(Box::new(RandomConditionNode)),
-        JsonTokenInput::GreaterThan { left, right } => {
-            let left_node = convert_number_node_config(left)?;
-            let right_node = convert_number_node_config(right)?;
-            Ok(Box::new(GreaterThanConditionNode::new(left_node, right_node)))
-        },
-        _ => Err(format!("Cannot convert {:?} to ConditionNode", config)),
-    }
-}
-
-fn convert_number_node_config(config: &JsonTokenInput) -> Result<Box<dyn ValueNode>, String> {
-    match config {
-        JsonTokenInput::Number { value } => Ok(Box::new(ConstantValueNode::new(*value))),
-        JsonTokenInput::CharacterHP => Ok(Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode)))),
-        _ => Err(format!("Cannot convert {:?} to ValueNode", config)),
-    }
-}
-
-fn convert_single_token_to_resolver(config: &JsonTokenInput) -> Result<Box<dyn ActionResolver>, String> {
-    match config {
-        JsonTokenInput::Strike => Ok(Box::new(StrikeActionNode)),
-        JsonTokenInput::Heal => Ok(Box::new(HealActionNode)),
-        JsonTokenInput::Check { condition, then_action } => {
-            let bool_node = convert_bool_node_config(condition)?;
-            let action_node = convert_single_token_to_resolver(then_action)?;
-            Ok(Box::new(ConditionCheckNode::new(bool_node, action_node)))
-        }
-        _ => Err(format!("Cannot convert {:?} to single ActionResolver", config)),
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -236,7 +285,7 @@ mod tests {
         let result = convert_to_node_rules(&rule_set);
         assert_eq!(result.is_err(), true);
         if let Err(error_msg) = result {
-            assert_eq!(error_msg.contains("cannot be used directly in rule chain"), true);
+            assert_eq!(error_msg.contains("Expected Action"), true);
         }
     }
 
@@ -330,4 +379,59 @@ mod tests {
         assert_eq!(node_rules.len(), 1);
         // Note: node_rules[0] is now a single chained ActionResolver, not a vector
     }
+
+    #[test]
+    fn test_hp_with_acting_character() {
+        let rule_set = RuleSet {
+            rules: vec![
+                RuleChain {
+                    tokens: vec![
+                        JsonTokenInput::Check {
+                            condition: Box::new(JsonTokenInput::GreaterThan {
+                                left: Box::new(JsonTokenInput::Number { value: 50 }),
+                                right: Box::new(JsonTokenInput::HP {
+                                    character: Box::new(JsonTokenInput::ActingCharacter),
+                                }),
+                            }),
+                            then_action: Box::new(JsonTokenInput::Heal),
+                        },
+                        JsonTokenInput::Strike,
+                    ],
+                },
+            ],
+        };
+        
+        let result = convert_to_node_rules(&rule_set);
+        assert!(result.is_ok());
+        let node_rules = result.unwrap();
+        assert_eq!(node_rules.len(), 1);
+    }
+
+    #[test]
+    fn test_hp_with_random_character() {
+        let rule_set = RuleSet {
+            rules: vec![
+                RuleChain {
+                    tokens: vec![
+                        JsonTokenInput::Check {
+                            condition: Box::new(JsonTokenInput::GreaterThan {
+                                left: Box::new(JsonTokenInput::Number { value: 30 }),
+                                right: Box::new(JsonTokenInput::HP {
+                                    character: Box::new(JsonTokenInput::RandomCharacter),
+                                }),
+                            }),
+                            then_action: Box::new(JsonTokenInput::Heal),
+                        },
+                        JsonTokenInput::Strike,
+                    ],
+                },
+            ],
+        };
+        
+        let result = convert_to_node_rules(&rule_set);
+        assert!(result.is_ok());
+        let node_rules = result.unwrap();
+        assert_eq!(node_rules.len(), 1);
+    }
+
 }

@@ -1,7 +1,7 @@
 // Action calculation system - manages rule execution
 
 use rand::rngs::StdRng;
-use super::core::{ActionType, ActionResolverResult, RuleNode};
+use super::core::{ActionType, RuleNode, NodeError};
 use crate::BattleContext;
 
 pub struct ActionCalculationSystem {
@@ -22,11 +22,16 @@ impl ActionCalculationSystem {
 
         for rule in &self.rules {
             match rule.resolve(battle_context, rng) {
-                ActionResolverResult::Action(action_type) => {
+                Ok(action_type) => {
                     return Some(action_type);
                 }
-                ActionResolverResult::Break => {
+                Err(NodeError::Break) => {
                     continue; // Try next rule
+                }
+                Err(_error) => {
+                    // エラーが発生した場合は次のルールを試す
+                    // 必要に応じてログ出力やエラーハンドリングを追加可能
+                    continue;
                 }
             }
         }

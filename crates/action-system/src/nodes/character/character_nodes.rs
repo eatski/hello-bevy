@@ -134,13 +134,13 @@ impl<'a> BattleContext<'a> {
     }
 }
 
-// Trait for nodes that evaluate to character references
+// Trait for nodes that evaluate to owned characters
 pub trait CharacterNode: Send + Sync + std::fmt::Debug {
-    fn evaluate<'a>(&self, battle_context: &BattleContext<'a>, rng: &mut dyn rand::RngCore) -> &'a crate::Character;
+    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<crate::Character>;
 }
 
 impl CharacterNode for Box<dyn CharacterNode> {
-    fn evaluate<'a>(&self, battle_context: &BattleContext<'a>, rng: &mut dyn rand::RngCore) -> &'a crate::Character {
+    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<crate::Character> {
         (**self).evaluate(battle_context, rng)
     }
 }

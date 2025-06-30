@@ -5,10 +5,10 @@ pub mod nodes;
 pub mod system;
 
 // Re-export essential types only
-pub use core::{Character, Team, TeamSide, ActionResolver, ActionResolverResult, ActionType, RuleNode};
+pub use core::{Character, Team, TeamSide, ActionResolver, ActionType, RuleNode, NodeError, NodeResult};
 pub use nodes::condition::{ConditionNode, ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode};
 pub use nodes::value::{ValueNode, ConstantValueNode};
-pub use nodes::character::{BattleContext, ActingCharacterNode, RandomCharacterNode, CharacterHpFromNode};
+pub use nodes::character::{BattleContext, CharacterNode, ActingCharacterNode, RandomCharacterNode, CharacterHpFromNode};
 pub use nodes::action::{StrikeActionNode, HealActionNode};
 pub use system::ActionCalculationSystem;
 

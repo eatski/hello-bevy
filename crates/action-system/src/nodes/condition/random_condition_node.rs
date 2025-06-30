@@ -7,8 +7,8 @@ use super::condition_nodes::ConditionNode;
 pub struct RandomConditionNode;
 
 impl ConditionNode for RandomConditionNode {
-    fn evaluate(&self, _battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> bool {
-        rng.gen_bool(0.5)
+    fn evaluate(&self, _battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<bool> {
+        Ok(rng.gen_bool(0.5))
     }
 }
 
@@ -31,8 +31,8 @@ mod tests {
         // Test with seeded RNG for deterministic behavior
         let mut rng1 = StdRng::seed_from_u64(42);
         let mut rng2 = StdRng::seed_from_u64(42);
-        let result1 = random.evaluate(&battle_context, &mut rng1);
-        let result2 = random.evaluate(&battle_context, &mut rng2);
+        let result1 = random.evaluate(&battle_context, &mut rng1).unwrap();
+        let result2 = random.evaluate(&battle_context, &mut rng2).unwrap();
         
         // Same seed should produce same result
         assert_eq!(result1, result2);
@@ -43,7 +43,7 @@ mod tests {
         let mut false_count = 0;
         
         for _ in 0..100 {
-            if random.evaluate(&battle_context, &mut rng) {
+            if random.evaluate(&battle_context, &mut rng).unwrap() {
                 true_count += 1;
             } else {
                 false_count += 1;
@@ -69,7 +69,7 @@ mod tests {
         
         // 同一RNGで20回評価
         for _ in 0..20 {
-            let result = random.evaluate(&battle_context, &mut rng);
+            let result = random.evaluate(&battle_context, &mut rng).unwrap();
             results.push(result);
         }
         

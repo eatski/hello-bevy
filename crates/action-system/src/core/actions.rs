@@ -1,16 +1,16 @@
 // Action implementations - Strike and Heal actions
 
-use super::core::{ActionResolver, ActionResolverResult, ActionType};
+use super::core::{ActionResolver, ActionType, NodeResult, NodeError};
 
 #[derive(Debug)]
 pub struct StrikeActionNode;
 
 impl ActionResolver for StrikeActionNode {
-    fn resolve(&self, battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+    fn resolve(&self, battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> NodeResult<ActionType> {
         if battle_context.get_acting_character().hp > 0 {
-            ActionResolverResult::Action(ActionType::Strike)
+            Ok(ActionType::Strike)
         } else {
-            ActionResolverResult::Break
+            Err(NodeError::Break)
         }
     }
 }
@@ -19,12 +19,12 @@ impl ActionResolver for StrikeActionNode {
 pub struct HealActionNode;
 
 impl ActionResolver for HealActionNode {
-    fn resolve(&self, battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> ActionResolverResult {
+    fn resolve(&self, battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> NodeResult<ActionType> {
         let acting_character = battle_context.get_acting_character();
         if acting_character.hp > 0 && acting_character.mp >= 10 {
-            ActionResolverResult::Action(ActionType::Heal)
+            Ok(ActionType::Heal)
         } else {
-            ActionResolverResult::Break
+            Err(NodeError::Break)
         }
     }
 }
@@ -47,15 +47,15 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         match strike.resolve(&battle_context, &mut rng) {
-            ActionResolverResult::Action(ActionType::Strike) => assert!(true),
-            _ => panic!("StrikeActionNode should return Action(Strike) for alive character"),
+            Ok(ActionType::Strike) => assert!(true),
+            _ => panic!("StrikeActionNode should return Strike for alive character"),
         }
         
         let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
         let dead_battle_context = crate::BattleContext::new(&dead_character, &player, &enemy);
         match strike.resolve(&dead_battle_context, &mut rng) {
-            ActionResolverResult::Break => assert!(true),
-            _ => panic!("StrikeActionNode should return Break for dead character"),
+            Err(NodeError::Break) => assert!(true),
+            _ => panic!("StrikeActionNode should return Break error for dead character"),
         }
     }
 
@@ -70,15 +70,15 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         match heal.resolve(&battle_context, &mut rng) {
-            ActionResolverResult::Action(ActionType::Heal) => assert!(true),
-            _ => panic!("HealActionNode should return Action(Heal) for alive character"),
+            Ok(ActionType::Heal) => assert!(true),
+            _ => panic!("HealActionNode should return Heal for alive character"),
         }
         
         let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
         let dead_battle_context = crate::BattleContext::new(&dead_character, &player, &enemy);
         match heal.resolve(&dead_battle_context, &mut rng) {
-            ActionResolverResult::Break => assert!(true),
-            _ => panic!("HealActionNode should return Break for dead character"),
+            Err(NodeError::Break) => assert!(true),
+            _ => panic!("HealActionNode should return Break error for dead character"),
         }
     }
 }

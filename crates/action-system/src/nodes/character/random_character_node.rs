@@ -13,10 +13,16 @@ impl RandomCharacterNode {
 }
 
 impl CharacterNode for RandomCharacterNode {
-    fn evaluate<'a>(&self, battle_context: &BattleContext<'a>, rng: &mut dyn rand::RngCore) -> &'a crate::Character {
+    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<crate::Character> {
         let all_characters = battle_context.all_characters();
+        if all_characters.is_empty() {
+            return Err(crate::core::NodeError::EvaluationError("No characters available for random selection".to_string()));
+        }
         // Select a random character from the battle
-        all_characters.choose(rng).map_or(battle_context.get_acting_character(), |&character| character)
+        match all_characters.choose(rng) {
+            Some(&character) => Ok(character.clone()),
+            None => Ok(battle_context.get_acting_character().clone()), // fallback
+        }
     }
 }
 
@@ -45,7 +51,7 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         let random_char_node = RandomCharacterNode::new();
-        let returned_char = random_char_node.evaluate(&battle_context, &mut rng);
+        let returned_char = random_char_node.evaluate(&battle_context, &mut rng).unwrap();
         
         // Should return either player or enemy
         let name = &returned_char.name;
@@ -69,7 +75,7 @@ mod tests {
         
         // 同一RNGで20回キャラクター選択
         for _ in 0..20 {
-            let result = random_char_node.evaluate(&battle_context, &mut rng);
+            let result = random_char_node.evaluate(&battle_context, &mut rng).unwrap();
             results.push(result.name.clone());
         }
         
