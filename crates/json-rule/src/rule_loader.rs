@@ -50,7 +50,12 @@ pub fn parse_json_token(config: &JsonTokenInput) -> Result<ParsedResolver, Strin
     match config {
         // Action tokens
         JsonTokenInput::Strike => Ok(ParsedResolver::Action(Box::new(StrikeActionNode))),
-        JsonTokenInput::Heal => Ok(ParsedResolver::Action(Box::new(HealActionNode))),
+        JsonTokenInput::Heal => {
+            // For now, use ActingCharacterNode as default target
+            // TODO: Support configurable target from JSON
+            let target = Box::new(ActingCharacterNode);
+            Ok(ParsedResolver::Action(Box::new(HealActionNode::new(target))))
+        },
         
         // Condition tokens
         JsonTokenInput::TrueOrFalseRandom => Ok(ParsedResolver::Condition(Box::new(RandomConditionNode))),

@@ -51,7 +51,7 @@ mod tests {
         let rules: Vec<RuleNode> = vec![
             Box::new(ConditionCheckNode::new(
                 Box::new(RandomConditionNode),
-                Box::new(HealActionNode),
+                Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
             )),
             Box::new(StrikeActionNode),
         ];
@@ -80,7 +80,7 @@ mod tests {
             vec![
                 Box::new(ConditionCheckNode::new(
                     Box::new(RandomConditionNode),
-                    Box::new(HealActionNode),
+                    Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
                 )),
                 Box::new(StrikeActionNode),
             ]
@@ -137,7 +137,7 @@ mod tests {
                     Box::new(ConstantValueNode::new(50)),
                     Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))),
                 )),
-                Box::new(HealActionNode),
+                Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
             )),
             Box::new(StrikeActionNode),
         ];
@@ -171,7 +171,7 @@ mod tests {
             vec![
                 Box::new(ConditionCheckNode::new(
                     Box::new(RandomConditionNode),
-                    Box::new(HealActionNode),
+                    Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
                 )),
                 Box::new(StrikeActionNode),
             ]
@@ -228,7 +228,7 @@ mod tests {
             vec![
                 Box::new(ConditionCheckNode::new(
                     Box::new(RandomConditionNode),
-                    Box::new(HealActionNode),
+                    Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
                 )),
                 Box::new(StrikeActionNode),
             ]
@@ -277,7 +277,7 @@ mod tests {
                 )),
                 Box::new(ConditionCheckNode::new(
                     Box::new(RandomConditionNode),
-                    Box::new(HealActionNode),
+                    Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
                 )),
             )),
             Box::new(StrikeActionNode),
@@ -320,7 +320,7 @@ mod tests {
                 )),
                 Box::new(ConditionCheckNode::new(
                     Box::new(RandomConditionNode),
-                    Box::new(HealActionNode),
+                    Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
                 )),
             )),
             Box::new(StrikeActionNode),
@@ -362,7 +362,7 @@ mod tests {
                     Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))),
                     Box::new(ConstantValueNode::new(30)),
                 )),
-                Box::new(HealActionNode),
+                Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
             )),
             Box::new(StrikeActionNode),
         ];
@@ -409,7 +409,7 @@ mod tests {
                 )),
                 Box::new(StrikeActionNode),
             )),
-            Box::new(HealActionNode),
+            Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
         ];
 
         let rng = StdRng::seed_from_u64(12345);
@@ -443,7 +443,7 @@ mod tests {
                     Box::new(ConstantValueNode::new(100)),
                     Box::new(ConstantValueNode::new(50)),
                 )),
-                Box::new(HealActionNode),
+                Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
             )),
             Box::new(StrikeActionNode),
         ];
@@ -487,7 +487,7 @@ mod tests {
                     Box::new(ConstantValueNode::new(10)),
                     Box::new(ConstantValueNode::new(100)),
                 )),
-                Box::new(HealActionNode),
+                Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
             )),
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanConditionNode::new(

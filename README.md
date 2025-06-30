@@ -78,12 +78,51 @@ Bevy Engineで開発されたRustベースのターンベースRPGバトルゲ�
 #### 状況系
 - **CharacterHP**: 引数のキャラクターのHPを返す
 - **ActingCharacter**: ロジックを計算しているキャラクター自身を返す
+- **TeamCharacters**: ロジックを計算しているキャラクターが所属するするチームのキャラクターの配列を返す
 
 #### ⚔️ アクション系
 キャラクターが実際に行動を実行（コスト不足時は`break`）
 
 - **Strike**: 基本攻撃
 - **Heal**: 回復魔法（MP消費）
+
+#### 配列系
+
+- **Element**: 配列操作時に使用できる配列の要素
+- **RandomPick**: 配列から1つ要素を取り出す
+- **FilterList**: 配列から条件に当てはまる要素を絞る
+
+##### JSON設定例
+HPが50より小さい味方キャラクターからランダムに1人ヒールする計算式
+ElementはFilterListの第一引数であるTeamCharactersの要素
+```json
+{
+  "type": "Heal",
+  "target": {
+    "type": "RandomPick",
+    "array": {
+      "type": "FilterList",
+      "array": {
+        "type": "TeamCharacters"
+      },
+      "condition": {
+        "type": "GreaterThan",
+        "left": {
+          "type": "Number",
+          "value": 50
+        },
+        "right": {
+          "type": "CharacterHP",
+          "character": {
+            "type": "Element"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
 
 ## 🚀 技術スタック
 

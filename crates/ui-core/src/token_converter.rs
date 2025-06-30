@@ -71,7 +71,12 @@ pub fn parse_ui_token(tokens: &[UITokenType], index: usize) -> Result<(ParsedRes
     match &tokens[index] {
         // Action tokens
         UITokenType::Strike => Ok((ParsedResolver::Action(Box::new(StrikeActionNode)), 1)),
-        UITokenType::Heal => Ok((ParsedResolver::Action(Box::new(HealActionNode)), 1)),
+        UITokenType::Heal => {
+            // For now, use ActingCharacterNode as default target
+            // TODO: Support configurable target from UI
+            let target = Box::new(ActingCharacterNode);
+            Ok((ParsedResolver::Action(Box::new(HealActionNode::new(target))), 1))
+        },
         
         // Condition tokens
         UITokenType::TrueOrFalse => Ok((ParsedResolver::Condition(Box::new(RandomConditionNode)), 1)),
