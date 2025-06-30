@@ -258,4 +258,252 @@ mod tests {
         assert!(!results.is_empty(), "Should produce at least one action");
     }
 
+    #[test]
+    fn test_complex_condition_combinations() {
+        // 複数の条件ノードを組み合わせたテスト
+        let character = Character::new("Test".to_string(), 100, 50, 25);
+        let mut low_hp_character = character.clone();
+        low_hp_character.take_damage(80); // HP: 20/100
+        
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+
+        // 複雑な条件: HP < 30 AND ランダム条件が真の場合のみHeal
+        let complex_rules: Vec<RuleNode> = vec![
+            Box::new(ConditionCheckNode::new(
+                Box::new(GreaterThanConditionNode::new(
+                    Box::new(ConstantValueNode::new(30)),
+                    Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))),
+                )),
+                Box::new(ConditionCheckNode::new(
+                    Box::new(RandomConditionNode),
+                    Box::new(HealActionNode),
+                )),
+            )),
+            Box::new(StrikeActionNode),
+        ];
+
+        let rng = StdRng::from_entropy();
+        let mut system = ActionCalculationSystem::new(complex_rules, rng);
+
+        // 低HPキャラクターは条件を満たすのでHealまたはStrike
+        let mut heal_count = 0;
+        let mut strike_count = 0;
+        
+        for _ in 0..20 {
+            let battle_context = BattleContext::new(&low_hp_character, &player, &enemy);
+            if let Some(action) = system.calculate_action(&battle_context) {
+                match action {
+                    ActionType::Heal => heal_count += 1,
+                    ActionType::Strike => strike_count += 1,
+                }
+            }
+        }
+
+        assert!(heal_count + strike_count == 20, "Should execute 20 actions");
+        assert!(heal_count > 0 || strike_count > 0, "Should have at least one action type");
+    }
+
+    #[test]
+    fn test_nested_condition_fallback() {
+        // ネストした条件で最終的にフォールバックアクションが実行されることをテスト
+        let high_hp_character = Character::new("HighHP".to_string(), 100, 50, 25);
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+
+        // HP > 90の場合のみランダム条件チェック、そうでなければStrike
+        let nested_rules: Vec<RuleNode> = vec![
+            Box::new(ConditionCheckNode::new(
+                Box::new(GreaterThanConditionNode::new(
+                    Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))),
+                    Box::new(ConstantValueNode::new(90)),
+                )),
+                Box::new(ConditionCheckNode::new(
+                    Box::new(RandomConditionNode),
+                    Box::new(HealActionNode),
+                )),
+            )),
+            Box::new(StrikeActionNode),
+        ];
+
+        let rng = StdRng::from_entropy();
+        let mut system = ActionCalculationSystem::new(nested_rules, rng);
+
+        let mut results = Vec::new();
+        for _ in 0..10 {
+            let battle_context = BattleContext::new(&high_hp_character, &player, &enemy);
+            if let Some(action) = system.calculate_action(&battle_context) {
+                results.push(action);
+            }
+        }
+
+        assert_eq!(results.len(), 10, "Should execute 10 actions");
+        // HP=100 > 90なので、最初の条件は満たし、ランダム条件でHealかフォールバックでStrike
+        assert!(results.iter().all(|action| *action == ActionType::Heal || *action == ActionType::Strike));
+    }
+
+    #[test]
+    fn test_multiple_hp_thresholds() {
+        // 複数のHP閾値を使った段階的な行動選択テスト
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+
+        // HP > 70: Strike, HP > 30: Heal, その他: Strike
+        let threshold_rules: Vec<RuleNode> = vec![
+            Box::new(ConditionCheckNode::new(
+                Box::new(GreaterThanConditionNode::new(
+                    Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))),
+                    Box::new(ConstantValueNode::new(70)),
+                )),
+                Box::new(StrikeActionNode),
+            )),
+            Box::new(ConditionCheckNode::new(
+                Box::new(GreaterThanConditionNode::new(
+                    Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))),
+                    Box::new(ConstantValueNode::new(30)),
+                )),
+                Box::new(HealActionNode),
+            )),
+            Box::new(StrikeActionNode),
+        ];
+
+        let rng = StdRng::from_entropy();
+        let mut system = ActionCalculationSystem::new(threshold_rules, rng);
+
+        // テスト1: HP=100 (>70) -> Strike
+        let high_hp_char = Character::new("High".to_string(), 100, 50, 25);
+        let battle_context = BattleContext::new(&high_hp_char, &player, &enemy);
+        let action = system.calculate_action(&battle_context);
+        assert_eq!(action, Some(ActionType::Strike), "High HP character should Strike");
+
+        // テスト2: HP=50 (30<HP<70) -> Heal
+        let mut mid_hp_char = Character::new("Mid".to_string(), 100, 50, 25);
+        mid_hp_char.take_damage(50); // HP: 50
+        let battle_context = BattleContext::new(&mid_hp_char, &player, &enemy);
+        let action = system.calculate_action(&battle_context);
+        assert_eq!(action, Some(ActionType::Heal), "Mid HP character should Heal");
+
+        // テスト3: HP=20 (<30) -> Strike
+        let mut low_hp_char = Character::new("Low".to_string(), 100, 50, 25);
+        low_hp_char.take_damage(80); // HP: 20
+        let battle_context = BattleContext::new(&low_hp_char, &player, &enemy);
+        let action = system.calculate_action(&battle_context);
+        assert_eq!(action, Some(ActionType::Strike), "Low HP character should Strike (fallback)");
+    }
+
+    #[test]
+    fn test_character_selection_combinations() {
+        // 異なるキャラクター選択ノードの組み合わせテスト
+        use crate::RandomCharacterNode;
+        
+        let acting_char = Character::new("Actor".to_string(), 100, 50, 25);
+        let player = Character::new("Player".to_string(), 80, 40, 20);
+        let enemy = Character::new("Enemy".to_string(), 60, 30, 15);
+
+        // ActingCharacterのHPと他キャラクターのHPを比較
+        let char_comparison_rules: Vec<RuleNode> = vec![
+            Box::new(ConditionCheckNode::new(
+                Box::new(GreaterThanConditionNode::new(
+                    Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))),
+                    Box::new(CharacterHpFromNode::new(Box::new(RandomCharacterNode))),
+                )),
+                Box::new(StrikeActionNode),
+            )),
+            Box::new(HealActionNode),
+        ];
+
+        let rng = StdRng::seed_from_u64(12345);
+        let mut system = ActionCalculationSystem::new(char_comparison_rules, rng);
+
+        let mut results = Vec::new();
+        for _ in 0..10 {
+            let battle_context = BattleContext::new(&acting_char, &player, &enemy);
+            if let Some(action) = system.calculate_action(&battle_context) {
+                results.push(action);
+            }
+        }
+
+        assert_eq!(results.len(), 10, "Should execute 10 actions");
+        // ActingChar(HP=100)は他のキャラより高いHPを持つため、主にStrikeが選ばれるはず
+        let strike_count = results.iter().filter(|&action| *action == ActionType::Strike).count();
+        assert!(strike_count > 0, "Should have at least some Strike actions");
+    }
+
+    #[test]
+    fn test_value_node_combinations() {
+        // 異なる値ノードの組み合わせテスト
+        let character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+
+        // 定数値同士の比較
+        let constant_comparison_rules: Vec<RuleNode> = vec![
+            Box::new(ConditionCheckNode::new(
+                Box::new(GreaterThanConditionNode::new(
+                    Box::new(ConstantValueNode::new(100)),
+                    Box::new(ConstantValueNode::new(50)),
+                )),
+                Box::new(HealActionNode),
+            )),
+            Box::new(StrikeActionNode),
+        ];
+
+        let rng = StdRng::from_entropy();
+        let mut system = ActionCalculationSystem::new(constant_comparison_rules, rng);
+
+        let battle_context = BattleContext::new(&character, &player, &enemy);
+        let action = system.calculate_action(&battle_context);
+        // 100 > 50は常に真なので、常にHeal
+        assert_eq!(action, Some(ActionType::Heal), "100 > 50 should always be true, so Heal");
+    }
+
+    #[test]
+    fn test_empty_rules_fallback() {
+        // 空のルールリストの場合のテスト
+        let character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+
+        let empty_rules: Vec<RuleNode> = vec![];
+        let rng = StdRng::from_entropy();
+        let mut system = ActionCalculationSystem::new(empty_rules, rng);
+
+        let battle_context = BattleContext::new(&character, &player, &enemy);
+        let action = system.calculate_action(&battle_context);
+        assert_eq!(action, None, "Empty rules should return None");
+    }
+
+    #[test]
+    fn test_all_conditions_fail() {
+        // すべての条件が失敗する場合のテスト
+        let character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new("Player".to_string(), 100, 50, 25);
+        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+
+        // 絶対に満たされない条件のみ
+        let impossible_rules: Vec<RuleNode> = vec![
+            Box::new(ConditionCheckNode::new(
+                Box::new(GreaterThanConditionNode::new(
+                    Box::new(ConstantValueNode::new(10)),
+                    Box::new(ConstantValueNode::new(100)),
+                )),
+                Box::new(HealActionNode),
+            )),
+            Box::new(ConditionCheckNode::new(
+                Box::new(GreaterThanConditionNode::new(
+                    Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode))),
+                    Box::new(ConstantValueNode::new(200)),
+                )),
+                Box::new(StrikeActionNode),
+            )),
+        ];
+
+        let rng = StdRng::from_entropy();
+        let mut system = ActionCalculationSystem::new(impossible_rules, rng);
+
+        let battle_context = BattleContext::new(&character, &player, &enemy);
+        let action = system.calculate_action(&battle_context);
+        assert_eq!(action, None, "All failing conditions should return None");
+    }
+
 }
