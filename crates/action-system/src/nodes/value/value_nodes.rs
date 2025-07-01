@@ -13,4 +13,4 @@ impl ValueNode for Box<dyn ValueNode> {
 
 // Re-export individual value node modules
 pub use super::constant_value_node::ConstantValueNode;
-pub use crate::nodes::character::character_hp_from_node::CharacterHpFromNode;
+pub use crate::nodes::character::character_hp_node::CharacterHpNode;

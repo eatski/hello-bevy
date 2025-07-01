@@ -36,7 +36,8 @@ mod tests {
         assert_eq!(FlatTokenInput::Number(50).display_text(), "50");
         assert_eq!(FlatTokenInput::Number(100).display_text(), "Num");
         assert_eq!(FlatTokenInput::ActingCharacter.display_text(), "ActingChar");
-        assert_eq!(FlatTokenInput::RandomCharacter.display_text(), "RandomChar");
+        assert_eq!(FlatTokenInput::AllCharacters.display_text(), "AllChars");
+        assert_eq!(FlatTokenInput::RandomPick.display_text(), "RandomPick");
         assert_eq!(FlatTokenInput::HP.display_text(), "HP");
         assert_eq!(FlatTokenInput::GreaterThan.display_text(), "L-gt-R");
         assert_eq!(FlatTokenInput::TrueOrFalse.display_text(), "50/50");

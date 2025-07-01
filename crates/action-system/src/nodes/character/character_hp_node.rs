@@ -1,20 +1,20 @@
-// Character HP from node - returns HP from a character node
+// Character HP node - returns HP from a character node
 
 use crate::nodes::value::ValueNode;
 use super::character_nodes::CharacterNode;
 
 #[derive(Debug)]
-pub struct CharacterHpFromNode {
+pub struct CharacterHpNode {
     pub character_node: Box<dyn CharacterNode>,
 }
 
-impl CharacterHpFromNode {
+impl CharacterHpNode {
     pub fn new(character_node: Box<dyn CharacterNode>) -> Self {
         Self { character_node }
     }
 }
 
-impl ValueNode for CharacterHpFromNode {
+impl ValueNode for CharacterHpNode {
     fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
         let target_id = self.character_node.evaluate(battle_context, rng)?;
         let target_character = battle_context.get_character_by_id(target_id)
@@ -31,7 +31,7 @@ mod tests {
     use rand::SeedableRng;
 
     #[test]
-    fn test_character_hp_from_node() {
+    fn test_character_hp_node() {
         let player = Character::new(1, "Player".to_string(), 100, 50, 25);
         let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
         let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
@@ -42,8 +42,8 @@ mod tests {
         
         let mut rng = StdRng::from_entropy();
         
-        // Test CharacterHpFromNode with ActingCharacterNode
-        let char_hp_from_node = CharacterHpFromNode::new(Box::new(ActingCharacterNode));
-        assert_eq!(char_hp_from_node.evaluate(&battle_context, &mut rng), Ok(100));
+        // Test CharacterHpNode with ActingCharacterNode
+        let char_hp_node = CharacterHpNode::new(Box::new(ActingCharacterNode));
+        assert_eq!(char_hp_node.evaluate(&battle_context, &mut rng), Ok(100));
     }
 }

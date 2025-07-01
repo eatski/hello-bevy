@@ -40,7 +40,10 @@
         {
           "type": "Strike",
           "target": {
-            "type": "RandomCharacter"
+            "type": "RandomPick",
+            "array": {
+              "type": "AllCharacters"
+            }
           }
         }
       ]

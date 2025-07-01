@@ -176,7 +176,8 @@ mod tests {
         
         // Add tokens to first row
         rules.add_token_to_current_row(FlatTokenInput::Strike);
-        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
         assert_eq!(rules.non_empty_rule_count(), 1);
         assert_eq!(rules.has_valid_rules(), true);
         

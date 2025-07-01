@@ -1,7 +1,7 @@
 // Converter - FlatTokenInput <-> StructuredTokenInput <-> Node 変換
 
 use crate::{FlatTokenInput, StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, RandomCharacterNode, CharacterHpFromNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode};
+use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, RandomPickNode, CharacterArrayNode};
 use action_system::nodes::character::CharacterNode;
 
 // パース結果を表すEnum
@@ -11,6 +11,7 @@ pub enum ParsedResolver {
     Condition(Box<dyn ConditionNode>),
     Value(Box<dyn ValueNode>),
     Character(Box<dyn CharacterNode>),
+    CharacterArray(Box<dyn CharacterArrayNode>),
 }
 
 impl ParsedResolver {
@@ -39,6 +40,13 @@ impl ParsedResolver {
         match self {
             ParsedResolver::Character(character_node) => Ok(character_node),
             _ => Err(format!("Expected Character, got {:?}", self)),
+        }
+    }
+    
+    pub fn require_character_array(self) -> Result<Box<dyn CharacterArrayNode>, String> {
+        match self {
+            ParsedResolver::CharacterArray(character_array_node) => Ok(character_array_node),
+            _ => Err(format!("Expected CharacterArray, got {:?}", self)),
         }
     }
 }
@@ -108,7 +116,14 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
         }
         FlatTokenInput::Number(n) => Ok((StructuredTokenInput::Number { value: *n as i32 }, 1)),
         FlatTokenInput::ActingCharacter => Ok((StructuredTokenInput::ActingCharacter, 1)),
-        FlatTokenInput::RandomCharacter => Ok((StructuredTokenInput::RandomCharacter, 1)),
+        FlatTokenInput::AllCharacters => Ok((StructuredTokenInput::AllCharacters, 1)),
+        FlatTokenInput::RandomPick => {
+            if index + 1 >= tokens.len() {
+                return Err("RandomPick requires an array argument".to_string());
+            }
+            let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
+            Ok((StructuredTokenInput::RandomPick { array: Box::new(array_token) }, 1 + array_consumed))
+        }
         FlatTokenInput::TrueOrFalse => Ok((StructuredTokenInput::TrueOrFalseRandom, 1)),
     }
 }
@@ -143,7 +158,7 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::HP { character } => {
             let character_node = convert_structured_to_node(character)?;
             let char_node = character_node.require_character()?;
-            Ok(ParsedResolver::Value(Box::new(CharacterHpFromNode::new(char_node))))
+            Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(char_node))))
         }
         StructuredTokenInput::Number { value } => {
             Ok(ParsedResolver::Value(Box::new(ConstantValueNode::new(*value))))
@@ -151,15 +166,20 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::ActingCharacter => {
             Ok(ParsedResolver::Character(Box::new(ActingCharacterNode)))
         }
-        StructuredTokenInput::RandomCharacter => {
-            Ok(ParsedResolver::Character(Box::new(RandomCharacterNode::new())))
+        StructuredTokenInput::AllCharacters => {
+            Ok(ParsedResolver::CharacterArray(Box::new(AllCharactersNode::new())))
+        }
+        StructuredTokenInput::RandomPick { array } => {
+            let array_node = convert_structured_to_node(array)?;
+            let character_array_node = array_node.require_character_array()?;
+            Ok(ParsedResolver::Character(Box::new(RandomPickNode::new(character_array_node))))
         }
         StructuredTokenInput::TrueOrFalseRandom => {
             Ok(ParsedResolver::Condition(Box::new(RandomConditionNode)))
         }
         StructuredTokenInput::CharacterHP => {
             // Legacy support - assume acting character
-            Ok(ParsedResolver::Value(Box::new(CharacterHpFromNode::new(Box::new(ActingCharacterNode)))))
+            Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(Box::new(ActingCharacterNode)))))
         }
     }
 }
@@ -251,10 +271,49 @@ mod tests {
     fn test_flat_rules_to_nodes() {
         let flat_rules = vec![
             vec![FlatTokenInput::Strike, FlatTokenInput::ActingCharacter],
-            vec![FlatTokenInput::Heal, FlatTokenInput::RandomCharacter],
+            vec![FlatTokenInput::Heal, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters],
         ];
         
         let nodes = convert_flat_rules_to_nodes(&flat_rules);
         assert_eq!(nodes.len(), 2);
+    }
+
+    #[test]
+    fn test_all_characters_token() {
+        // Test FlatTokenInput::AllCharacters conversion
+        let flat = vec![FlatTokenInput::AllCharacters];
+        let structured = convert_flat_to_structured(&flat).unwrap();
+        
+        assert_eq!(structured.len(), 1);
+        match &structured[0] {
+            StructuredTokenInput::AllCharacters => (),
+            _ => panic!("Expected AllCharacters"),
+        }
+        
+        // Test structured to node conversion
+        let result = convert_structured_to_node(&structured[0]).unwrap();
+        assert!(result.require_character_array().is_ok());
+    }
+
+    #[test]
+    fn test_random_pick_token() {
+        // Test FlatTokenInput::RandomPick with AllCharacters
+        let flat = vec![FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters];
+        let structured = convert_flat_to_structured(&flat).unwrap();
+        
+        assert_eq!(structured.len(), 1);
+        match &structured[0] {
+            StructuredTokenInput::RandomPick { array } => {
+                match array.as_ref() {
+                    StructuredTokenInput::AllCharacters => (),
+                    _ => panic!("Expected AllCharacters array"),
+                }
+            }
+            _ => panic!("Expected RandomPick"),
+        }
+        
+        // Test structured to node conversion
+        let result = convert_structured_to_node(&structured[0]).unwrap();
+        assert!(result.require_character().is_ok());
     }
 }

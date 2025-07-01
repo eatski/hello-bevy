@@ -7,7 +7,8 @@ pub enum FlatTokenInput {
     Heal,
     Number(u32),
     ActingCharacter,  // 行動するキャラクター
-    RandomCharacter,  // ランダムなキャラクター
+    AllCharacters,    // 全キャラクター配列
+    RandomPick,       // ランダム選択
     HP,               // HP値
     GreaterThan,
     TrueOrFalse,
@@ -25,7 +26,8 @@ impl FlatTokenInput {
                 _ => "Num".to_string(),
             },
             FlatTokenInput::ActingCharacter => "ActingChar".to_string(),
-            FlatTokenInput::RandomCharacter => "RandomChar".to_string(),
+            FlatTokenInput::AllCharacters => "AllChars".to_string(),
+            FlatTokenInput::RandomPick => "RandomPick".to_string(),
             FlatTokenInput::HP => "HP".to_string(),
             FlatTokenInput::GreaterThan => "L-gt-R".to_string(),
             FlatTokenInput::TrueOrFalse => "50/50".to_string(),

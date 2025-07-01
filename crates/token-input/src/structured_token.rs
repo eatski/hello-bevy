@@ -39,5 +39,9 @@ pub enum StructuredTokenInput {
     },
     // Character types
     ActingCharacter,
-    RandomCharacter,
+    // Array types
+    AllCharacters,
+    RandomPick {
+        array: Box<StructuredTokenInput>,
+    },
 }

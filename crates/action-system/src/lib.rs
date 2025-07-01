@@ -8,7 +8,7 @@ pub mod system;
 pub use core::{Character, Team, TeamSide, ActionResolver, Action, BattleState, RuleNode, NodeError, NodeResult};
 pub use nodes::condition::{ConditionNode, ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode};
 pub use nodes::value::{ValueNode, ConstantValueNode};
-pub use nodes::character::{BattleContext, CharacterNode, ActingCharacterNode, RandomCharacterNode, CharacterHpFromNode};
+pub use nodes::character::{BattleContext, CharacterNode, ActingCharacterNode, CharacterHpNode};
 pub use nodes::action::{StrikeActionNode, HealActionNode};
 pub use nodes::array::{CharacterArrayNode, AllCharactersNode, TeamMembersNode, CountArrayNode, RandomPickNode};
 pub use system::ActionCalculationSystem;

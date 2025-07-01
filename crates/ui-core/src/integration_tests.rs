@@ -24,7 +24,8 @@ mod tests {
         
         // Create a simple strike rule
         rules.add_token_to_current_row(FlatTokenInput::Strike);
-        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
         assert_eq!(rules.has_valid_rules(), true);
         assert_eq!(rules.non_empty_rule_count(), 1);
         
@@ -50,10 +51,11 @@ mod tests {
         rules.add_token_to_current_row(FlatTokenInput::Heal);
         rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         
-        // Add fallback rule: Strike → RandomCharacter
+        // Add fallback rule: Strike → RandomPick → AllCharacters
         rules.select_next_row();
         rules.add_token_to_current_row(FlatTokenInput::Strike);
-        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
         
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_eq!(rule_nodes.len(), 2);
@@ -95,7 +97,8 @@ mod tests {
         
         // Test multi-row editing
         rules.add_token_to_current_row(FlatTokenInput::Strike);
-        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
         rules.select_next_row();
         rules.add_token_to_current_row(FlatTokenInput::Heal);
         rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
@@ -124,7 +127,8 @@ mod tests {
         rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         rules.select_next_row();
         rules.add_token_to_current_row(FlatTokenInput::Strike);
-        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
         
         assert_eq!(rules.non_empty_rule_count(), 2);
         
@@ -157,7 +161,8 @@ mod tests {
         // Valid pattern: Strike only
         let mut rules1 = CurrentRules::new();
         rules1.add_token_to_current_row(FlatTokenInput::Strike);
-        rules1.add_token_to_current_row(FlatTokenInput::RandomCharacter);
+        rules1.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules1.add_token_to_current_row(FlatTokenInput::AllCharacters);
         assert_eq!(rules1.has_valid_rules(), true);
         let nodes1 = rules1.convert_to_rule_nodes();
         assert_ne!(nodes1.len(), 0);
@@ -240,16 +245,17 @@ mod tests {
     fn test_random_character_integration() {
         let mut rules = CurrentRules::new();
         
-        // Create rule: Check → GreaterThan → Number(30) → HP → RandomCharacter → Heal
+        // Create rule: Check → GreaterThan → Number(30) → HP → RandomPick → AllCharacters → Heal
         rules.add_token_to_current_row(FlatTokenInput::Check);
         rules.add_token_to_current_row(FlatTokenInput::GreaterThan);
         rules.add_token_to_current_row(FlatTokenInput::Number(30));
         rules.add_token_to_current_row(FlatTokenInput::HP);
-        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
         rules.add_token_to_current_row(FlatTokenInput::Heal);
         rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         
         let rule_nodes = rules.convert_to_rule_nodes();
-        assert_eq!(rule_nodes.len(), 1, "RandomCharacter rule should convert successfully");
+        assert_eq!(rule_nodes.len(), 1, "RandomPick rule should convert successfully");
     }
 }
