@@ -12,16 +12,16 @@ use json_rule::{load_rules_from_file, convert_to_node_rules};
 pub fn setup_team_battle(mut commands: Commands) {
     // プレイヤーチーム
     let player_team = Team::new("勇者パーティー".to_string(), vec![
-        GameCharacter::new("勇者".to_string(), 100, 80, 25),
-        GameCharacter::new("戦士".to_string(), 120, 50, 30),
-        GameCharacter::new("魔法使い".to_string(), 70, 100, 15),
+        GameCharacter::new(1, "勇者".to_string(), 100, 80, 25),
+        GameCharacter::new(2, "戦士".to_string(), 120, 50, 30),
+        GameCharacter::new(3, "魔法使い".to_string(), 70, 100, 15),
     ]);
     
     // 敵チーム
     let enemy_team = Team::new("モンスター軍団".to_string(), vec![
-        GameCharacter::new("オーク".to_string(), 150, 30, 20),
-        GameCharacter::new("ゴブリン".to_string(), 80, 40, 15),
-        GameCharacter::new("スライム".to_string(), 60, 60, 10),
+        GameCharacter::new(4, "オーク".to_string(), 150, 30, 20),
+        GameCharacter::new(5, "ゴブリン".to_string(), 80, 40, 15),
+        GameCharacter::new(6, "スライム".to_string(), 60, 60, 10),
     ]);
     
     // Load player rules from JSON file for each character
@@ -69,16 +69,16 @@ pub fn handle_team_restart(
        (keyboard_input.just_pressed(KeyCode::ShiftLeft) || keyboard_input.just_pressed(KeyCode::ShiftRight)) {
         // プレイヤーチーム
         let player_team = Team::new("勇者パーティー".to_string(), vec![
-            GameCharacter::new("勇者".to_string(), 100, 80, 25),
-            GameCharacter::new("戦士".to_string(), 120, 50, 30),
-            GameCharacter::new("魔法使い".to_string(), 70, 100, 15),
+            GameCharacter::new(1, "勇者".to_string(), 100, 80, 25),
+            GameCharacter::new(2, "戦士".to_string(), 120, 50, 30),
+            GameCharacter::new(3, "魔法使い".to_string(), 70, 100, 15),
         ]);
         
         // 敵チーム
         let enemy_team = Team::new("モンスター軍団".to_string(), vec![
-            GameCharacter::new("オーク".to_string(), 150, 30, 20),
-            GameCharacter::new("ゴブリン".to_string(), 80, 40, 15),
-            GameCharacter::new("スライム".to_string(), 60, 60, 10),
+            GameCharacter::new(4, "オーク".to_string(), 150, 30, 20),
+            GameCharacter::new(5, "ゴブリン".to_string(), 80, 40, 15),
+            GameCharacter::new(6, "スライム".to_string(), 60, 60, 10),
         ]);
         
         // Load rules from JSON
@@ -121,16 +121,16 @@ pub fn apply_rules_to_battle(
     if game_state.is_changed() && game_state.0.mode == GameMode::Battle {
         // プレイヤーチーム
         let player_team = Team::new("勇者パーティー".to_string(), vec![
-            GameCharacter::new("勇者".to_string(), 100, 80, 25),
-            GameCharacter::new("戦士".to_string(), 120, 50, 30),
-            GameCharacter::new("魔法使い".to_string(), 70, 100, 15),
+            GameCharacter::new(1, "勇者".to_string(), 100, 80, 25),
+            GameCharacter::new(2, "戦士".to_string(), 120, 50, 30),
+            GameCharacter::new(3, "魔法使い".to_string(), 70, 100, 15),
         ]);
         
         // 敵チーム
         let enemy_team = Team::new("モンスター軍団".to_string(), vec![
-            GameCharacter::new("オーク".to_string(), 150, 30, 20),
-            GameCharacter::new("ゴブリン".to_string(), 80, 40, 15),
-            GameCharacter::new("スライム".to_string(), 60, 60, 10),
+            GameCharacter::new(4, "オーク".to_string(), 150, 30, 20),
+            GameCharacter::new(5, "ゴブリン".to_string(), 80, 40, 15),
+            GameCharacter::new(6, "スライム".to_string(), 60, 60, 10),
         ]);
         
         // UIで作成したルールを各プレイヤーキャラクターに適用

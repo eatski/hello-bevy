@@ -1,17 +1,33 @@
-// Strike action node - resolves to strike action
+// Strike action node - resolves to strike action with target character
 
-use crate::core::{ActionResolver, ActionType, NodeResult, NodeError};
+use crate::core::{ActionResolver, NodeResult, NodeError, Action, StrikeAction};
+use crate::nodes::character::CharacterNode;
 
 #[derive(Debug)]
-pub struct StrikeActionNode;
+pub struct StrikeActionNode {
+    target: Box<dyn CharacterNode>,
+}
+
+impl StrikeActionNode {
+    pub fn new(target: Box<dyn CharacterNode>) -> Self {
+        Self { target }
+    }
+}
 
 impl ActionResolver for StrikeActionNode {
-    fn resolve(&self, battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> NodeResult<ActionType> {
-        if battle_context.get_acting_character().hp > 0 {
-            Ok(ActionType::Strike)
-        } else {
-            Err(NodeError::Break)
+    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
+        let acting_character = battle_context.get_acting_character();
+        
+        // Check if acting character can attack (alive)
+        if acting_character.hp <= 0 {
+            return Err(NodeError::Break);
         }
+        
+        // Evaluate target character ID
+        let target_id = self.target.evaluate(battle_context, rng)?;
+        
+        // Create and return StrikeAction with the evaluated target ID
+        Ok(Box::new(StrikeAction::new(target_id)))
     }
 }
 
@@ -24,20 +40,30 @@ mod tests {
 
     #[test]
     fn test_strike_action_node() {
-        let player = Character::new("Player".to_string(), 100, 50, 25);
-        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+        use crate::nodes::character::ActingCharacterNode;
         
-        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new(1, "Player".to_string(), 100, 50, 25);
+        let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
+        
+        let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
         let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
-        let strike = StrikeActionNode;
+        
+        // Create strike action with enemy as target
+        let target = Box::new(ActingCharacterNode);
+        let strike = StrikeActionNode::new(target);
         let mut rng = StdRng::from_entropy();
         
         let result = strike.resolve(&battle_context, &mut rng);
-        assert_eq!(result, Ok(ActionType::Strike), "StrikeActionNode should return Strike for alive character");
+        assert!(result.is_ok(), "StrikeActionNode should return StrikeAction for alive character");
+        if let Ok(action) = result {
+            assert_eq!(action.get_action_name(), "Strike");
+        }
         
-        let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
+        let dead_character = Character::new(4, "Dead".to_string(), 0, 0, 25);
         let dead_battle_context = crate::BattleContext::new(&dead_character, &player, &enemy);
-        let result = strike.resolve(&dead_battle_context, &mut rng);
-        assert_eq!(result, Err(NodeError::Break), "StrikeActionNode should return Break error for dead character");
+        let target_dead = Box::new(ActingCharacterNode);
+        let strike_dead = StrikeActionNode::new(target_dead);
+        let result = strike_dead.resolve(&dead_battle_context, &mut rng);
+        assert!(matches!(result, Err(NodeError::Break)), "StrikeActionNode should return Break error for dead character");
     }
 }

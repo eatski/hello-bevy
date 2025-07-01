@@ -1,6 +1,6 @@
 // Condition check node - evaluates condition and delegates to next node or breaks
 
-use crate::core::{ActionResolver, ActionType, NodeResult, NodeError};
+use crate::core::{ActionResolver, Action, NodeResult, NodeError};
 use super::condition_nodes::ConditionNode;
 
 #[derive(Debug)]
@@ -16,7 +16,7 @@ impl ConditionCheckNode {
 }
 
 impl ActionResolver for ConditionCheckNode {
-    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<ActionType> {
+    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
         let condition_result = self.condition.evaluate(battle_context, rng)?;
         if condition_result {
             // Continue: delegate to next node
@@ -37,21 +37,21 @@ mod tests {
 
     #[test]
     fn test_condition_check_node() {
-        let player = Character::new("Player".to_string(), 100, 50, 25);
-        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
-        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new(1, "Player".to_string(), 100, 50, 25);
+        let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
+        let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
         let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
         
         let check_random = ConditionCheckNode::new(
             Box::new(RandomConditionNode),
-            Box::new(StrikeActionNode),
+            Box::new(StrikeActionNode::new(Box::new(crate::nodes::character::ActingCharacterNode))),
         );
         let mut rng = StdRng::from_entropy();
         
         let result = check_random.resolve(&battle_context, &mut rng);
-        // Should either return an ActionType or Break error
+        // Should either return an Action or Break error
         match result {
-            Ok(_action_type) => assert!(true), // Got an action
+            Ok(_action) => assert!(true), // Got an action
             Err(NodeError::Break) => assert!(true), // Got break
             Err(_) => panic!("Unexpected error type"),
         }

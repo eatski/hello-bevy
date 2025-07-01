@@ -47,6 +47,8 @@ cargo build --workspace --release
 - **ランダムターゲット実装**: Strikeアクションで標的をランダムに決定するよう変更（以前は最初に見つかった生存キャラクターを攻撃）
 - **1v1戦闘完全削除**: Battle構造体、impl Battle、1v1戦闘関連テスト（26個）を完全削除し、チーム戦闘のみのシステムに統一
 - **main.rsリファクタリング**: 起動処理のみに集中、具体的なロジックをbevy-uiクレートに委譲（DI的なアーキテクチャ）
+- **IDベースターゲティング実装**: CharacterにIDフィールドを追加し、ActionトレイトのtargetをIDで指定するように変更、BattleStateを用いた実際の戦闘処理を実装
+- **設定可能ターゲット実装**: StrikeとHealアクションで標的をUI/JSONから設定可能に（ActingCharacter、RandomCharacterなど選択可、UI/JSON両層で必須指定、フォールバック廃止）
 
 ## 🏗️ アーキテクチャ設計
 

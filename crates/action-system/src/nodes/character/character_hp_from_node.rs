@@ -16,7 +16,9 @@ impl CharacterHpFromNode {
 
 impl ValueNode for CharacterHpFromNode {
     fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
-        let target_character = self.character_node.evaluate(battle_context, rng)?;
+        let target_id = self.character_node.evaluate(battle_context, rng)?;
+        let target_character = battle_context.get_character_by_id(target_id)
+            .ok_or_else(|| crate::core::NodeError::EvaluationError(format!("Character with ID {} not found", target_id)))?;
         Ok(target_character.hp)
     }
 }
@@ -30,9 +32,9 @@ mod tests {
 
     #[test]
     fn test_character_hp_from_node() {
-        let player = Character::new("Player".to_string(), 100, 50, 25);
-        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
-        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new(1, "Player".to_string(), 100, 50, 25);
+        let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
+        let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
         let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
         
         let mut rng = StdRng::from_entropy();

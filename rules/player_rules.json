@@ -15,18 +15,27 @@
             }
           },
           "then_action": {
-            "type": "Heal"
+            "type": "Heal",
+            "target": {
+              "type": "ActingCharacter"
+            }
           }
         },
         {
-          "type": "Heal"
+          "type": "Heal",
+          "target": {
+            "type": "ActingCharacter"
+          }
         }
       ]
     },
     {
       "tokens": [
         {
-          "type": "Strike"
+          "type": "Strike",
+          "target": {
+            "type": "RandomCharacter"
+          }
         }
       ]
     }

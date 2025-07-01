@@ -17,12 +17,12 @@ impl RandomPickNode {
 }
 
 impl CharacterNode for RandomPickNode {
-    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<crate::Character> {
+    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
         let characters = self.array_node.evaluate(battle_context, rng)?;
         if characters.is_empty() {
             return Err(NodeError::EvaluationError("Cannot pick from empty character array".to_string()));
         }
         let index = rng.gen_range(0..characters.len());
-        Ok(characters[index].clone())
+        Ok(characters[index].id)
     }
 }

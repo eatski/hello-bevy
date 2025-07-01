@@ -23,22 +23,63 @@ impl std::error::Error for NodeError {}
 // Type alias for Result with NodeError
 pub type NodeResult<T> = Result<T, NodeError>;
 
-// Trait for nodes that can resolve to actions or break
-pub trait ActionResolver: Send + Sync + std::fmt::Debug {
-    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<ActionType>;
+// Battle state for mutable operations during action execution
+#[derive(Debug)]
+pub struct BattleState {
+    pub player_team: crate::Team,
+    pub enemy_team: crate::Team,
+    pub battle_log: Vec<String>,
 }
 
-impl ActionResolver for Box<dyn ActionResolver> {
-    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<ActionType> {
-        (**self).resolve(battle_context, rng)
+impl BattleState {
+    pub fn new(player_team: crate::Team, enemy_team: crate::Team) -> Self {
+        Self {
+            player_team,
+            enemy_team,
+            battle_log: Vec::new(),
+        }
+    }
+    
+    pub fn get_character_by_id_mut(&mut self, id: i32) -> Option<&mut crate::Character> {
+        self.player_team.get_member_by_id_mut(id)
+            .or_else(|| self.enemy_team.get_member_by_id_mut(id))
+    }
+    
+    pub fn get_character_by_id(&self, id: i32) -> Option<&crate::Character> {
+        self.player_team.get_member_by_id(id)
+            .or_else(|| self.enemy_team.get_member_by_id(id))
+    }
+    
+    pub fn add_log(&mut self, message: String) {
+        self.battle_log.push(message);
     }
 }
 
+// Trait for executable actions with target information
+pub trait Action: Send + Sync + std::fmt::Debug {
+    fn execute(&self, battle_context: &crate::BattleContext, battle_state: &mut BattleState) -> Result<(), String>;
+    fn get_action_name(&self) -> &'static str;
+}
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum ActionType {
-    Strike,
-    Heal,
+impl Action for Box<dyn Action> {
+    fn execute(&self, battle_context: &crate::BattleContext, battle_state: &mut BattleState) -> Result<(), String> {
+        (**self).execute(battle_context, battle_state)
+    }
+    
+    fn get_action_name(&self) -> &'static str {
+        (**self).get_action_name()
+    }
+}
+
+// Trait for nodes that can resolve to actions or break
+pub trait ActionResolver: Send + Sync + std::fmt::Debug {
+    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>>;
+}
+
+impl ActionResolver for Box<dyn ActionResolver> {
+    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
+        (**self).resolve(battle_context, rng)
+    }
 }
 
 // Simplified rule system - all nodes are ActionResolvers

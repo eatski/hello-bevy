@@ -55,6 +55,24 @@ Bevy Engineで開発されたRustベースのターンベースRPGバトルゲ�
 - それ以外の場合、50%の確率で攻撃を実行
 - 各行でアクションが決定されない場合は「何もしない」となる
 
+### 🎯 標的指定の設定例
+
+```javascript
+[
+    [Strike, RandomCharacter],        // ランダムな敵を攻撃
+    [Heal, ActingCharacter]           // 自分を回復
+]
+```
+
+**重要**: 標的指定は必須です。指定しない場合はエラーになります：
+
+```javascript
+[
+    [Strike, ActingCharacter],     // 自分を攻撃
+    [Heal, ActingCharacter]        // 自分を回復
+]
+```
+
 ## 📚 用語集
 
 ### 🎯 制御フロー
@@ -83,8 +101,28 @@ Bevy Engineで開発されたRustベースのターンベースRPGバトルゲ�
 #### ⚔️ アクション系
 キャラクターが実際に行動を実行（コスト不足時は`break`）
 
-- **Strike**: 基本攻撃
-- **Heal**: 回復魔法（MP消費）
+- **Strike**: 基本攻撃（オプション：target指定で標的選択）
+- **Heal**: 回復魔法（MP消費、オプション：target指定で標的選択）
+
+##### アクション標的指定例（JSON）
+```json
+{
+  "type": "Strike",
+  "target": {
+    "type": "RandomCharacter"
+  }
+}
+```
+
+**注意**: JSON設定では標的指定は必須です。指定しない場合はエラーになります：
+```json
+{
+  "type": "Heal",
+  "target": {
+    "type": "ActingCharacter"
+  }
+}
+```
 
 #### 配列系
 

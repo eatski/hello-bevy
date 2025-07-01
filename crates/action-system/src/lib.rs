@@ -5,7 +5,7 @@ pub mod nodes;
 pub mod system;
 
 // Re-export essential types only
-pub use core::{Character, Team, TeamSide, ActionResolver, ActionType, RuleNode, NodeError, NodeResult};
+pub use core::{Character, Team, TeamSide, ActionResolver, Action, BattleState, RuleNode, NodeError, NodeResult};
 pub use nodes::condition::{ConditionNode, ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode};
 pub use nodes::value::{ValueNode, ConstantValueNode};
 pub use nodes::character::{BattleContext, CharacterNode, ActingCharacterNode, RandomCharacterNode, CharacterHpFromNode};
@@ -22,8 +22,8 @@ mod tests {
     fn test_all_characters_node() {
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
-        let player = Character::new("Player".to_string(), 100, 50, 10);
-        let enemy = Character::new("Enemy".to_string(), 80, 30, 15);
+        let player = Character::new(1, "Player".to_string(), 100, 50, 10);
+        let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 15);
         
         let battle_context = BattleContext::new(&player, &player, &enemy);
         
@@ -40,11 +40,11 @@ mod tests {
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
         let player_team = Team::new("Player Team".to_string(), vec![
-            Character::new("Player1".to_string(), 100, 50, 10),
-            Character::new("Player2".to_string(), 0, 30, 8),  // Dead
+            Character::new(3, "Player1".to_string(), 100, 50, 10),
+            Character::new(4, "Player2".to_string(), 0, 30, 8),  // Dead
         ]);
         let enemy_team = Team::new("Enemy Team".to_string(), vec![
-            Character::new("Enemy1".to_string(), 80, 30, 15),
+            Character::new(5, "Enemy1".to_string(), 80, 30, 15),
         ]);
         
         let acting_character = &player_team.members[0];
@@ -67,8 +67,8 @@ mod tests {
     fn test_count_array_node() {
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
-        let player = Character::new("Player".to_string(), 100, 50, 10);
-        let enemy = Character::new("Enemy".to_string(), 80, 30, 15);
+        let player = Character::new(6, "Player".to_string(), 100, 50, 10);
+        let enemy = Character::new(7, "Enemy".to_string(), 80, 30, 15);
         
         let battle_context = BattleContext::new(&player, &player, &enemy);
         
@@ -87,11 +87,11 @@ mod tests {
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
         let player_team = Team::new("Player Team".to_string(), vec![
-            Character::new("Player1".to_string(), 100, 50, 10),
-            Character::new("Player2".to_string(), 80, 30, 8),
+            Character::new(8, "Player1".to_string(), 100, 50, 10),
+            Character::new(9, "Player2".to_string(), 80, 30, 8),
         ]);
         let enemy_team = Team::new("Enemy Team".to_string(), vec![
-            Character::new("Enemy1".to_string(), 60, 20, 12),
+            Character::new(10, "Enemy1".to_string(), 60, 20, 12),
         ]);
         
         let acting_character = &player_team.members[0];
@@ -105,10 +105,12 @@ mod tests {
         // Test random pick from character array
         let team_members_node = Box::new(TeamMembersNode::new(TeamSide::Player));
         let random_pick_node = RandomPickNode::new(team_members_node);
-        let result = CharacterNode::evaluate(&random_pick_node, &battle_context, &mut rng).unwrap();
+        let result_id = CharacterNode::evaluate(&random_pick_node, &battle_context, &mut rng).unwrap();
         
-        // Should pick one of the alive team members
-        assert!(result.name == "Player1" || result.name == "Player2");
+        // Should pick one of the team members
+        let player1_id = player_team.members[0].id;
+        let player2_id = player_team.members[1].id;
+        assert!(result_id == player1_id || result_id == player2_id);
     }
 
 
@@ -119,11 +121,11 @@ mod tests {
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
         let player_team = Team::new("Player Team".to_string(), vec![
-            Character::new("Player1".to_string(), 0, 50, 10),  // Dead
-            Character::new("Player2".to_string(), 0, 30, 8),   // Dead
+            Character::new(11, "Player1".to_string(), 0, 50, 10),  // Dead
+            Character::new(12, "Player2".to_string(), 0, 30, 8),   // Dead
         ]);
         let enemy_team = Team::new("Enemy Team".to_string(), vec![
-            Character::new("Enemy1".to_string(), 60, 20, 12),
+            Character::new(13, "Enemy1".to_string(), 60, 20, 12),
         ]);
         
         let acting_character = &player_team.members[0];
@@ -141,8 +143,10 @@ mod tests {
         
         // Should succeed since team has members (even if dead)
         assert!(result.is_ok());
-        let character = result.unwrap();
-        assert!(character.name == "Player1" || character.name == "Player2");
+        let character_id = result.unwrap();
+        let player1_id = player_team.members[0].id;
+        let player2_id = player_team.members[1].id;
+        assert!(character_id == player1_id || character_id == player2_id);
     }
 
 }

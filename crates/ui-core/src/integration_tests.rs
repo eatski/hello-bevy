@@ -24,6 +24,7 @@ mod tests {
         
         // Create a simple strike rule
         rules.add_token_to_current_row(UITokenType::Strike);
+        rules.add_token_to_current_row(UITokenType::RandomCharacter);
         assert_eq!(rules.has_valid_rules(), true);
         assert_eq!(rules.non_empty_rule_count(), 1);
         
@@ -40,17 +41,19 @@ mod tests {
     fn test_complex_rule_integration_with_action_system() {
         let mut rules = CurrentRules::new();
         
-        // Create complex rule: Check → GreaterThan → Number(50) → HP → ActingCharacter → Heal
+        // Create complex rule: Check → GreaterThan → Number(50) → HP → ActingCharacter → Heal → ActingCharacter
         rules.add_token_to_current_row(UITokenType::Check);
         rules.add_token_to_current_row(UITokenType::GreaterThan);
         rules.add_token_to_current_row(UITokenType::Number(50));
         rules.add_token_to_current_row(UITokenType::HP);
         rules.add_token_to_current_row(UITokenType::ActingCharacter);
         rules.add_token_to_current_row(UITokenType::Heal);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         
-        // Add fallback rule: Strike
+        // Add fallback rule: Strike → RandomCharacter
         rules.select_next_row();
         rules.add_token_to_current_row(UITokenType::Strike);
+        rules.add_token_to_current_row(UITokenType::RandomCharacter);
         
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_eq!(rule_nodes.len(), 2);
@@ -59,9 +62,9 @@ mod tests {
         let rng = create_test_rng();
         let mut action_system = ActionCalculationSystem::new(rule_nodes, rng);
         
-        let player = GameCharacter::new("Player".to_string(), 30, 50, 25); // Low HP
-        let enemy = GameCharacter::new("Enemy".to_string(), 100, 50, 25);
-        let acting_character = GameCharacter::new("Test".to_string(), 30, 50, 25); // Low HP
+        let player = GameCharacter::new(1, "Player".to_string(), 30, 50, 25); // Low HP
+        let enemy = GameCharacter::new(2, "Enemy".to_string(), 100, 50, 25);
+        let acting_character = GameCharacter::new(3, "Test".to_string(), 30, 50, 25); // Low HP
         let battle_context = BattleContext::new(&acting_character, &player, &enemy);
         
         let action = action_system.calculate_action(&battle_context);
@@ -75,11 +78,12 @@ mod tests {
         // Test adding and removing tokens
         rules.add_token_to_current_row(UITokenType::Check);
         rules.add_token_to_current_row(UITokenType::Strike);
-        assert_eq!(rules.rules[0].len(), 2);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
+        assert_eq!(rules.rules[0].len(), 3);
         
         // Remove last token
         rules.remove_last_token_from_current_row();
-        assert_eq!(rules.rules[0].len(), 1);
+        assert_eq!(rules.rules[0].len(), 2);
         assert_eq!(rules.rules[0][0], UITokenType::Check);
         
         // Clear row
@@ -88,8 +92,10 @@ mod tests {
         
         // Test multi-row editing
         rules.add_token_to_current_row(UITokenType::Strike);
+        rules.add_token_to_current_row(UITokenType::RandomCharacter);
         rules.select_next_row();
         rules.add_token_to_current_row(UITokenType::Heal);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         
         assert_eq!(rules.non_empty_rule_count(), 2);
         
@@ -112,8 +118,10 @@ mod tests {
         rules.add_token_to_current_row(UITokenType::Check);
         rules.add_token_to_current_row(UITokenType::TrueOrFalse);
         rules.add_token_to_current_row(UITokenType::Heal);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         rules.select_next_row();
         rules.add_token_to_current_row(UITokenType::Strike);
+        rules.add_token_to_current_row(UITokenType::RandomCharacter);
         
         assert_eq!(rules.non_empty_rule_count(), 2);
         
@@ -128,9 +136,9 @@ mod tests {
         let rng = create_test_rng();
         let mut action_system = ActionCalculationSystem::new(rule_nodes, rng);
         
-        let player = GameCharacter::new("Player".to_string(), 100, 50, 25);
-        let enemy = GameCharacter::new("Enemy".to_string(), 80, 30, 20);
-        let acting_character = GameCharacter::new("Test".to_string(), 50, 30, 25);
+        let player = GameCharacter::new(4, "Player".to_string(), 100, 50, 25);
+        let enemy = GameCharacter::new(5, "Enemy".to_string(), 80, 30, 20);
+        let acting_character = GameCharacter::new(6, "Test".to_string(), 50, 30, 25);
         let battle_context = BattleContext::new(&acting_character, &player, &enemy);
         let action = action_system.calculate_action(&battle_context);
         assert_eq!(action.is_some(), true);
@@ -143,6 +151,7 @@ mod tests {
         // Valid pattern: Strike only
         let mut rules1 = CurrentRules::new();
         rules1.add_token_to_current_row(UITokenType::Strike);
+        rules1.add_token_to_current_row(UITokenType::RandomCharacter);
         assert_eq!(rules1.has_valid_rules(), true);
         let nodes1 = rules1.convert_to_rule_nodes();
         assert_ne!(nodes1.len(), 0);
@@ -150,6 +159,7 @@ mod tests {
         // Valid pattern: Heal only  
         let mut rules2 = CurrentRules::new();
         rules2.add_token_to_current_row(UITokenType::Heal);
+        rules2.add_token_to_current_row(UITokenType::ActingCharacter);
         assert_eq!(rules2.has_valid_rules(), true);
         let nodes2 = rules2.convert_to_rule_nodes();
         assert!(!nodes2.is_empty());
@@ -162,6 +172,7 @@ mod tests {
         rules3.add_token_to_current_row(UITokenType::HP);
         rules3.add_token_to_current_row(UITokenType::ActingCharacter);
         rules3.add_token_to_current_row(UITokenType::Heal);
+        rules3.add_token_to_current_row(UITokenType::ActingCharacter);
         assert!(rules3.has_valid_rules());
         let nodes3 = rules3.convert_to_rule_nodes();
         assert!(!nodes3.is_empty());
@@ -201,10 +212,10 @@ mod tests {
     fn test_rule_persistence_and_reconstruction() {
         // Test that rules can be reconstructed from data
         let original_rules = vec![
-            vec![UITokenType::Check, UITokenType::TrueOrFalse, UITokenType::Heal],
-            vec![UITokenType::Strike],
+            vec![UITokenType::Check, UITokenType::TrueOrFalse, UITokenType::Heal, UITokenType::ActingCharacter],
+            vec![UITokenType::Strike, UITokenType::ActingCharacter],
             vec![],
-            vec![UITokenType::Check, UITokenType::GreaterThan, UITokenType::Number(50), UITokenType::HP, UITokenType::ActingCharacter, UITokenType::Strike],
+            vec![UITokenType::Check, UITokenType::GreaterThan, UITokenType::Number(50), UITokenType::HP, UITokenType::ActingCharacter, UITokenType::Strike, UITokenType::ActingCharacter],
             vec![]
         ];
         
@@ -230,6 +241,7 @@ mod tests {
         rules.add_token_to_current_row(UITokenType::HP);
         rules.add_token_to_current_row(UITokenType::RandomCharacter);
         rules.add_token_to_current_row(UITokenType::Heal);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_eq!(rule_nodes.len(), 1, "RandomCharacter rule should convert successfully");

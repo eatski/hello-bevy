@@ -70,13 +70,8 @@ pub fn parse_ui_token(tokens: &[UITokenType], index: usize) -> Result<(ParsedRes
     
     match &tokens[index] {
         // Action tokens
-        UITokenType::Strike => Ok((ParsedResolver::Action(Box::new(StrikeActionNode)), 1)),
-        UITokenType::Heal => {
-            // For now, use ActingCharacterNode as default target
-            // TODO: Support configurable target from UI
-            let target = Box::new(ActingCharacterNode);
-            Ok((ParsedResolver::Action(Box::new(HealActionNode::new(target))), 1))
-        },
+        UITokenType::Strike => parse_strike_action(tokens, index),
+        UITokenType::Heal => parse_heal_action(tokens, index),
         
         // Condition tokens
         UITokenType::TrueOrFalse => Ok((ParsedResolver::Condition(Box::new(RandomConditionNode)), 1)),
@@ -127,6 +122,58 @@ fn parse_hp_value(tokens: &[UITokenType], index: usize) -> Result<(ParsedResolve
         ParsedResolver::Value(Box::new(CharacterHpFromNode::new(character_node))),
         1 + character_consumed
     ))
+}
+
+// Strike行動をパース - ターゲット指定が必須
+fn parse_strike_action(tokens: &[UITokenType], index: usize) -> Result<(ParsedResolver, usize), String> {
+    // Check if there's a target specified after Strike
+    if index + 1 >= tokens.len() {
+        return Err("Strike action requires a target to be specified. Format: Strike → <target> (e.g., Strike → ActingCharacter, Strike → RandomCharacter)".to_string());
+    }
+    
+    // Try to parse the next token as a character target
+    match parse_ui_token(tokens, index + 1) {
+        Ok((parsed, consumed)) => {
+            if let Ok(character_node) = parsed.require_character() {
+                // Valid character target found
+                return Ok((
+                    ParsedResolver::Action(Box::new(StrikeActionNode::new(character_node))),
+                    1 + consumed
+                ));
+            } else {
+                return Err("Strike action requires a Character target. Valid targets: ActingCharacter, RandomCharacter".to_string());
+            }
+        }
+        Err(err) => {
+            return Err(format!("Failed to parse Strike target: {}", err));
+        }
+    }
+}
+
+// Heal行動をパース - ターゲット指定が必須
+fn parse_heal_action(tokens: &[UITokenType], index: usize) -> Result<(ParsedResolver, usize), String> {
+    // Check if there's a target specified after Heal
+    if index + 1 >= tokens.len() {
+        return Err("Heal action requires a target to be specified. Format: Heal → <target> (e.g., Heal → ActingCharacter, Heal → RandomCharacter)".to_string());
+    }
+    
+    // Try to parse the next token as a character target
+    match parse_ui_token(tokens, index + 1) {
+        Ok((parsed, consumed)) => {
+            if let Ok(character_node) = parsed.require_character() {
+                // Valid character target found
+                return Ok((
+                    ParsedResolver::Action(Box::new(HealActionNode::new(character_node))),
+                    1 + consumed
+                ));
+            } else {
+                return Err("Heal action requires a Character target. Valid targets: ActingCharacter, RandomCharacter".to_string());
+            }
+        }
+        Err(err) => {
+            return Err(format!("Failed to parse Heal target: {}", err));
+        }
+    }
 }
 
 // Check条件付きアクションをパース
@@ -186,12 +233,12 @@ mod tests {
 
     #[test]
     fn test_parse_simple_action_token() {
-        let tokens = vec![UITokenType::Strike];
+        let tokens = vec![UITokenType::Strike, UITokenType::ActingCharacter];
         let result = parse_ui_token(&tokens, 0);
         
         assert!(result.is_ok());
         let (parsed, consumed) = result.unwrap();
-        assert_eq!(consumed, 1);
+        assert_eq!(consumed, 2);
         assert!(parsed.require_action().is_ok());
     }
 
@@ -250,18 +297,19 @@ mod tests {
             UITokenType::Check,
             UITokenType::TrueOrFalse,
             UITokenType::Strike,
+            UITokenType::ActingCharacter,
         ];
         let result = parse_ui_token(&tokens, 0);
         
         assert!(result.is_ok());
         let (parsed, consumed) = result.unwrap();
-        assert_eq!(consumed, 3);
+        assert_eq!(consumed, 4);
         assert!(parsed.require_action().is_ok());
     }
 
     #[test]
     fn test_require_type_mismatch_error() {
-        let tokens = vec![UITokenType::Strike];
+        let tokens = vec![UITokenType::Strike, UITokenType::ActingCharacter];
         let result = parse_ui_token(&tokens, 0);
         
         assert!(result.is_ok());
@@ -274,7 +322,7 @@ mod tests {
     #[test]
     fn test_convert_simple_ui_rule() {
         let ui_rules = vec![
-            vec![UITokenType::Strike],
+            vec![UITokenType::Strike, UITokenType::ActingCharacter],
         ];
         
         let rule_nodes = convert_ui_rules_to_nodes(&ui_rules);
@@ -291,6 +339,7 @@ mod tests {
                 UITokenType::HP,
                 UITokenType::ActingCharacter,
                 UITokenType::Heal,
+                UITokenType::ActingCharacter,
             ],
         ];
         
@@ -308,11 +357,61 @@ mod tests {
                 UITokenType::HP,
                 UITokenType::RandomCharacter,
                 UITokenType::Heal,
+                UITokenType::ActingCharacter,
             ],
         ];
         
         let rule_nodes = convert_ui_rules_to_nodes(&ui_rules);
         assert_eq!(rule_nodes.len(), 1);
+    }
+
+    #[test]
+    fn test_strike_with_target() {
+        let tokens = vec![UITokenType::Strike, UITokenType::RandomCharacter];
+        let result = parse_ui_token(&tokens, 0);
+        
+        assert!(result.is_ok());
+        let (parsed, consumed) = result.unwrap();
+        assert_eq!(consumed, 2); // Should consume both Strike and RandomCharacter
+        assert!(parsed.require_action().is_ok());
+    }
+
+    #[test]
+    fn test_heal_with_target() {
+        let tokens = vec![UITokenType::Heal, UITokenType::ActingCharacter];
+        let result = parse_ui_token(&tokens, 0);
+        
+        assert!(result.is_ok());
+        let (parsed, consumed) = result.unwrap();
+        assert_eq!(consumed, 2); // Should consume both Heal and ActingCharacter
+        assert!(parsed.require_action().is_ok());
+    }
+
+    #[test]
+    fn test_strike_without_target() {
+        let tokens = vec![UITokenType::Strike];
+        let result = parse_ui_token(&tokens, 0);
+        
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Strike action requires a target"));
+    }
+
+    #[test]
+    fn test_heal_without_target() {
+        let tokens = vec![UITokenType::Heal];
+        let result = parse_ui_token(&tokens, 0);
+        
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Heal action requires a target"));
+    }
+
+    #[test]
+    fn test_strike_with_non_character_following_token() {
+        let tokens = vec![UITokenType::Strike, UITokenType::Number(42)];
+        let result = parse_ui_token(&tokens, 0);
+        
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Strike action requires a Character target"));
     }
 
 }

@@ -126,15 +126,17 @@ mod tests {
         
         // Add tokens to current row
         rules.add_token_to_current_row(UITokenType::Strike);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         rules.add_token_to_current_row(UITokenType::Heal);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         
-        assert_eq!(rules.rules[0].len(), 2);
+        assert_eq!(rules.rules[0].len(), 4);
         assert_eq!(rules.is_current_row_empty(), false);
         assert_eq!(rules.has_valid_rules(), true);
         
         // Remove last token
         rules.remove_last_token_from_current_row();
-        assert_eq!(rules.rules[0].len(), 1);
+        assert_eq!(rules.rules[0].len(), 3);
         
         // Clear current row
         rules.clear_current_row();
@@ -174,12 +176,14 @@ mod tests {
         
         // Add tokens to first row
         rules.add_token_to_current_row(UITokenType::Strike);
+        rules.add_token_to_current_row(UITokenType::RandomCharacter);
         assert_eq!(rules.non_empty_rule_count(), 1);
         assert_eq!(rules.has_valid_rules(), true);
         
         // Add tokens to second row
         rules.select_next_row();
         rules.add_token_to_current_row(UITokenType::Heal);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         assert_eq!(rules.non_empty_rule_count(), 2);
         
         // Clear all
@@ -200,6 +204,7 @@ mod tests {
         rules.add_token_to_current_row(UITokenType::HP);
         rules.add_token_to_current_row(UITokenType::ActingCharacter);
         rules.add_token_to_current_row(UITokenType::Heal);
+        rules.add_token_to_current_row(UITokenType::ActingCharacter);
         
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_ne!(rule_nodes.len(), 0, "Should convert to valid rule nodes");

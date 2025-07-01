@@ -1,5 +1,6 @@
 #[derive(Clone, Debug)]
 pub struct Character {
+    pub id: i32,
     pub name: String,
     pub hp: i32,
     pub max_hp: i32,
@@ -21,8 +22,9 @@ pub enum TeamSide {
 }
 
 impl Character {
-    pub fn new(name: String, max_hp: i32, max_mp: i32, attack: i32) -> Self {
+    pub fn new(id: i32, name: String, max_hp: i32, max_mp: i32, attack: i32) -> Self {
         Self {
+            id,
             name,
             hp: max_hp,
             max_hp,
@@ -105,6 +107,14 @@ impl Team {
 
     pub fn get_member_by_name_mut(&mut self, name: &str) -> Option<&mut Character> {
         self.members.iter_mut().find(|character| character.name == name)
+    }
+
+    pub fn get_member_by_id(&self, id: i32) -> Option<&Character> {
+        self.members.iter().find(|character| character.id == id)
+    }
+
+    pub fn get_member_by_id_mut(&mut self, id: i32) -> Option<&mut Character> {
+        self.members.iter_mut().find(|character| character.id == id)
     }
 
     pub fn total_hp(&self) -> i32 {

@@ -33,9 +33,9 @@ mod tests {
 
     #[test]
     fn test_greater_than_condition_node() {
-        let player = Character::new("Player".to_string(), 100, 50, 25);
-        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
-        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new(1, "Player".to_string(), 100, 50, 25);
+        let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
+        let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
         let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
         
         let mut rng = StdRng::from_entropy();

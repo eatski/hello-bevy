@@ -132,15 +132,36 @@ impl<'a> BattleContext<'a> {
             }
         }
     }
+
+    // ID-based character lookup
+    pub fn get_character_by_id(&self, id: i32) -> Option<&'a crate::Character> {
+        match self {
+            Self::SingleCharacter { acting_character, player, enemy } => {
+                if acting_character.id == id {
+                    Some(*acting_character)
+                } else if player.id == id {
+                    Some(*player)
+                } else if enemy.id == id {
+                    Some(*enemy)
+                } else {
+                    None
+                }
+            }
+            Self::TeamBattle { player_team, enemy_team, .. } => {
+                player_team.get_member_by_id(id)
+                    .or_else(|| enemy_team.get_member_by_id(id))
+            }
+        }
+    }
 }
 
-// Trait for nodes that evaluate to owned characters
+// Trait for nodes that evaluate to character IDs
 pub trait CharacterNode: Send + Sync + std::fmt::Debug {
-    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<crate::Character>;
+    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32>;
 }
 
 impl CharacterNode for Box<dyn CharacterNode> {
-    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<crate::Character> {
+    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
         (**self).evaluate(battle_context, rng)
     }
 }

@@ -49,12 +49,13 @@ impl ParsedResolver {
 pub fn parse_json_token(config: &JsonTokenInput) -> Result<ParsedResolver, String> {
     match config {
         // Action tokens
-        JsonTokenInput::Strike => Ok(ParsedResolver::Action(Box::new(StrikeActionNode))),
-        JsonTokenInput::Heal => {
-            // For now, use ActingCharacterNode as default target
-            // TODO: Support configurable target from JSON
-            let target = Box::new(ActingCharacterNode);
-            Ok(ParsedResolver::Action(Box::new(HealActionNode::new(target))))
+        JsonTokenInput::Strike { target } => {
+            let target_character = parse_json_token(target)?.require_character()?;
+            Ok(ParsedResolver::Action(Box::new(StrikeActionNode::new(target_character))))
+        },
+        JsonTokenInput::Heal { target } => {
+            let target_character = parse_json_token(target)?.require_character()?;
+            Ok(ParsedResolver::Action(Box::new(HealActionNode::new(target_character))))
         },
         
         // Condition tokens
@@ -165,7 +166,10 @@ mod tests {
                 {
                     "tokens": [
                         {
-                            "type": "Strike"
+                            "type": "Strike",
+                            "target": {
+                                "type": "ActingCharacter"
+                            }
                         }
                     ]
                 }
@@ -195,8 +199,8 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        JsonTokenInput::Strike,
-                        JsonTokenInput::Heal,
+                        JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) },
+                        JsonTokenInput::Heal { target: Box::new(JsonTokenInput::ActingCharacter) },
                     ],
                 },
             ],
@@ -218,9 +222,9 @@ mod tests {
                                 left: Box::new(JsonTokenInput::Number { value: 50 }),
                                 right: Box::new(JsonTokenInput::CharacterHP),
                             }),
-                            then_action: Box::new(JsonTokenInput::Heal),
+                            then_action: Box::new(JsonTokenInput::Heal { target: Box::new(JsonTokenInput::ActingCharacter) }),
                         },
-                        JsonTokenInput::Heal, // Changed to Heal to make it different from the first rule
+                        JsonTokenInput::Heal { target: Box::new(JsonTokenInput::ActingCharacter) }, // Changed to Heal to make it different from the first rule
                     ],
                 },
             ],
@@ -239,9 +243,9 @@ mod tests {
                     tokens: vec![
                         JsonTokenInput::Check {
                             condition: Box::new(JsonTokenInput::TrueOrFalseRandom),
-                            then_action: Box::new(JsonTokenInput::Strike),
+                            then_action: Box::new(JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) }),
                         },
-                        JsonTokenInput::Strike, // Add action to make validation pass first
+                        JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) }, // Add action to make validation pass first
                     ],
                 },
             ],
@@ -262,9 +266,9 @@ mod tests {
                                 left: Box::new(JsonTokenInput::Number { value: 50 }),
                                 right: Box::new(JsonTokenInput::Number { value: 30 }),
                             }),
-                            then_action: Box::new(JsonTokenInput::Strike),
+                            then_action: Box::new(JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) }),
                         },
-                        JsonTokenInput::Strike, // Add action to make validation pass first
+                        JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) }, // Add action to make validation pass first
                     ],
                 },
             ],
@@ -305,9 +309,9 @@ mod tests {
                                 left: Box::new(JsonTokenInput::Number { value: 50 }),
                                 right: Box::new(JsonTokenInput::CharacterHP),
                             }),
-                            then_action: Box::new(JsonTokenInput::Heal),
+                            then_action: Box::new(JsonTokenInput::Heal { target: Box::new(JsonTokenInput::ActingCharacter) }),
                         },
-                        JsonTokenInput::Strike,
+                        JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) },
                     ],
                 },
             ],
@@ -328,9 +332,9 @@ mod tests {
                                 left: Box::new(JsonTokenInput::Number { value: 50 }),
                                 right: Box::new(JsonTokenInput::CharacterHP),
                             }),
-                            then_action: Box::new(JsonTokenInput::Heal),
+                            then_action: Box::new(JsonTokenInput::Heal { target: Box::new(JsonTokenInput::ActingCharacter) }),
                         },
-                        JsonTokenInput::Strike,
+                        JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) },
                     ],
                 },
             ],
@@ -351,9 +355,9 @@ mod tests {
                     tokens: vec![
                         JsonTokenInput::Check {
                             condition: Box::new(JsonTokenInput::TrueOrFalseRandom),
-                            then_action: Box::new(JsonTokenInput::Strike),
+                            then_action: Box::new(JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) }),
                         },
-                        JsonTokenInput::Strike, // Valid: action follows continue token
+                        JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) }, // Valid: action follows continue token
                     ],
                 },
             ],
@@ -372,7 +376,7 @@ mod tests {
             rules: vec![
                 RuleChain {
                     tokens: vec![
-                        JsonTokenInput::Strike, // Action tokens can be at the end
+                        JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) }, // Action tokens can be at the end
                     ],
                 },
             ],
@@ -398,9 +402,9 @@ mod tests {
                                     character: Box::new(JsonTokenInput::ActingCharacter),
                                 }),
                             }),
-                            then_action: Box::new(JsonTokenInput::Heal),
+                            then_action: Box::new(JsonTokenInput::Heal { target: Box::new(JsonTokenInput::ActingCharacter) }),
                         },
-                        JsonTokenInput::Strike,
+                        JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) },
                     ],
                 },
             ],
@@ -425,9 +429,9 @@ mod tests {
                                     character: Box::new(JsonTokenInput::RandomCharacter),
                                 }),
                             }),
-                            then_action: Box::new(JsonTokenInput::Heal),
+                            then_action: Box::new(JsonTokenInput::Heal { target: Box::new(JsonTokenInput::ActingCharacter) }),
                         },
-                        JsonTokenInput::Strike,
+                        JsonTokenInput::Strike { target: Box::new(JsonTokenInput::ActingCharacter) },
                     ],
                 },
             ],
@@ -438,5 +442,32 @@ mod tests {
         let node_rules = result.unwrap();
         assert_eq!(node_rules.len(), 1);
     }
+
+    #[test]
+    fn test_strike_with_target() {
+        let result = parse_json_token(&JsonTokenInput::Strike {
+            target: Box::new(JsonTokenInput::RandomCharacter)
+        });
+        
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        
+        // Should be an action node
+        assert!(parsed.require_action().is_ok());
+    }
+
+    #[test]
+    fn test_heal_with_target() {
+        let result = parse_json_token(&JsonTokenInput::Heal {
+            target: Box::new(JsonTokenInput::ActingCharacter)
+        });
+        
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        
+        // Should be an action node
+        assert!(parsed.require_action().is_ok());
+    }
+
 
 }

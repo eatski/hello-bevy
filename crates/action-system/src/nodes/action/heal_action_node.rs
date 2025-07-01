@@ -1,6 +1,6 @@
 // Heal action node - resolves to heal action with target character
 
-use crate::core::{ActionResolver, ActionType, NodeResult, NodeError};
+use crate::core::{ActionResolver, NodeResult, NodeError, Action, HealAction};
 use crate::nodes::character::CharacterNode;
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ impl HealActionNode {
 }
 
 impl ActionResolver for HealActionNode {
-    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<ActionType> {
+    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
         let acting_character = battle_context.get_acting_character();
         
         // Check if acting character can perform heal (alive and has MP)
@@ -23,11 +23,11 @@ impl ActionResolver for HealActionNode {
             return Err(NodeError::Break);
         }
         
-        // Evaluate target character
-        let _target_character = self.target.evaluate(battle_context, rng)?;
+        // Evaluate target character ID
+        let target_id = self.target.evaluate(battle_context, rng)?;
         
-        // If we can successfully evaluate the target, return Heal action
-        Ok(ActionType::Heal)
+        // Create and return HealAction with the evaluated target ID
+        Ok(Box::new(HealAction::new(target_id)))
     }
 }
 
@@ -42,10 +42,10 @@ mod tests {
     fn test_heal_action_node() {
         use crate::nodes::character::ActingCharacterNode;
         
-        let player = Character::new("Player".to_string(), 100, 50, 25);
-        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
+        let player = Character::new(1, "Player".to_string(), 100, 50, 25);
+        let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
         
-        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
         let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
         
         // Create heal action with acting character as target
@@ -54,13 +54,16 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         let result = heal.resolve(&battle_context, &mut rng);
-        assert_eq!(result, Ok(ActionType::Heal), "HealActionNode should return Heal for alive character");
+        assert!(result.is_ok(), "HealActionNode should return HealAction for alive character");
+        if let Ok(action) = result {
+            assert_eq!(action.get_action_name(), "Heal");
+        }
         
-        let dead_character = Character::new("Dead".to_string(), 0, 0, 25);
+        let dead_character = Character::new(4, "Dead".to_string(), 0, 0, 25);
         let dead_battle_context = crate::BattleContext::new(&dead_character, &player, &enemy);
         let target_dead = Box::new(ActingCharacterNode);
         let heal_dead = HealActionNode::new(target_dead);
         let result = heal_dead.resolve(&dead_battle_context, &mut rng);
-        assert_eq!(result, Err(NodeError::Break), "HealActionNode should return Break error for dead character");
+        assert!(matches!(result, Err(NodeError::Break)), "HealActionNode should return Break error for dead character");
     }
 }

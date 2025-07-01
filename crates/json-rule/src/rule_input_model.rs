@@ -14,8 +14,12 @@ pub struct RuleChain {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type")]
 pub enum JsonTokenInput {
-    Strike,
-    Heal,
+    Strike {
+        target: Box<JsonTokenInput>,
+    },
+    Heal {
+        target: Box<JsonTokenInput>,
+    },
     TrueOrFalseRandom,
     Check {
         condition: Box<JsonTokenInput>,

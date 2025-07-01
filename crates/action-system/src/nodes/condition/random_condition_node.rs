@@ -21,9 +21,9 @@ mod tests {
 
     #[test]
     fn test_random_condition_node() {
-        let player = Character::new("Player".to_string(), 100, 50, 25);
-        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
-        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new(1, "Player".to_string(), 100, 50, 25);
+        let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
+        let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
         let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
         
         let random = RandomConditionNode;
@@ -57,9 +57,9 @@ mod tests {
     #[test]
     fn test_single_rng_multiple_evaluations_differ() {
         // 1つのRNGで複数回評価し、結果が変わることを検証
-        let player = Character::new("Player".to_string(), 100, 50, 25);
-        let enemy = Character::new("Enemy".to_string(), 80, 30, 20);
-        let acting_character = Character::new("Test".to_string(), 100, 50, 25);
+        let player = Character::new(4, "Player".to_string(), 100, 50, 25);
+        let enemy = Character::new(5, "Enemy".to_string(), 80, 30, 20);
+        let acting_character = Character::new(6, "Test".to_string(), 100, 50, 25);
         let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
         
         let random = RandomConditionNode;

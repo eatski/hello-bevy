@@ -1,6 +1,6 @@
-use action_system::{ActionCalculationSystem, ActionType, RuleNode, Character, Team, TeamSide, BattleContext};
+use action_system::{ActionCalculationSystem, Action, BattleState, RuleNode, Character, Team, TeamSide, BattleContext};
 use rand::rngs::StdRng;
-use rand::{SeedableRng, Rng, seq::SliceRandom};
+use rand::{SeedableRng, Rng};
 
 pub struct TeamBattle {
     pub player_team: Team,
@@ -181,99 +181,41 @@ impl TeamBattle {
         }
     }
 
-    fn execute_action(&mut self, action: ActionType, attacker_name: String) {
-        match action {
-            ActionType::Strike => {
-                // Find a target from opposing team
-                let opposing_team = match self.current_team {
-                    TeamSide::Player => TeamSide::Enemy,
-                    TeamSide::Enemy => TeamSide::Player,
-                };
-
-                // Get attacker's attack value first
-                let attacker_attack = match self.current_team {
-                    TeamSide::Player => {
-                        self.player_team.alive_members().get(self.current_character_index)
-                            .map(|c| c.attack).unwrap_or(0)
-                    }
-                    TeamSide::Enemy => {
-                        self.enemy_team.alive_members().get(self.current_character_index)
-                            .map(|c| c.attack).unwrap_or(0)
-                    }
-                };
-
-                // Get random target from opposing team
-                let target_name = match opposing_team {
-                    TeamSide::Player => {
-                        let alive_indices: Vec<usize> = self.player_team.members
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, c)| c.is_alive())
-                            .map(|(i, _)| i)
-                            .collect();
-                        
-                        if let Some(&target_index) = alive_indices.choose(&mut self.rng) {
-                            let target = &mut self.player_team.members[target_index];
-                            let name = target.name.clone();
-                            target.take_damage(attacker_attack);
-                            Some(name)
-                        } else {
-                            None
-                        }
-                    }
-                    TeamSide::Enemy => {
-                        let alive_indices: Vec<usize> = self.enemy_team.members
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, c)| c.is_alive())
-                            .map(|(i, _)| i)
-                            .collect();
-                        
-                        if let Some(&target_index) = alive_indices.choose(&mut self.rng) {
-                            let target = &mut self.enemy_team.members[target_index];
-                            let name = target.name.clone();
-                            target.take_damage(attacker_attack);
-                            Some(name)
-                        } else {
-                            None
-                        }
-                    }
-                };
-
-                if let Some(target_name) = target_name {
-                    self.battle_log.push(format!(
-                        "ターン{}: {}が{}に{}のダメージ！",
-                        self.current_turn + 1,
-                        attacker_name,
-                        target_name,
-                        attacker_attack
-                    ));
-                }
+    fn execute_action(&mut self, action: Box<dyn Action>, attacker_name: String) {
+        // Create a battle context for action execution
+        let acting_character = match self.get_current_acting_character() {
+            Some(c) => c.clone(),
+            None => return,
+        };
+        
+        let battle_context = BattleContext::new_team(
+            &acting_character,
+            self.current_team,
+            &self.player_team,
+            &self.enemy_team
+        );
+        
+        // Create battle state for action execution
+        let mut battle_state = BattleState::new(self.player_team.clone(), self.enemy_team.clone());
+        
+        // Execute the action using the action trait
+        match action.execute(&battle_context, &mut battle_state) {
+            Ok(()) => {
+                // Update teams with battle state changes
+                self.player_team = battle_state.player_team;
+                self.enemy_team = battle_state.enemy_team;
+                
+                // Add action-specific logs to battle log
+                self.battle_log.extend(battle_state.battle_log);
             }
-            ActionType::Heal => {
-                if let Some(character_index) = self.get_current_acting_character_index() {
-                    let character = match self.current_team {
-                        TeamSide::Player => &mut self.player_team.members[character_index],
-                        TeamSide::Enemy => &mut self.enemy_team.members[character_index],
-                    };
-                    
-                    if character.consume_mp(10) {
-                        let heal_amount = 20;
-                        character.heal(heal_amount);
-                        self.battle_log.push(format!(
-                            "ターン{}: {}がMP10を消費して{}回復！",
-                            self.current_turn + 1,
-                            attacker_name,
-                            heal_amount
-                        ));
-                    } else {
-                        self.battle_log.push(format!(
-                            "ターン{}: {}はMPが足りない！",
-                            self.current_turn + 1,
-                            attacker_name
-                        ));
-                    }
-                }
+            Err(error_msg) => {
+                self.battle_log.push(format!(
+                    "ターン{}: {}の{}が失敗！ (理由: {})",
+                    self.current_turn + 1,
+                    attacker_name,
+                    action.get_action_name(),
+                    error_msg
+                ));
             }
         }
     }
@@ -315,21 +257,21 @@ mod integration_tests {
     #[test]
     fn test_team_battle_creation() {
         let player_team = Team::new("Players".to_string(), vec![
-            Character::new("Hero".to_string(), 100, 50, 25),
-            Character::new("Warrior".to_string(), 120, 40, 30),
+            Character::new(1, "Hero".to_string(), 100, 50, 25),
+            Character::new(2, "Warrior".to_string(), 120, 40, 30),
         ]);
         let enemy_team = Team::new("Enemies".to_string(), vec![
-            Character::new("Orc".to_string(), 150, 30, 20),
-            Character::new("Goblin".to_string(), 80, 40, 15),
+            Character::new(3, "Orc".to_string(), 150, 30, 20),
+            Character::new(4, "Goblin".to_string(), 80, 40, 15),
         ]);
         
         let player_rules: Vec<Vec<RuleNode>> = vec![
-            vec![Box::new(action_system::StrikeActionNode)],
-            vec![Box::new(action_system::StrikeActionNode)],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
         ];
         let enemy_rules: Vec<Vec<RuleNode>> = vec![
-            vec![Box::new(action_system::StrikeActionNode)],
-            vec![Box::new(action_system::StrikeActionNode)],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
         ];
         
         let rng = create_test_rng();
@@ -347,21 +289,21 @@ mod integration_tests {
     #[test]
     fn test_team_battle_turn_execution() {
         let player_team = Team::new("Players".to_string(), vec![
-            Character::new("Hero".to_string(), 100, 50, 25),
-            Character::new("Warrior".to_string(), 120, 40, 30),
+            Character::new(5, "Hero".to_string(), 100, 50, 25),
+            Character::new(6, "Warrior".to_string(), 120, 40, 30),
         ]);
         let enemy_team = Team::new("Enemies".to_string(), vec![
-            Character::new("Orc".to_string(), 150, 30, 20),
-            Character::new("Goblin".to_string(), 80, 40, 15),
+            Character::new(7, "Orc".to_string(), 150, 30, 20),
+            Character::new(8, "Goblin".to_string(), 80, 40, 15),
         ]);
         
         let player_rules: Vec<Vec<RuleNode>> = vec![
-            vec![Box::new(action_system::StrikeActionNode)],
-            vec![Box::new(action_system::StrikeActionNode)],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
         ];
         let enemy_rules: Vec<Vec<RuleNode>> = vec![
-            vec![Box::new(action_system::StrikeActionNode)],
-            vec![Box::new(action_system::StrikeActionNode)],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
         ];
         
         let rng = create_test_rng();
@@ -387,21 +329,21 @@ mod integration_tests {
     #[test]
     fn test_team_battle_complete_round() {
         let player_team = Team::new("Players".to_string(), vec![
-            Character::new("Hero".to_string(), 100, 50, 25),
-            Character::new("Warrior".to_string(), 120, 40, 30),
+            Character::new(9, "Hero".to_string(), 100, 50, 25),
+            Character::new(10, "Warrior".to_string(), 120, 40, 30),
         ]);
         let enemy_team = Team::new("Enemies".to_string(), vec![
-            Character::new("Orc".to_string(), 150, 30, 20),
-            Character::new("Goblin".to_string(), 80, 40, 15),
+            Character::new(11, "Orc".to_string(), 150, 30, 20),
+            Character::new(12, "Goblin".to_string(), 80, 40, 15),
         ]);
         
         let player_rules: Vec<Vec<RuleNode>> = vec![
-            vec![Box::new(action_system::StrikeActionNode)],
-            vec![Box::new(action_system::StrikeActionNode)],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
         ];
         let enemy_rules: Vec<Vec<RuleNode>> = vec![
-            vec![Box::new(action_system::StrikeActionNode)],
-            vec![Box::new(action_system::StrikeActionNode)],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
+            vec![Box::new(action_system::StrikeActionNode::new(Box::new(action_system::ActingCharacterNode)))],
         ];
         
         let rng = create_test_rng();
