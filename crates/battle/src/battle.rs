@@ -126,12 +126,12 @@ impl TeamBattle {
         };
         
         // Create battle context
-        let battle_context = BattleContext::TeamBattle {
+        let battle_context = BattleContext::new(
             acting_character,
-            acting_team: self.current_team,
-            player_team: &self.player_team,
-            enemy_team: &self.enemy_team,
-        };
+            self.current_team,
+            &self.player_team,
+            &self.enemy_team,
+        );
         
         // Calculate action using the action system
         let action = match self.current_team {
@@ -188,7 +188,7 @@ impl TeamBattle {
             None => return,
         };
         
-        let battle_context = BattleContext::new_team(
+        let battle_context = BattleContext::new(
             &acting_character,
             self.current_team,
             &self.player_team,

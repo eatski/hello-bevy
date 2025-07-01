@@ -34,7 +34,7 @@ impl ActionResolver for HealActionNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Character;
+    use crate::{Character, Team, TeamSide};
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
@@ -46,7 +46,9 @@ mod tests {
         let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
         
         let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
-        let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = crate::BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         // Create heal action with acting character as target
         let target = Box::new(ActingCharacterNode);
@@ -60,7 +62,9 @@ mod tests {
         }
         
         let dead_character = Character::new(4, "Dead".to_string(), 0, 0, 25);
-        let dead_battle_context = crate::BattleContext::new(&dead_character, &player, &enemy);
+        let dead_player_team = Team::new("Player Team".to_string(), vec![player.clone(), dead_character.clone()]);
+        let dead_enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let dead_battle_context = crate::BattleContext::new(&dead_character, TeamSide::Player, &dead_player_team, &dead_enemy_team);
         let target_dead = Box::new(ActingCharacterNode);
         let heal_dead = HealActionNode::new(target_dead);
         let result = heal_dead.resolve(&dead_battle_context, &mut rng);

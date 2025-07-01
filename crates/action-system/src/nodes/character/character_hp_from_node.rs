@@ -26,7 +26,7 @@ impl ValueNode for CharacterHpFromNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Character, ActingCharacterNode};
+    use crate::{Character, Team, TeamSide, ActingCharacterNode};
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
@@ -35,7 +35,10 @@ mod tests {
         let player = Character::new(1, "Player".to_string(), 100, 50, 25);
         let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
         let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
-        let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
+        
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = crate::BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         let mut rng = StdRng::from_entropy();
         

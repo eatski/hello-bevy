@@ -111,7 +111,7 @@ impl Action for HealAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Character, BattleState};
+    use crate::{Character, Team, TeamSide, BattleState};
 
     #[test]
     fn test_strike_action() {
@@ -119,12 +119,12 @@ mod tests {
         let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
         
         let acting_character = Character::new(3, "Attacker".to_string(), 100, 50, 25);
-        let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = crate::BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         let strike = StrikeAction::new(enemy.id);
-        let player_team = crate::Team::new("Player Team".to_string(), vec![player.clone()]);
-        let enemy_team = crate::Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
-        let mut battle_state = BattleState::new(player_team, enemy_team);
+        let mut battle_state = BattleState::new(player_team.clone(), enemy_team.clone());
         
         let result = strike.execute(&battle_context, &mut battle_state);
         
@@ -138,12 +138,12 @@ mod tests {
         let enemy = Character::new(5, "Enemy".to_string(), 80, 30, 20);
         
         let acting_character = Character::new(6, "Healer".to_string(), 100, 50, 25);
-        let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = crate::BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         let heal = HealAction::new(player.id);
-        let player_team = crate::Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
-        let enemy_team = crate::Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
-        let mut battle_state = BattleState::new(player_team, enemy_team);
+        let mut battle_state = BattleState::new(player_team.clone(), enemy_team.clone());
         
         let result = heal.execute(&battle_context, &mut battle_state);
         
@@ -157,12 +157,12 @@ mod tests {
         let enemy = Character::new(8, "Enemy".to_string(), 80, 30, 20);
         
         let acting_character = Character::new(9, "Healer".to_string(), 100, 5, 25); // Low MP
-        let battle_context = crate::BattleContext::new(&acting_character, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = crate::BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         let heal = HealAction::new(player.id);
-        let player_team = crate::Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
-        let enemy_team = crate::Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
-        let mut battle_state = BattleState::new(player_team, enemy_team);
+        let mut battle_state = BattleState::new(player_team.clone(), enemy_team.clone());
         
         let result = heal.execute(&battle_context, &mut battle_state);
         

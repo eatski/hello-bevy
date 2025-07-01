@@ -29,7 +29,7 @@ impl CharacterNode for RandomCharacterNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Character;
+    use crate::{Character, Team, TeamSide};
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
@@ -46,15 +46,19 @@ mod tests {
         let player = Character::new(1, "Player".to_string(), 100, 50, 25);
         let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
         let acting_character = Character::new(3, "Acting".to_string(), 100, 50, 25);
-        let battle_context = BattleContext::new(&acting_character, &player, &enemy);
+        
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         let mut rng = StdRng::from_entropy();
         
         let random_char_node = RandomCharacterNode::new();
         let returned_char_id = random_char_node.evaluate(&battle_context, &mut rng).unwrap();
         
-        // Should return either player or enemy ID
-        assert!(returned_char_id == player.id || returned_char_id == enemy.id, "Expected player or enemy ID, got {}", returned_char_id);
+        // Should return either player, enemy, or acting character ID (all characters in teams)
+        assert!(returned_char_id == player.id || returned_char_id == enemy.id || returned_char_id == acting_character.id, 
+                "Expected player, enemy, or acting character ID, got {}", returned_char_id);
     }
     
     #[test]
@@ -65,7 +69,10 @@ mod tests {
         let player = Character::new(4, "Player".to_string(), 100, 50, 25);
         let enemy = Character::new(5, "Enemy".to_string(), 80, 30, 20);
         let acting_character = Character::new(6, "Acting".to_string(), 100, 50, 25);
-        let battle_context = BattleContext::new(&acting_character, &player, &enemy);
+        
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         let mut rng = StdRng::seed_from_u64(12345);
         let random_char_node = RandomCharacterNode::new();

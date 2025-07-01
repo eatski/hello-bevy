@@ -42,7 +42,7 @@ impl ActionCalculationSystem {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Character;
+    use crate::{Character, Team, TeamSide};
     use crate::{ConditionCheckNode, StrikeActionNode, HealActionNode, RandomConditionNode, GreaterThanConditionNode, ConstantValueNode, ActingCharacterNode, CharacterHpFromNode};
     use rand::SeedableRng;
 
@@ -60,7 +60,10 @@ mod tests {
         let player = Character::new(1, "Player".to_string(), 100, 50, 25);
         let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
         let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
-        let battle_context = BattleContext::new(&acting_character, &player, &enemy);
+        
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         let action = system.calculate_action(&battle_context);
         assert!(action.is_some(), "Should return some action");
@@ -100,7 +103,9 @@ mod tests {
         
         // Test 20 attempts to get both actions
         for _ in 0..20 {
-            let battle_context = BattleContext::new(&damaged_character, &player, &enemy);
+            let player_team = Team::new("Player Team".to_string(), vec![player.clone(), damaged_character.clone()]);
+            let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+            let battle_context = BattleContext::new(&damaged_character, TeamSide::Player, &player_team, &enemy_team);
             if let Some(action) = system1.calculate_action(&battle_context) {
                 match action.get_action_name() {
                     "Strike" => strike_count += 1,
@@ -108,7 +113,9 @@ mod tests {
                     _ => {},
                 }
             }
-            let battle_context = BattleContext::new(&damaged_character, &player, &enemy);
+            let player_team = Team::new("Player Team".to_string(), vec![player.clone(), damaged_character.clone()]);
+            let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+            let battle_context = BattleContext::new(&damaged_character, TeamSide::Player, &player_team, &enemy_team);
             if let Some(action) = system2.calculate_action(&battle_context) {
                 match action.get_action_name() {
                     "Strike" => strike_count += 1,
@@ -150,12 +157,16 @@ mod tests {
         let enemy = Character::new(10, "Enemy".to_string(), 80, 30, 20);
         
         // Low HP character should heal
-        let low_hp_battle_context = BattleContext::new(&low_hp_character, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), low_hp_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let low_hp_battle_context = BattleContext::new(&low_hp_character, TeamSide::Player, &player_team, &enemy_team);
         let low_hp_action = system.calculate_action(&low_hp_battle_context);
         assert_eq!(low_hp_action.as_ref().map(|a| a.get_action_name()), Some("Heal"), "Low HP character should choose Heal");
         
         // High HP character should strike
-        let high_hp_battle_context = BattleContext::new(&high_hp_character, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), high_hp_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let high_hp_battle_context = BattleContext::new(&high_hp_character, TeamSide::Player, &player_team, &enemy_team);
         let high_hp_action = system.calculate_action(&high_hp_battle_context);
         assert_eq!(high_hp_action.as_ref().map(|a| a.get_action_name()), Some("Strike"), "High HP character should choose Strike");
     }
@@ -187,7 +198,9 @@ mod tests {
             
             let mut seed_results = Vec::new();
             for _ in 0..10 {
-                let battle_context = BattleContext::new(&character, &player, &enemy);
+                let player_team = Team::new("Player Team".to_string(), vec![player.clone(), character.clone()]);
+                let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+                let battle_context = BattleContext::new(&character, TeamSide::Player, &player_team, &enemy_team);
                 if let Some(action) = system.calculate_action(&battle_context) {
                     seed_results.push(action);
                 }
@@ -245,7 +258,9 @@ mod tests {
         
         // 同一システムで20回実行（RNGの状態が変化する）
         for _ in 0..20 {
-            let battle_context = BattleContext::new(&character, &player, &enemy);
+            let player_team = Team::new("Player Team".to_string(), vec![player.clone(), character.clone()]);
+            let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+            let battle_context = BattleContext::new(&character, TeamSide::Player, &player_team, &enemy_team);
             if let Some(action) = system.calculate_action(&battle_context) {
                 results.push(action);
             }
@@ -295,7 +310,9 @@ mod tests {
         let mut strike_count = 0;
         
         for _ in 0..20 {
-            let battle_context = BattleContext::new(&low_hp_character, &player, &enemy);
+            let player_team = Team::new("Player Team".to_string(), vec![player.clone(), low_hp_character.clone()]);
+            let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+            let battle_context = BattleContext::new(&low_hp_character, TeamSide::Player, &player_team, &enemy_team);
             if let Some(action) = system.calculate_action(&battle_context) {
                 match action.get_action_name() {
                     "Heal" => heal_count += 1,
@@ -336,7 +353,9 @@ mod tests {
 
         let mut results = Vec::new();
         for _ in 0..10 {
-            let battle_context = BattleContext::new(&high_hp_character, &player, &enemy);
+            let player_team = Team::new("Player Team".to_string(), vec![player.clone(), high_hp_character.clone()]);
+            let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+            let battle_context = BattleContext::new(&high_hp_character, TeamSide::Player, &player_team, &enemy_team);
             if let Some(action) = system.calculate_action(&battle_context) {
                 results.push(action);
             }
@@ -377,21 +396,27 @@ mod tests {
 
         // テスト1: HP=100 (>70) -> Strike
         let high_hp_char = Character::new(25, "High".to_string(), 100, 50, 25);
-        let battle_context = BattleContext::new(&high_hp_char, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), high_hp_char.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&high_hp_char, TeamSide::Player, &player_team, &enemy_team);
         let action = system.calculate_action(&battle_context);
         assert_eq!(action.as_ref().map(|a| a.get_action_name()), Some("Strike"), "High HP character should Strike");
 
         // テスト2: HP=50 (30<HP<70) -> Heal
         let mut mid_hp_char = Character::new(26, "Mid".to_string(), 100, 50, 25);
         mid_hp_char.take_damage(50); // HP: 50
-        let battle_context = BattleContext::new(&mid_hp_char, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), mid_hp_char.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&mid_hp_char, TeamSide::Player, &player_team, &enemy_team);
         let action = system.calculate_action(&battle_context);
         assert_eq!(action.as_ref().map(|a| a.get_action_name()), Some("Heal"), "Mid HP character should Heal");
 
         // テスト3: HP=20 (<30) -> Strike
         let mut low_hp_char = Character::new(27, "Low".to_string(), 100, 50, 25);
         low_hp_char.take_damage(80); // HP: 20
-        let battle_context = BattleContext::new(&low_hp_char, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), low_hp_char.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&low_hp_char, TeamSide::Player, &player_team, &enemy_team);
         let action = system.calculate_action(&battle_context);
         assert_eq!(action.as_ref().map(|a| a.get_action_name()), Some("Strike"), "Low HP character should Strike (fallback)");
     }
@@ -422,7 +447,9 @@ mod tests {
 
         let mut results = Vec::new();
         for _ in 0..10 {
-            let battle_context = BattleContext::new(&acting_char, &player, &enemy);
+            let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_char.clone()]);
+            let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+            let battle_context = BattleContext::new(&acting_char, TeamSide::Player, &player_team, &enemy_team);
             if let Some(action) = system.calculate_action(&battle_context) {
                 results.push(action);
             }
@@ -456,7 +483,9 @@ mod tests {
         let rng = StdRng::from_entropy();
         let mut system = ActionCalculationSystem::new(constant_comparison_rules, rng);
 
-        let battle_context = BattleContext::new(&character, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&character, TeamSide::Player, &player_team, &enemy_team);
         let action = system.calculate_action(&battle_context);
         // 100 > 50は常に真なので、常にHeal
         assert_eq!(action.as_ref().map(|a| a.get_action_name()), Some("Heal"), "100 > 50 should always be true, so Heal");
@@ -473,7 +502,9 @@ mod tests {
         let rng = StdRng::from_entropy();
         let mut system = ActionCalculationSystem::new(empty_rules, rng);
 
-        let battle_context = BattleContext::new(&character, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&character, TeamSide::Player, &player_team, &enemy_team);
         let action = system.calculate_action(&battle_context);
         assert!(action.is_none(), "Empty rules should return None");
     }
@@ -506,7 +537,9 @@ mod tests {
         let rng = StdRng::from_entropy();
         let mut system = ActionCalculationSystem::new(impossible_rules, rng);
 
-        let battle_context = BattleContext::new(&character, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&character, TeamSide::Player, &player_team, &enemy_team);
         let action = system.calculate_action(&battle_context);
         assert!(action.is_none(), "All failing conditions should return None");
     }

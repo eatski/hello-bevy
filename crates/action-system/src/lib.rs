@@ -25,7 +25,9 @@ mod tests {
         let player = Character::new(1, "Player".to_string(), 100, 50, 10);
         let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 15);
         
-        let battle_context = BattleContext::new(&player, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&player, TeamSide::Player, &player_team, &enemy_team);
         
         let all_chars_node = AllCharactersNode::new();
         let result = all_chars_node.evaluate(&battle_context, &mut rng).unwrap();
@@ -48,7 +50,7 @@ mod tests {
         ]);
         
         let acting_character = &player_team.members[0];
-        let battle_context = BattleContext::new_team(
+        let battle_context = BattleContext::new(
             acting_character,
             TeamSide::Player,
             &player_team,
@@ -70,7 +72,9 @@ mod tests {
         let player = Character::new(6, "Player".to_string(), 100, 50, 10);
         let enemy = Character::new(7, "Enemy".to_string(), 80, 30, 15);
         
-        let battle_context = BattleContext::new(&player, &player, &enemy);
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&player, TeamSide::Player, &player_team, &enemy_team);
         
         let all_chars_node = Box::new(AllCharactersNode::new());
         let count_node = CountArrayNode::new(all_chars_node);
@@ -95,7 +99,7 @@ mod tests {
         ]);
         
         let acting_character = &player_team.members[0];
-        let battle_context = BattleContext::new_team(
+        let battle_context = BattleContext::new(
             acting_character,
             TeamSide::Player,
             &player_team,
@@ -129,7 +133,7 @@ mod tests {
         ]);
         
         let acting_character = &player_team.members[0];
-        let battle_context = BattleContext::new_team(
+        let battle_context = BattleContext::new(
             acting_character,
             TeamSide::Player,
             &player_team,

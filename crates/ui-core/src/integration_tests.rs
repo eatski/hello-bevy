@@ -2,7 +2,7 @@
 
 use crate::{GameState, CurrentRules, UITokenType};
 use battle::Character as GameCharacter;
-use action_system::{ActionCalculationSystem, BattleContext};
+use action_system::{ActionCalculationSystem, BattleContext, Team, TeamSide};
 use rand::{SeedableRng, rngs::StdRng};
 
 fn create_test_rng() -> StdRng {
@@ -65,7 +65,10 @@ mod tests {
         let player = GameCharacter::new(1, "Player".to_string(), 30, 50, 25); // Low HP
         let enemy = GameCharacter::new(2, "Enemy".to_string(), 100, 50, 25);
         let acting_character = GameCharacter::new(3, "Test".to_string(), 30, 50, 25); // Low HP
-        let battle_context = BattleContext::new(&acting_character, &player, &enemy);
+        
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         let action = action_system.calculate_action(&battle_context);
         assert!(action.is_some(), "Should calculate an action for low HP character");
@@ -139,7 +142,10 @@ mod tests {
         let player = GameCharacter::new(4, "Player".to_string(), 100, 50, 25);
         let enemy = GameCharacter::new(5, "Enemy".to_string(), 80, 30, 20);
         let acting_character = GameCharacter::new(6, "Test".to_string(), 50, 30, 25);
-        let battle_context = BattleContext::new(&acting_character, &player, &enemy);
+        
+        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         let action = action_system.calculate_action(&battle_context);
         assert_eq!(action.is_some(), true);
     }
