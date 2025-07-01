@@ -1,3 +1,5 @@
+// StructuredTokenInput - JSON入力用の構造化されたトークン定義（rule-parserから移行）
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -7,37 +9,35 @@ pub struct RuleSet {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RuleChain {
-    pub tokens: Vec<JsonTokenInput>,
+    pub tokens: Vec<StructuredTokenInput>,
 }
-
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type")]
-pub enum JsonTokenInput {
+pub enum StructuredTokenInput {
     Strike {
-        target: Box<JsonTokenInput>,
+        target: Box<StructuredTokenInput>,
     },
     Heal {
-        target: Box<JsonTokenInput>,
+        target: Box<StructuredTokenInput>,
     },
     TrueOrFalseRandom,
     Check {
-        condition: Box<JsonTokenInput>,
-        then_action: Box<JsonTokenInput>,
+        condition: Box<StructuredTokenInput>,
+        then_action: Box<StructuredTokenInput>,
     },
     GreaterThan {
-        left: Box<JsonTokenInput>,
-        right: Box<JsonTokenInput>,
+        left: Box<StructuredTokenInput>,
+        right: Box<StructuredTokenInput>,
     },
     Number {
         value: i32,
     },
     CharacterHP,
     HP {
-        character: Box<JsonTokenInput>,
+        character: Box<StructuredTokenInput>,
     },
     // Character types
     ActingCharacter,
     RandomCharacter,
 }
-

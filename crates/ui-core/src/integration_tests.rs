@@ -1,6 +1,6 @@
 // Integration tests for UI core functionality
 
-use crate::{GameState, CurrentRules, UITokenType};
+use crate::{GameState, CurrentRules, FlatTokenInput};
 use battle::Character as GameCharacter;
 use action_system::{ActionCalculationSystem, BattleContext, Team, TeamSide};
 use rand::{SeedableRng, rngs::StdRng};
@@ -23,8 +23,8 @@ mod tests {
         assert_eq!(rules.has_valid_rules(), false);
         
         // Create a simple strike rule
-        rules.add_token_to_current_row(UITokenType::Strike);
-        rules.add_token_to_current_row(UITokenType::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
         assert_eq!(rules.has_valid_rules(), true);
         assert_eq!(rules.non_empty_rule_count(), 1);
         
@@ -42,18 +42,18 @@ mod tests {
         let mut rules = CurrentRules::new();
         
         // Create complex rule: Check → GreaterThan → Number(50) → HP → ActingCharacter → Heal → ActingCharacter
-        rules.add_token_to_current_row(UITokenType::Check);
-        rules.add_token_to_current_row(UITokenType::GreaterThan);
-        rules.add_token_to_current_row(UITokenType::Number(50));
-        rules.add_token_to_current_row(UITokenType::HP);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
-        rules.add_token_to_current_row(UITokenType::Heal);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Check);
+        rules.add_token_to_current_row(FlatTokenInput::GreaterThan);
+        rules.add_token_to_current_row(FlatTokenInput::Number(50));
+        rules.add_token_to_current_row(FlatTokenInput::HP);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Heal);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         
         // Add fallback rule: Strike → RandomCharacter
         rules.select_next_row();
-        rules.add_token_to_current_row(UITokenType::Strike);
-        rules.add_token_to_current_row(UITokenType::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
         
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_eq!(rule_nodes.len(), 2);
@@ -79,26 +79,26 @@ mod tests {
         let mut rules = CurrentRules::new();
         
         // Test adding and removing tokens
-        rules.add_token_to_current_row(UITokenType::Check);
-        rules.add_token_to_current_row(UITokenType::Strike);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Check);
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         assert_eq!(rules.rules[0].len(), 3);
         
         // Remove last token
         rules.remove_last_token_from_current_row();
         assert_eq!(rules.rules[0].len(), 2);
-        assert_eq!(rules.rules[0][0], UITokenType::Check);
+        assert_eq!(rules.rules[0][0], FlatTokenInput::Check);
         
         // Clear row
         rules.clear_current_row();
         assert_eq!(rules.is_current_row_empty(), true);
         
         // Test multi-row editing
-        rules.add_token_to_current_row(UITokenType::Strike);
-        rules.add_token_to_current_row(UITokenType::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
         rules.select_next_row();
-        rules.add_token_to_current_row(UITokenType::Heal);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Heal);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         
         assert_eq!(rules.non_empty_rule_count(), 2);
         
@@ -118,13 +118,13 @@ mod tests {
         // Create rules in rule creation mode
         assert_eq!(game_state.is_rule_creation_mode(), true);
         
-        rules.add_token_to_current_row(UITokenType::Check);
-        rules.add_token_to_current_row(UITokenType::TrueOrFalse);
-        rules.add_token_to_current_row(UITokenType::Heal);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Check);
+        rules.add_token_to_current_row(FlatTokenInput::TrueOrFalse);
+        rules.add_token_to_current_row(FlatTokenInput::Heal);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         rules.select_next_row();
-        rules.add_token_to_current_row(UITokenType::Strike);
-        rules.add_token_to_current_row(UITokenType::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
         
         assert_eq!(rules.non_empty_rule_count(), 2);
         
@@ -156,29 +156,29 @@ mod tests {
         
         // Valid pattern: Strike only
         let mut rules1 = CurrentRules::new();
-        rules1.add_token_to_current_row(UITokenType::Strike);
-        rules1.add_token_to_current_row(UITokenType::RandomCharacter);
+        rules1.add_token_to_current_row(FlatTokenInput::Strike);
+        rules1.add_token_to_current_row(FlatTokenInput::RandomCharacter);
         assert_eq!(rules1.has_valid_rules(), true);
         let nodes1 = rules1.convert_to_rule_nodes();
         assert_ne!(nodes1.len(), 0);
         
         // Valid pattern: Heal only  
         let mut rules2 = CurrentRules::new();
-        rules2.add_token_to_current_row(UITokenType::Heal);
-        rules2.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules2.add_token_to_current_row(FlatTokenInput::Heal);
+        rules2.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         assert_eq!(rules2.has_valid_rules(), true);
         let nodes2 = rules2.convert_to_rule_nodes();
         assert!(!nodes2.is_empty());
         
         // Valid pattern: Complex conditional
         let mut rules3 = CurrentRules::new();
-        rules3.add_token_to_current_row(UITokenType::Check);
-        rules3.add_token_to_current_row(UITokenType::GreaterThan);
-        rules3.add_token_to_current_row(UITokenType::Number(50));
-        rules3.add_token_to_current_row(UITokenType::HP);
-        rules3.add_token_to_current_row(UITokenType::ActingCharacter);
-        rules3.add_token_to_current_row(UITokenType::Heal);
-        rules3.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules3.add_token_to_current_row(FlatTokenInput::Check);
+        rules3.add_token_to_current_row(FlatTokenInput::GreaterThan);
+        rules3.add_token_to_current_row(FlatTokenInput::Number(50));
+        rules3.add_token_to_current_row(FlatTokenInput::HP);
+        rules3.add_token_to_current_row(FlatTokenInput::ActingCharacter);
+        rules3.add_token_to_current_row(FlatTokenInput::Heal);
+        rules3.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         assert!(rules3.has_valid_rules());
         let nodes3 = rules3.convert_to_rule_nodes();
         assert!(!nodes3.is_empty());
@@ -218,10 +218,10 @@ mod tests {
     fn test_rule_persistence_and_reconstruction() {
         // Test that rules can be reconstructed from data
         let original_rules = vec![
-            vec![UITokenType::Check, UITokenType::TrueOrFalse, UITokenType::Heal, UITokenType::ActingCharacter],
-            vec![UITokenType::Strike, UITokenType::ActingCharacter],
+            vec![FlatTokenInput::Check, FlatTokenInput::TrueOrFalse, FlatTokenInput::Heal, FlatTokenInput::ActingCharacter],
+            vec![FlatTokenInput::Strike, FlatTokenInput::ActingCharacter],
             vec![],
-            vec![UITokenType::Check, UITokenType::GreaterThan, UITokenType::Number(50), UITokenType::HP, UITokenType::ActingCharacter, UITokenType::Strike, UITokenType::ActingCharacter],
+            vec![FlatTokenInput::Check, FlatTokenInput::GreaterThan, FlatTokenInput::Number(50), FlatTokenInput::HP, FlatTokenInput::ActingCharacter, FlatTokenInput::Strike, FlatTokenInput::ActingCharacter],
             vec![]
         ];
         
@@ -241,13 +241,13 @@ mod tests {
         let mut rules = CurrentRules::new();
         
         // Create rule: Check → GreaterThan → Number(30) → HP → RandomCharacter → Heal
-        rules.add_token_to_current_row(UITokenType::Check);
-        rules.add_token_to_current_row(UITokenType::GreaterThan);
-        rules.add_token_to_current_row(UITokenType::Number(30));
-        rules.add_token_to_current_row(UITokenType::HP);
-        rules.add_token_to_current_row(UITokenType::RandomCharacter);
-        rules.add_token_to_current_row(UITokenType::Heal);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Check);
+        rules.add_token_to_current_row(FlatTokenInput::GreaterThan);
+        rules.add_token_to_current_row(FlatTokenInput::Number(30));
+        rules.add_token_to_current_row(FlatTokenInput::HP);
+        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Heal);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_eq!(rule_nodes.len(), 1, "RandomCharacter rule should convert successfully");

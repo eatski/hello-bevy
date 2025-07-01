@@ -5,6 +5,7 @@ members = [
     "crates/battle",
     "crates/ui-core",
     "crates/bevy-ui",
+    "crates/token-input",
 ]
 
 [package]
@@ -20,4 +21,5 @@ json-rule = { path = "crates/json-rule" }
 battle = { path = "crates/battle" }
 ui-core = { path = "crates/ui-core" }
 bevy-ui = { path = "crates/bevy-ui" }
+token-input = { path = "crates/token-input" }
 

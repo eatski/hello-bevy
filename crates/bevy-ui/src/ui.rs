@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use battle::TeamBattle;
-use ui_core::{GameState, GameMode, CurrentRules, UITokenType};
-use crate::display_text::{format_rule_tokens, UITokenDisplay};
+use ui_core::{GameState, GameMode, CurrentRules, FlatTokenInput};
+use crate::display_text::format_rule_tokens;
 
 #[derive(Resource)]
 pub struct GameFont {
@@ -75,7 +75,7 @@ pub struct MenuState {
     pub mode: MenuMode,
     pub selected_row: usize,
     pub selected_token: usize,
-    pub available_tokens: Vec<UITokenType>,
+    pub available_tokens: Vec<FlatTokenInput>,
 }
 
 #[derive(Default, PartialEq)]
@@ -92,15 +92,15 @@ impl MenuState {
             selected_row: 0,
             selected_token: 0,
             available_tokens: vec![
-                UITokenType::Check,
-                UITokenType::Strike,
-                UITokenType::Heal,
-                UITokenType::TrueOrFalse,
-                UITokenType::GreaterThan,
-                UITokenType::Number(50),
-                UITokenType::HP,
-                UITokenType::ActingCharacter,
-                UITokenType::RandomCharacter,
+                FlatTokenInput::Check,
+                FlatTokenInput::Strike,
+                FlatTokenInput::Heal,
+                FlatTokenInput::TrueOrFalse,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::Number(50),
+                FlatTokenInput::HP,
+                FlatTokenInput::ActingCharacter,
+                FlatTokenInput::RandomCharacter,
             ],
         }
     }

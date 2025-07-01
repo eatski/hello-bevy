@@ -19,10 +19,12 @@ cargo check --workspace
 cargo test --workspace
 
 # 個別crateのテスト
-cargo test -p combat-engine
-cargo test -p rule-parser
-cargo test -p game-logic
-cargo test -p bevy-frontend
+cargo test -p action-system
+cargo test -p token-input
+cargo test -p json-rule
+cargo test -p battle
+cargo test -p ui-core
+cargo test -p bevy-ui
 
 # ドキュメンテーションテスト
 cargo test --workspace --doc
@@ -49,6 +51,7 @@ cargo build --workspace --release
 - **main.rsリファクタリング**: 起動処理のみに集中、具体的なロジックをbevy-uiクレートに委譲（DI的なアーキテクチャ）
 - **IDベースターゲティング実装**: CharacterにIDフィールドを追加し、ActionトレイトのtargetをIDで指定するように変更、BattleStateを用いた実際の戦闘処理を実装
 - **設定可能ターゲット実装**: StrikeとHealアクションで標的をUI/JSONから設定可能に（ActingCharacter、RandomCharacterなど選択可、UI/JSON両層で必須指定、フォールバック廃止）
+- **token-inputクレート新設**: UITokenTypeをFlatTokenInput、JsonTokenInputをStructuredTokenInputとして統一化、UI入力→FlatTokenInput→StructuredTokenInput→Nodeの変換パイプライン実装
 
 ## 🏗️ アーキテクチャ設計
 
@@ -58,7 +61,7 @@ cargo build --workspace --release
 ├── src/
 │   └── main.rs         - アプリケーション起動（DI的な役割）
 ├── crates/
-│   ├── combat-engine/  - トークンベース行動計算システム
+│   ├── action-system/  - トークンベース行動計算システム
 │   │   ├── Cargo.toml
 │   │   └── src/
 │   │       ├── lib.rs          - クレートエントリポイント
@@ -68,23 +71,37 @@ cargo build --workspace --release
 │   │       ├── bool_tokens.rs  - 論理演算トークン実装
 │   │       ├── number_tokens.rs- 数値トークン実装
 │   │       └── system.rs       - 行動計算システム実装
-│   ├── rule-parser/    - JSON ルール読み込み・変換システム
+│   ├── token-input/    - トークン入力統一化システム
 │   │   ├── Cargo.toml
 │   │   └── src/
 │   │       ├── lib.rs              - クレートエントリポイント
-│   │       ├── rule_loader.rs      - JSON形式ルール読み込み・変換
-│   │       └── rule_input_model.rs - JSON入力用データモデル定義
-│   ├── game-logic/     - バトル管理・戦闘ロジック
+│   │       ├── flat_token.rs       - FlatTokenInput定義（UI入力用）
+│   │       ├── structured_token.rs - StructuredTokenInput定義（JSON入力用）
+│   │       └── converter.rs        - 変換ロジック統合
+│   ├── json-rule/      - JSON ルール読み込み・変換システム
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs              - クレートエントリポイント
+│   │       └── rule_loader.rs      - JSON形式ルール読み込み
+│   ├── battle/         - バトル管理・戦闘ロジック
 │   │   ├── Cargo.toml
 │   │   └── src/
 │   │       ├── lib.rs  - クレートエントリポイント
 │   │       └── battle.rs - バトル管理ロジック
+│   ├── ui-core/        - Bevy非依存UIロジック
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs          - クレートエントリポイント
+│   │       ├── game_state.rs   - ゲーム状態管理
+│   │       ├── rule_management.rs - ルール管理ロジック
+│   │       └── integration_tests.rs - 統合テスト
 │   └── bevy-ui/        - Bevy UIコンポーネント・システム・プラグイン
 │       ├── Cargo.toml
 │       └── src/
 │           ├── lib.rs     - クレートエントリポイント
 │           ├── ui.rs      - UI表示・コンポーネント定義
 │           ├── systems.rs - ゲームシステム実装
+│           ├── display_text.rs - UI表示テキスト管理
 │           └── plugin.rs  - Bevyプラグイン統合
 └── rules/
     ├── player_rules.json - プレイヤーのデフォルトルール設定
@@ -92,12 +109,13 @@ cargo build --workspace --release
 ```
 
 ### 🎯 クレート分離設計
-- **アプリ層**: `hello-bevy` (root) - アプリケーション起動・DI的な役割
+- **アプリ層**: `turn-based-rpg` (root) - アプリケーション起動・DI的な役割
 - **UI・システム層**: `bevy-ui` クレート - Bevy UIコンポーネント・システム・プラグイン統合
+- **UI Core層**: `ui-core` クレート - Bevy非依存のUIロジック
 - **戦闘層**: `battle` クレート - チーム戦闘管理・戦闘ロジック
 - **設定層**: `json-rule` クレート - JSON ルール読み込み・変換システム
+- **トークン統一層**: `token-input` クレート - FlatTokenInput⇔StructuredTokenInput変換統合
 - **計算層**: `action-system` クレート - トークンベース行動計算システム
-- **UI Core層**: `ui-core` クレート - Bevy非依存のUIロジック
   - `character.rs` - Character型定義（循環依存回避）
   - `core.rs` - 基本トレイト・型定義
   - `actions.rs` - アクショントークン実装
@@ -180,54 +198,66 @@ load_rules_from_file(path) -> parse_rules_from_json(content) -> convert_to_node_
 ## 🔄 データフロー設計（クレート間）
 ```
 チーム戦闘システム:
-入力 → bevy-ui クレート → battle クレート(TeamBattle) → action-system クレート → bevy-ui クレート → 結果表示
-      ↑                   ↑                                                                     ↓
-   hello-bevy (root)    json-rule クレート (JSON読み込み)                                   画面描画
+UI入力 → bevy-ui → ui-core → token-input(FlatTokenInput→StructuredTokenInput) → action-system → 結果表示
+JSON入力 → json-rule → token-input(StructuredTokenInput) → action-system → battle → bevy-ui → 画面描画
+         ↑                                                                 ↑              ↓
+    turn-based-rpg (root)                                          battle クレート      表示レンダリング
 ```
 
 ## 📦 クレート依存関係ルール
 
 ### 依存関係の階層構造（ワークスペース）
 ```
-hello-bevy (root バイナリ)
+turn-based-rpg (root バイナリ)
 ├── bevy-ui クレート
-│   └── battle クレート
-│       ├── json-rule クレート
-│       │   └── action-system クレート
-│       └── action-system クレート
-├── ui-core クレート
-└── 直接依存: action-system, json-rule, battle, bevy-ui
+│   ├── ui-core クレート
+│   │   └── token-input クレート
+│   │       └── action-system クレート
+│   ├── battle クレート
+│   │   └── action-system クレート
+│   ├── json-rule クレート
+│   │   └── token-input クレート
+│   └── token-input クレート
+└── 直接依存: action-system, token-input, json-rule, battle, ui-core, bevy-ui
 ```
 
 ### クレート間依存関係の制約ルール
 
 1. **階層依存のみ許可（循環依存回避）**
-   - `hello-bevy` (root) → `bevy-ui`, `battle`, `json-rule`, `action-system` 依存可能
-   - `bevy-ui` → `battle`, `ui-core` のみ依存
-   - `battle` → `json-rule`, `action-system` 依存
-   - `json-rule` → `action-system` のみ依存
+   - `turn-based-rpg` (root) → 全クレート依存可能
+   - `bevy-ui` → `ui-core`, `battle`, `json-rule`, `token-input` 依存
+   - `ui-core` → `token-input` のみ依存
+   - `battle` → `action-system` のみ依存
+   - `json-rule` → `token-input` のみ依存
+   - `token-input` → `action-system` のみ依存
    - `action-system` → 外部クレートのみ依存（完全独立）
    - **逆方向依存は禁止** (下位クレートが上位クレートに依存してはいけない)
 
 2. **同一層内の相互依存は禁止**
-   - `bevy-ui` ↔ `json-rule` の直接依存は禁止（`battle`経由で利用）
+   - 同じ階層レベルのクレート間の直接依存は禁止
 
 3. **Character/Team型の配置戦略**
    - `action-system` クレートに`Character`, `Team`, `TeamSide`型を配置（循環依存回避）
    - `battle` が `action-system::Character` を再エクスポート
 
-4. **許可される依存パターン**
+4. **トークン変換の統一化**
+   - `token-input` クレートで`FlatTokenInput`と`StructuredTokenInput`を統合管理
+   - UI入力とJSON入力の両方を統一パイプラインで処理
+
+5. **許可される依存パターン**
    ```rust
    // ✅ 許可
-   hello-bevy → bevy-ui, battle, json-rule, action-system
-   bevy-ui → battle, ui-core
-   battle → json-rule, action-system
-   json-rule → action-system
+   turn-based-rpg → bevy-ui, ui-core, battle, json-rule, token-input, action-system
+   bevy-ui → ui-core, battle, json-rule, token-input
+   ui-core → token-input
+   battle → action-system
+   json-rule → token-input
+   token-input → action-system
    
    // ❌ 禁止
-   action-system → json-rule (逆方向)
-   bevy-ui → json-rule (同一層)
-   action-system → bevy-ui (逆方向)
+   action-system → token-input (逆方向)
+   token-input → json-rule (逆方向)
+   ui-core → battle (同一層)
    ```
 
 5. **新クレート追加時のルール**
@@ -237,8 +267,8 @@ hello-bevy (root バイナリ)
    - ワークスペースのCargo.tomlに追加
 
 ## 🧪 テスト設計（クレート別）
-### 統合テスト (59テスト)
-- **`action-system` クレート**: 19テスト - アクションシステム・乱数テスト
+### 統合テスト (62テスト)
+- **`action-system` クレート**: 32テスト - アクションシステム・乱数テスト
   - ActionResolver, Token, 各種トークンの動作テスト
   - ActionCalculationSystemの統合テスト
   - **seed固定乱数テスト**: 複数seed・複数実行の検証
@@ -246,24 +276,27 @@ hello-bevy (root バイナリ)
     - `test_same_seed_multiple_executions_can_differ`: 同一seedで複数回実行時のRNG状態変化検証
     - `test_single_rng_multiple_evaluations_differ`: RandomConditionNodeで1つのRNGでの複数評価検証
     - `test_single_rng_multiple_character_selections_vary`: RandomCharacterNodeで1つのRNGでの複数選択検証
+- **`token-input` クレート**: 3テスト - トークン変換テスト
+  - FlatTokenInput → StructuredTokenInput変換テスト
+  - StructuredTokenInput → Node変換テスト
+  - 統合変換パイプラインテスト
 - **`battle` クレート**: 3テスト - チーム戦闘専用テスト
   - TeamBattle, Team構造体のテスト
   - **チーム戦闘テスト**: TeamBattle, Team構造体のテスト
     - `test_team_battle_creation`: チーム戦闘作成テスト
     - `test_team_battle_turn_execution`: ターン実行テスト
     - `test_team_battle_complete_round`: 完全ラウンドテスト
-- **`json-rule` クレート**: 12テスト - ルール読み込み・変換テスト
+- **`json-rule` クレート**: 5テスト - ルール読み込み・変換テスト
   - JSON読み込み・解析テスト
-  - TokenConfig → ActionResolver変換テスト
+  - RuleSet → ActionResolver変換テスト
   - エラーハンドリングテスト
-- **`ui-core` クレート**: 19テスト - UIロジック・統合テスト
+- **`ui-core` クレート**: 16テスト - UIロジック・統合テスト
   - ルール管理・変換システムテスト
-  - UIトークン変換・バリデーションテスト
+  - FlatTokenInput変換・バリデーションテスト
   - ゲームステート管理テスト
-- **`bevy-ui` クレート**: 6テスト - Bevy UI表示テスト
+- **`bevy-ui` クレート**: 3テスト - Bevy UI表示テスト
   - UI表示・フォーマットテスト
   - トークン表示テキストテスト
-- その他クレート: 0テスト
 
 ### テスト実行方法
 ```bash
@@ -272,6 +305,7 @@ cargo test --workspace
 
 # 個別クレートのテスト
 cargo test -p action-system
+cargo test -p token-input
 cargo test -p battle
 cargo test -p json-rule
 cargo test -p ui-core
@@ -279,6 +313,7 @@ cargo test -p bevy-ui
 
 # 特定テストパターン
 cargo test -p action-system -- seed  # seed固定乱数テスト
+cargo test -p token-input -- converter  # 変換テスト
 cargo test -p battle -- integration_tests
 cargo test -p battle -- team_battle  # チーム戦闘テスト
 cargo test -p json-rule -- loader

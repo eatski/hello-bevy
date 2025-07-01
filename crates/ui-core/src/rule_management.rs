@@ -1,11 +1,11 @@
 // Rule management logic - independent of Bevy
 
 use battle::RuleNode;
-use crate::token_converter::{UITokenType, convert_ui_rules_to_nodes};
+use token_input::{FlatTokenInput, convert_flat_rules_to_nodes};
 
 #[derive(Default, Clone, Debug)]
 pub struct CurrentRules {
-    pub rules: Vec<Vec<UITokenType>>,
+    pub rules: Vec<Vec<FlatTokenInput>>,
     pub selected_row: usize,
 }
 
@@ -23,20 +23,20 @@ impl CurrentRules {
         }
     }
     
-    pub fn with_rules(rules: Vec<Vec<UITokenType>>) -> Self {
+    pub fn with_rules(rules: Vec<Vec<FlatTokenInput>>) -> Self {
         Self {
             rules,
             selected_row: 0,
         }
     }
 
-    // UIのUITokenTypeからrule-systemを経由してaction-systemのRuleNodeに変換
+    // UIのFlatTokenInputからtoken-inputを経由してaction-systemのRuleNodeに変換
     pub fn convert_to_rule_nodes(&self) -> Vec<RuleNode> {
-        convert_ui_rules_to_nodes(&self.rules)
+        convert_flat_rules_to_nodes(&self.rules)
     }
     
     // ルール行の追加
-    pub fn add_token_to_current_row(&mut self, token: UITokenType) {
+    pub fn add_token_to_current_row(&mut self, token: FlatTokenInput) {
         if self.selected_row < self.rules.len() {
             self.rules[self.selected_row].push(token);
         }
@@ -125,10 +125,10 @@ mod tests {
         let mut rules = CurrentRules::new();
         
         // Add tokens to current row
-        rules.add_token_to_current_row(UITokenType::Strike);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
-        rules.add_token_to_current_row(UITokenType::Heal);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Heal);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         
         assert_eq!(rules.rules[0].len(), 4);
         assert_eq!(rules.is_current_row_empty(), false);
@@ -175,15 +175,15 @@ mod tests {
         assert_eq!(rules.has_valid_rules(), false);
         
         // Add tokens to first row
-        rules.add_token_to_current_row(UITokenType::Strike);
-        rules.add_token_to_current_row(UITokenType::RandomCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::RandomCharacter);
         assert_eq!(rules.non_empty_rule_count(), 1);
         assert_eq!(rules.has_valid_rules(), true);
         
         // Add tokens to second row
         rules.select_next_row();
-        rules.add_token_to_current_row(UITokenType::Heal);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Heal);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         assert_eq!(rules.non_empty_rule_count(), 2);
         
         // Clear all
@@ -198,13 +198,13 @@ mod tests {
         let mut rules = CurrentRules::new();
         
         // Create a complex rule pattern
-        rules.add_token_to_current_row(UITokenType::Check);
-        rules.add_token_to_current_row(UITokenType::GreaterThan);
-        rules.add_token_to_current_row(UITokenType::Number(50));
-        rules.add_token_to_current_row(UITokenType::HP);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
-        rules.add_token_to_current_row(UITokenType::Heal);
-        rules.add_token_to_current_row(UITokenType::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Check);
+        rules.add_token_to_current_row(FlatTokenInput::GreaterThan);
+        rules.add_token_to_current_row(FlatTokenInput::Number(50));
+        rules.add_token_to_current_row(FlatTokenInput::HP);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
+        rules.add_token_to_current_row(FlatTokenInput::Heal);
+        rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_ne!(rule_nodes.len(), 0, "Should convert to valid rule nodes");
@@ -215,8 +215,8 @@ mod tests {
     #[test]
     fn test_with_rules_constructor() {
         let initial_rules = vec![
-            vec![UITokenType::Strike],
-            vec![UITokenType::Heal],
+            vec![FlatTokenInput::Strike],
+            vec![FlatTokenInput::Heal],
             vec![],
         ];
         

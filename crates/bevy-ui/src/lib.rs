@@ -15,6 +15,6 @@ pub use systems::{setup_team_battle, handle_team_restart, apply_rules_to_battle,
 pub use plugin::GamePlugin;
 
 // Re-export ui-core types for convenience
-pub use ui_core::{GameState, GameMode, CurrentRules, UITokenType, convert_ui_rules_to_nodes};
+pub use ui_core::{GameState, GameMode, CurrentRules, FlatTokenInput, convert_flat_rules_to_nodes};
 // Re-export display text functions
 pub use display_text::format_rule_tokens;

@@ -8,4 +8,5 @@ bevy = "0.16.0"
 battle = { path = "../battle" }
 ui-core = { path = "../ui-core" }
 json-rule = { path = "../json-rule" }
+token-input = { path = "../token-input" }
 rand = "0.8"

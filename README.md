@@ -171,7 +171,7 @@ ElementはFilterListの第一引数であるTeamCharactersの要素
 
 ### 🏗️ アーキテクチャ概要
 
-このプロジェクトは責任分離の原則に基づいて6つのクレートに分割されています：
+このプロジェクトは責任分離の原則に基づいて7つのクレートに分割されています：
 
 #### 🎮 `turn-based-rpg` (ルートバイナリ)
 - **役割**: Bevyエンジン統合・ゲーム統合バイナリ
@@ -192,9 +192,14 @@ ElementはFilterListの第一引数であるTeamCharactersの要素
 - **責任**: 戦闘状態管理、ターン制御、戦闘結果判定
 - **テスト**: 26の統合テストで戦闘ロジックを完全カバー
 
+#### 🎯 `token-input` クレート
+- **役割**: トークン入力統一化システム
+- **責任**: FlatTokenInput（UI入力）とStructuredTokenInput（JSON入力）の変換・統合
+- **特徴**: UI入力→FlatTokenInput→StructuredTokenInput→Node の統一変換パイプライン
+
 #### 📝 `json-rule` クレート
 - **役割**: JSON ルール読み込み・変換システム
-- **責任**: 外部設定ファイルの読み込み、JSON解析、トークンルール変換
+- **責任**: 外部設定ファイルの読み込み、JSON解析
 - **特徴**: フォールバック機構付きでJSON読み込み失敗時も動作継続
 
 #### 🧠 `action-system` クレート
@@ -207,9 +212,11 @@ ElementはFilterListの第一引数であるTeamCharactersの要素
 ```
 turn-based-rpg (root)
 ├── bevy-ui ← ui-core ← battle ← json-rule ← action-system
-├── ui-core ← battle ← action-system
+├── bevy-ui ← token-input ← action-system
+├── ui-core ← token-input ← action-system
 ├── battle ← action-system
-├── json-rule ← action-system
+├── json-rule ← token-input ← action-system
+├── token-input ← action-system
 └── action-system (完全独立)
 ```
 
@@ -224,11 +231,12 @@ turn-based-rpg (root)
 cargo test --workspace
 
 # 個別クレートのテスト
-cargo test -p action-system    # 15テスト
-cargo test -p json-rule        # 12テスト  
-cargo test -p battle           # 26テスト
-cargo test -p ui-core          # 17テスト
-cargo test -p bevy-ui          # 6テスト
+cargo test -p action-system    # 32テスト
+cargo test -p token-input      # 3テスト
+cargo test -p json-rule        # 5テスト  
+cargo test -p battle           # 3テスト
+cargo test -p ui-core          # 16テスト
+cargo test -p bevy-ui          # 3テスト
 ```
 
 ### ビルド・チェック
@@ -257,6 +265,7 @@ cargo run --bin turn-based-rpg
 ├── src/main.rs         # ゲーム統合バイナリ
 ├── crates/             # 各機能クレート
 │   ├── action-system/  # トークンベース行動計算
+│   ├── token-input/    # トークン入力統一化
 │   ├── json-rule/      # JSON設定読み込み
 │   ├── battle/         # 戦闘管理ロジック
 │   ├── ui-core/        # UIロジック（Bevy非依存）

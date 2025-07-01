@@ -6,7 +6,8 @@ use rand::SeedableRng;
 use crate::{GameTeamBattle, GameMode, BevyGameState, BevyCurrentRules};
 use crate::ui::{BattleUI, LatestLogUI};
 use battle::{TeamBattle, Character as GameCharacter, Team};
-use json_rule::{load_rules_from_file, convert_to_node_rules};
+use json_rule::load_rules_from_file;
+use token_input::convert_ruleset_to_nodes;
 
 // チーム戦闘のセットアップ
 pub fn setup_team_battle(mut commands: Commands) {
@@ -30,9 +31,9 @@ pub fn setup_team_battle(mut commands: Commands) {
     
     // Create rules for each player character (3 characters)
     let player_rules_per_character = vec![
-        convert_to_node_rules(&player_rule_set).expect("Failed to convert player rules"),
-        convert_to_node_rules(&player_rule_set).expect("Failed to convert player rules"),
-        convert_to_node_rules(&player_rule_set).expect("Failed to convert player rules"),
+        convert_ruleset_to_nodes(&player_rule_set),
+        convert_ruleset_to_nodes(&player_rule_set),
+        convert_ruleset_to_nodes(&player_rule_set),
     ];
     
     // Load enemy rules from JSON file for each character
@@ -41,9 +42,9 @@ pub fn setup_team_battle(mut commands: Commands) {
     
     // Create rules for each enemy character (3 characters)
     let enemy_rules_per_character = vec![
-        convert_to_node_rules(&enemy_rule_set).expect("Failed to convert enemy rules"),
-        convert_to_node_rules(&enemy_rule_set).expect("Failed to convert enemy rules"),
-        convert_to_node_rules(&enemy_rule_set).expect("Failed to convert enemy rules"),
+        convert_ruleset_to_nodes(&enemy_rule_set),
+        convert_ruleset_to_nodes(&enemy_rule_set),
+        convert_ruleset_to_nodes(&enemy_rule_set),
     ];
     
     println!("Loaded team battle rules from JSON");
@@ -85,17 +86,17 @@ pub fn handle_team_restart(
         let player_rule_set = load_rules_from_file("rules/player_rules.json")
             .expect("Failed to load player rules from JSON file");
         let player_rules_per_character = vec![
-            convert_to_node_rules(&player_rule_set).expect("Failed to convert player rules"),
-            convert_to_node_rules(&player_rule_set).expect("Failed to convert player rules"),
-            convert_to_node_rules(&player_rule_set).expect("Failed to convert player rules"),
+            convert_ruleset_to_nodes(&player_rule_set),
+            convert_ruleset_to_nodes(&player_rule_set),
+            convert_ruleset_to_nodes(&player_rule_set),
         ];
         
         let enemy_rule_set = load_rules_from_file("rules/enemy_rules.json")
             .expect("Failed to load enemy rules from JSON file");
         let enemy_rules_per_character = vec![
-            convert_to_node_rules(&enemy_rule_set).expect("Failed to convert enemy rules"),
-            convert_to_node_rules(&enemy_rule_set).expect("Failed to convert enemy rules"),
-            convert_to_node_rules(&enemy_rule_set).expect("Failed to convert enemy rules"),
+            convert_ruleset_to_nodes(&enemy_rule_set),
+            convert_ruleset_to_nodes(&enemy_rule_set),
+            convert_ruleset_to_nodes(&enemy_rule_set),
         ];
         
         let rng = StdRng::from_entropy();
@@ -144,9 +145,9 @@ pub fn apply_rules_to_battle(
         let enemy_rule_set = load_rules_from_file("rules/enemy_rules.json")
             .expect("Failed to load enemy rules from JSON file");
         let enemy_rules_per_character = vec![
-            convert_to_node_rules(&enemy_rule_set).expect("Failed to convert enemy rules"),
-            convert_to_node_rules(&enemy_rule_set).expect("Failed to convert enemy rules"),
-            convert_to_node_rules(&enemy_rule_set).expect("Failed to convert enemy rules"),
+            convert_ruleset_to_nodes(&enemy_rule_set),
+            convert_ruleset_to_nodes(&enemy_rule_set),
+            convert_ruleset_to_nodes(&enemy_rule_set),
         ];
         
         let rng = StdRng::from_entropy();

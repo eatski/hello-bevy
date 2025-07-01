@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 action-system = { path = "../action-system" }
 battle = { path = "../battle" }
+token-input = { path = "../token-input" }
 rand = "0.8.5"
