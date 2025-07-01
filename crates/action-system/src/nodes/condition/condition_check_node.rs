@@ -1,27 +1,27 @@
 // Condition check node - evaluates condition and delegates to next node or breaks
 
-use crate::core::{ActionResolver, Action, NodeResult, NodeError};
+use crate::core::{Action, NodeResult, NodeError};
 use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::Node;
 
 #[derive(Debug)]
 pub struct ConditionCheckNode {
     condition: Box<dyn Node<bool>>,
-    next: Box<dyn ActionResolver>,
+    next: Box<dyn Node<Box<dyn Action>>>,
 }
 
 impl ConditionCheckNode {
-    pub fn new(condition: Box<dyn Node<bool>>, next: Box<dyn ActionResolver>) -> Self {
+    pub fn new(condition: Box<dyn Node<bool>>, next: Box<dyn Node<Box<dyn Action>>>) -> Self {
         Self { condition, next }
     }
 }
 
-impl ActionResolver for ConditionCheckNode {
-    fn resolve(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
+impl Node<Box<dyn Action>> for ConditionCheckNode {
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
         let condition_result = self.condition.evaluate(eval_context, rng)?;
         if condition_result {
             // Continue: delegate to next node
-            self.next.resolve(eval_context, rng)
+            self.next.evaluate(eval_context, rng)
         } else {
             Err(NodeError::Break)
         }
@@ -53,7 +53,7 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = check_random.resolve(&eval_context, &mut rng);
+        let result = Node::<Box<dyn Action>>::evaluate(&check_random, &eval_context, &mut rng);
         // Should either return an Action or Break error
         match result {
             Ok(_action) => assert!(true), // Got an action

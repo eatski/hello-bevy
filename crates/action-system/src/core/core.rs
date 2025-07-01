@@ -71,16 +71,5 @@ impl Action for Box<dyn Action> {
     }
 }
 
-// Trait for nodes that can resolve to actions or break
-pub trait ActionResolver: Send + Sync + std::fmt::Debug {
-    fn resolve(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>>;
-}
-
-impl ActionResolver for Box<dyn ActionResolver> {
-    fn resolve(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
-        (**self).resolve(eval_context, rng)
-    }
-}
-
-// Simplified rule system - all nodes are ActionResolvers
-pub type RuleNode = Box<dyn ActionResolver>;
+// Simplified rule system - all nodes are unified Node<Box<dyn Action>>
+pub type RuleNode = Box<dyn crate::nodes::unified_node::Node<Box<dyn Action>>>;

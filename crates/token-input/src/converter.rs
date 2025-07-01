@@ -1,12 +1,12 @@
 // Converter - FlatTokenInput <-> StructuredTokenInput <-> Node 変換
 
 use crate::{FlatTokenInput, StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, CharacterRandomPickNode, Character, Node};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, CharacterRandomPickNode, Character, Node, Action};
 
 // パース結果を表すEnum
 #[derive(Debug)]
 pub enum ParsedResolver {
-    Action(Box<dyn ActionResolver>),
+    Action(Box<dyn Node<Box<dyn Action>>>),
     Condition(Box<dyn Node<bool>>),
     Value(Box<dyn Node<i32>>),
     Character(Box<dyn Node<i32>>),
@@ -14,7 +14,7 @@ pub enum ParsedResolver {
 }
 
 impl ParsedResolver {
-    pub fn require_action(self) -> Result<Box<dyn ActionResolver>, String> {
+    pub fn require_action(self) -> Result<Box<dyn Node<Box<dyn Action>>>, String> {
         match self {
             ParsedResolver::Action(action) => Ok(action),
             _ => Err(format!("Expected Action, got {:?}", self)),

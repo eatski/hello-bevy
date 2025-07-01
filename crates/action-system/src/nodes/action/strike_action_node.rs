@@ -1,6 +1,6 @@
 // Strike action node - resolves to strike action with target character
 
-use crate::core::{ActionResolver, NodeResult, NodeError, Action, StrikeAction};
+use crate::core::{NodeResult, NodeError, Action, StrikeAction};
 use crate::nodes::unified_node::Node;
 use crate::nodes::evaluation_context::EvaluationContext;
 
@@ -15,8 +15,8 @@ impl StrikeActionNode {
     }
 }
 
-impl ActionResolver for StrikeActionNode {
-    fn resolve(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
+impl Node<Box<dyn Action>> for StrikeActionNode {
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
         let battle_context = eval_context.get_battle_context();
         let acting_character = battle_context.get_acting_character();
         
@@ -58,7 +58,7 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = strike.resolve(&eval_context, &mut rng);
+        let result = Node::<Box<dyn Action>>::evaluate(&strike, &eval_context, &mut rng);
         assert!(result.is_ok(), "StrikeActionNode should return StrikeAction for alive character");
         if let Ok(action) = result {
             assert_eq!(action.get_action_name(), "Strike");
@@ -71,7 +71,7 @@ mod tests {
         let target_dead = Box::new(ActingCharacterNode);
         let strike_dead = StrikeActionNode::new(target_dead);
         let dead_eval_context = EvaluationContext::new(&dead_battle_context);
-        let result = strike_dead.resolve(&dead_eval_context, &mut rng);
+        let result = Node::<Box<dyn Action>>::evaluate(&strike_dead, &dead_eval_context, &mut rng);
         assert!(matches!(result, Err(NodeError::Break)), "StrikeActionNode should return Break error for dead character");
     }
 }

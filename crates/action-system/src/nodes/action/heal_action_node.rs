@@ -1,6 +1,6 @@
 // Heal action node - resolves to heal action with target character
 
-use crate::core::{ActionResolver, NodeResult, NodeError, Action, HealAction};
+use crate::core::{NodeResult, NodeError, Action, HealAction};
 use crate::nodes::unified_node::Node;
 use crate::nodes::evaluation_context::EvaluationContext;
 
@@ -15,8 +15,8 @@ impl HealActionNode {
     }
 }
 
-impl ActionResolver for HealActionNode {
-    fn resolve(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
+impl Node<Box<dyn Action>> for HealActionNode {
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
         let battle_context = eval_context.get_battle_context();
         let acting_character = battle_context.get_acting_character();
         
@@ -58,7 +58,7 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = heal.resolve(&eval_context, &mut rng);
+        let result = Node::<Box<dyn Action>>::evaluate(&heal, &eval_context, &mut rng);
         assert!(result.is_ok(), "HealActionNode should return HealAction for alive character");
         if let Ok(action) = result {
             assert_eq!(action.get_action_name(), "Heal");
@@ -71,7 +71,7 @@ mod tests {
         let target_dead = Box::new(ActingCharacterNode);
         let heal_dead = HealActionNode::new(target_dead);
         let dead_eval_context = EvaluationContext::new(&dead_battle_context);
-        let result = heal_dead.resolve(&dead_eval_context, &mut rng);
+        let result = Node::<Box<dyn Action>>::evaluate(&heal_dead, &dead_eval_context, &mut rng);
         assert!(matches!(result, Err(NodeError::Break)), "HealActionNode should return Break error for dead character");
     }
 }

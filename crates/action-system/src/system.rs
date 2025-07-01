@@ -2,6 +2,7 @@
 
 use rand::rngs::StdRng;
 use super::core::{Action, RuleNode, NodeError};
+use crate::nodes::unified_node::Node;
 use crate::BattleContext;
 use crate::nodes::evaluation_context::EvaluationContext;
 
@@ -23,7 +24,7 @@ impl ActionCalculationSystem {
         let eval_context = EvaluationContext::new(battle_context);
 
         for rule in &self.rules {
-            match rule.resolve(&eval_context, rng) {
+            match Node::<Box<dyn Action>>::evaluate(rule.as_ref(), &eval_context, rng) {
                 Ok(action) => {
                     return Some(action);
                 }
