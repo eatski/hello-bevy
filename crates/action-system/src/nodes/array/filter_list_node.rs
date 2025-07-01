@@ -1,26 +1,25 @@
 // FilterList node - filters array elements based on condition
 use crate::core::NodeResult;
-use crate::nodes::array::CharacterArrayNode;
-use crate::nodes::condition::ConditionNode;
+use crate::nodes::unified_node::Node;
 use crate::Character;
 
 /// Node that filters an array of characters based on a condition
 #[derive(Debug)]
 pub struct FilterListNode {
-    array: Box<dyn CharacterArrayNode>,
-    condition: Box<dyn ConditionNode>,
+    array: Box<dyn Node<Vec<Character>>>,
+    condition: Box<dyn Node<bool>>,
 }
 
 impl FilterListNode {
     pub fn new(
-        array: Box<dyn CharacterArrayNode>,
-        condition: Box<dyn ConditionNode>,
+        array: Box<dyn Node<Vec<Character>>>,
+        condition: Box<dyn Node<bool>>,
     ) -> Self {
         Self { array, condition }
     }
 }
 
-impl CharacterArrayNode for FilterListNode {
+impl Node<Vec<Character>> for FilterListNode {
     fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
         // Get the array to filter
         let characters = self.array.evaluate(eval_context, rng)?;
@@ -85,7 +84,7 @@ mod tests {
         let filter_node = FilterListNode::new(team_array, hp_condition);
         
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = filter_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = Node::<Vec<Character>>::evaluate(&filter_node, &eval_context, &mut rng).unwrap();
         
         // Should only return the high HP character (80 > 50)
         assert_eq!(result.len(), 1);
@@ -118,7 +117,7 @@ mod tests {
         let filter_node = FilterListNode::new(team_array, hp_condition);
         
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = filter_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = Node::<Vec<Character>>::evaluate(&filter_node, &eval_context, &mut rng).unwrap();
         
         // Should return empty array
         assert_eq!(result.len(), 0);

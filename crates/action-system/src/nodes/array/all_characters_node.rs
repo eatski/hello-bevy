@@ -1,8 +1,9 @@
 // AllCharactersNode - returns all characters in the battle context
 
-use super::CharacterArrayNode;
 use crate::core::NodeResult;
 use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unified_node::Node;
+use crate::Character;
 
 #[derive(Debug)]
 pub struct AllCharactersNode;
@@ -13,8 +14,8 @@ impl AllCharactersNode {
     }
 }
 
-impl CharacterArrayNode for AllCharactersNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<Vec<crate::Character>> {
+impl Node<Vec<Character>> for AllCharactersNode {
+    fn evaluate(&self, eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
         let battle_context = eval_context.get_battle_context();
         let character_refs = battle_context.all_characters();
         let characters = character_refs.into_iter().cloned().collect();

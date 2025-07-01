@@ -1,16 +1,16 @@
 // Strike action node - resolves to strike action with target character
 
 use crate::core::{ActionResolver, NodeResult, NodeError, Action, StrikeAction};
-use crate::nodes::character::CharacterNode;
+use crate::nodes::unified_node::Node;
 use crate::nodes::evaluation_context::EvaluationContext;
 
 #[derive(Debug)]
 pub struct StrikeActionNode {
-    target: Box<dyn CharacterNode>,
+    target: Box<dyn Node<i32>>,
 }
 
 impl StrikeActionNode {
-    pub fn new(target: Box<dyn CharacterNode>) -> Self {
+    pub fn new(target: Box<dyn Node<i32>>) -> Self {
         Self { target }
     }
 }

@@ -1,14 +1,3 @@
-// Array node traits - nodes that evaluate to collections of characters
+// Array nodes - nodes that evaluate to arrays for collection operations
 
-use crate::core::NodeResult;
-
-// Trait for nodes that evaluate to arrays of characters
-pub trait CharacterArrayNode: Send + Sync + std::fmt::Debug {
-    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<crate::Character>>;
-}
-
-impl CharacterArrayNode for Box<dyn CharacterArrayNode> {
-    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<crate::Character>> {
-        (**self).evaluate(eval_context, rng)
-    }
-}
+// Individual array node modules are handled by unified Node<T> trait

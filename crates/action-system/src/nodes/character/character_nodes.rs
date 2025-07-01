@@ -77,16 +77,5 @@ impl<'a> BattleContext<'a> {
     }
 }
 
-// Trait for nodes that evaluate to character IDs
-pub trait CharacterNode: Send + Sync + std::fmt::Debug {
-    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32>;
-}
-
-impl CharacterNode for Box<dyn CharacterNode> {
-    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
-        (**self).evaluate(eval_context, rng)
-    }
-}
-
 // Re-export individual character node modules
 pub use super::acting_character_node::ActingCharacterNode;

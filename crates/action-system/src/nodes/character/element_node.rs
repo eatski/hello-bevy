@@ -1,6 +1,6 @@
 // Element node - references the current character being processed in array operations
 use crate::core::NodeResult;
-use crate::nodes::character::CharacterNode;
+use crate::nodes::unified_node::Node;
 
 /// Node that returns the ID of the current character being processed in array operations
 /// This is typically used within FilterList conditions to reference the element being evaluated
@@ -19,7 +19,8 @@ impl Default for ElementNode {
     }
 }
 
-impl CharacterNode for ElementNode {
+// Unified implementation
+impl Node<i32> for ElementNode {
     fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
         // Return the ID of the current character being processed (current element in array operations)
         Ok(eval_context.get_current_character().id)
@@ -51,14 +52,14 @@ mod tests {
         let element_node = ElementNode::new();
         
         let eval_context1 = EvaluationContext::new(&battle_context1);
-        let result1 = element_node.evaluate(&eval_context1, &mut rng).unwrap();
+        let result1 = Node::<i32>::evaluate(&element_node, &eval_context1, &mut rng).unwrap();
         assert_eq!(result1, 1); // Should return character1's ID
         
         // Test with character2 as acting character
         let battle_context2 = BattleContext::new(&character2, TeamSide::Enemy, &player_team, &enemy_team);
         let eval_context2 = EvaluationContext::new(&battle_context2);
         
-        let result2 = element_node.evaluate(&eval_context2, &mut rng).unwrap();
+        let result2 = Node::<i32>::evaluate(&element_node, &eval_context2, &mut rng).unwrap();
         assert_eq!(result2, 2); // Should return character2's ID
     }
     
@@ -71,7 +72,34 @@ mod tests {
         
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = element_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = Node::<i32>::evaluate(&element_node, &eval_context, &mut rng).unwrap();
         assert_eq!(result, 42);
+    }
+
+    #[test]
+    fn test_element_node_unified() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
+        
+        let character = Character::new(99, "Unified Test".to_string(), 100, 100, 30);
+        let team = Team::new("Unified Team".to_string(), vec![character.clone()]);
+        let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
+        
+        let element_node = ElementNode::new();
+        let eval_context = EvaluationContext::new(&battle_context);
+        
+        // Test unified implementation
+        let result = Node::<i32>::evaluate(&element_node, &eval_context, &mut rng).unwrap();
+        assert_eq!(result, 99);
+        
+        // Test as boxed trait object
+        let boxed_node: Box<dyn Node<i32>> = Box::new(ElementNode::default());
+        let boxed_result = boxed_node.evaluate(&eval_context, &mut rng).unwrap();
+        assert_eq!(boxed_result, 99);
+        
+        // Test with new element context
+        let element_character = Character::new(123, "Element".to_string(), 80, 80, 25);
+        let element_eval_context = eval_context.with_new_element(&element_character);
+        let element_result = Node::<i32>::evaluate(&element_node, &element_eval_context, &mut rng).unwrap();
+        assert_eq!(element_result, 123); // Should return element character's ID
     }
 }

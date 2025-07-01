@@ -6,12 +6,13 @@ pub mod system;
 
 // Re-export essential types only
 pub use core::{Character, Team, TeamSide, ActionResolver, Action, BattleState, RuleNode, NodeError, NodeResult};
-pub use nodes::condition::{ConditionNode, ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode};
-pub use nodes::value::{ValueNode, ConstantValueNode};
-pub use nodes::character::{BattleContext, CharacterNode, ActingCharacterNode, CharacterHpNode, ElementNode};
+pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode};
+pub use nodes::value::{ConstantValueNode};
+pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterHpNode, ElementNode};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
-pub use nodes::array::{CharacterArrayNode, AllCharactersNode, TeamMembersNode, CountArrayNode, RandomPickNode, FilterListNode};
+pub use nodes::array::{AllCharactersNode, TeamMembersNode, CountArrayNode, RandomPickNode, CharacterRandomPickNode, FilterListNode};
+pub use nodes::unified_node::{Node, CharacterNode, ValueNode, ConditionNode, ArrayNode, CharacterArrayNode, ValueArrayNode};
 pub use system::ActionCalculationSystem;
 
 #[cfg(test)]
@@ -32,7 +33,7 @@ mod tests {
         
         let all_chars_node = AllCharactersNode::new();
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = all_chars_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = Node::<Vec<Character>>::evaluate(&all_chars_node, &eval_context, &mut rng).unwrap();
         
         assert_eq!(result.len(), 2);
         assert!(result.iter().any(|c| c.name == "Player"));
@@ -61,7 +62,7 @@ mod tests {
         
         let team_node = TeamMembersNode::new(TeamSide::Player);
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = team_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = Node::<Vec<Character>>::evaluate(&team_node, &eval_context, &mut rng).unwrap();
         
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].name, "Player1");
@@ -82,7 +83,7 @@ mod tests {
         let all_chars_node = Box::new(AllCharactersNode::new());
         let count_node = CountArrayNode::new(all_chars_node);
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = count_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = Node::<i32>::evaluate(&count_node, &eval_context, &mut rng).unwrap();
         
         assert_eq!(result, 2);
     }
@@ -90,7 +91,6 @@ mod tests {
 
     #[test]
     fn test_random_pick_character_node() {
-        use crate::nodes::array::RandomPickNode;
         
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
@@ -112,9 +112,9 @@ mod tests {
         
         // Test random pick from character array
         let team_members_node = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let random_pick_node = RandomPickNode::new(team_members_node);
+        let random_pick_node = CharacterRandomPickNode::from_character_array(team_members_node);
         let eval_context = EvaluationContext::new(&battle_context);
-        let result_id = CharacterNode::evaluate(&random_pick_node, &eval_context, &mut rng).unwrap();
+        let result_id = Node::<i32>::evaluate(&random_pick_node, &eval_context, &mut rng).unwrap();
         
         // Should pick one of the team members
         let player1_id = player_team.members[0].id;
@@ -125,7 +125,6 @@ mod tests {
 
     #[test]
     fn test_random_pick_from_team() {
-        use crate::nodes::array::RandomPickNode;
         
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
@@ -147,9 +146,9 @@ mod tests {
         
         // Test random pick from team (including dead members)
         let team_members_node = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let random_pick_node = RandomPickNode::new(team_members_node);
+        let random_pick_node = CharacterRandomPickNode::from_character_array(team_members_node);
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = CharacterNode::evaluate(&random_pick_node, &eval_context, &mut rng);
+        let result = Node::<i32>::evaluate(&random_pick_node, &eval_context, &mut rng);
         
         // Should succeed since team has members (even if dead)
         assert!(result.is_ok());
@@ -196,7 +195,7 @@ mod tests {
         let filter_node = FilterListNode::new(team_array, hp_condition);
         
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = filter_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = Node::<Vec<Character>>::evaluate(&filter_node, &eval_context, &mut rng).unwrap();
         
         // Should return characters with HP > 50 (high_hp_char: 80, medium_hp_char: 60)
         assert_eq!(result.len(), 2);
@@ -218,7 +217,7 @@ mod tests {
         
         let element_node = ElementNode::new();
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = element_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = Node::<i32>::evaluate(&element_node, &eval_context, &mut rng).unwrap();
         
         // Should return the acting character's ID
         assert_eq!(result, 17);

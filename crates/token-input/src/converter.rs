@@ -1,17 +1,16 @@
 // Converter - FlatTokenInput <-> StructuredTokenInput <-> Node 変換
 
 use crate::{FlatTokenInput, StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConditionNode, ValueNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, RandomPickNode, CharacterArrayNode};
-use action_system::nodes::character::CharacterNode;
+use action_system::{RuleNode, ConditionCheckNode, ActionResolver, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, CharacterRandomPickNode, Character, Node};
 
 // パース結果を表すEnum
 #[derive(Debug)]
 pub enum ParsedResolver {
     Action(Box<dyn ActionResolver>),
-    Condition(Box<dyn ConditionNode>),
-    Value(Box<dyn ValueNode>),
-    Character(Box<dyn CharacterNode>),
-    CharacterArray(Box<dyn CharacterArrayNode>),
+    Condition(Box<dyn Node<bool>>),
+    Value(Box<dyn Node<i32>>),
+    Character(Box<dyn Node<i32>>),
+    CharacterArray(Box<dyn Node<Vec<Character>>>),
 }
 
 impl ParsedResolver {
@@ -22,28 +21,28 @@ impl ParsedResolver {
         }
     }
     
-    pub fn require_condition(self) -> Result<Box<dyn ConditionNode>, String> {
+    pub fn require_condition(self) -> Result<Box<dyn Node<bool>>, String> {
         match self {
             ParsedResolver::Condition(condition) => Ok(condition),
             _ => Err(format!("Expected Condition, got {:?}", self)),
         }
     }
     
-    pub fn require_value(self) -> Result<Box<dyn ValueNode>, String> {
+    pub fn require_value(self) -> Result<Box<dyn Node<i32>>, String> {
         match self {
             ParsedResolver::Value(value) => Ok(value),
             _ => Err(format!("Expected Value, got {:?}", self)),
         }
     }
     
-    pub fn require_character(self) -> Result<Box<dyn CharacterNode>, String> {
+    pub fn require_character(self) -> Result<Box<dyn Node<i32>>, String> {
         match self {
             ParsedResolver::Character(character_node) => Ok(character_node),
             _ => Err(format!("Expected Character, got {:?}", self)),
         }
     }
     
-    pub fn require_character_array(self) -> Result<Box<dyn CharacterArrayNode>, String> {
+    pub fn require_character_array(self) -> Result<Box<dyn Node<Vec<Character>>>, String> {
         match self {
             ParsedResolver::CharacterArray(character_array_node) => Ok(character_array_node),
             _ => Err(format!("Expected CharacterArray, got {:?}", self)),
@@ -172,7 +171,7 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::RandomPick { array } => {
             let array_node = convert_structured_to_node(array)?;
             let character_array_node = array_node.require_character_array()?;
-            Ok(ParsedResolver::Character(Box::new(RandomPickNode::new(character_array_node))))
+            Ok(ParsedResolver::Character(Box::new(CharacterRandomPickNode::from_character_array(character_array_node))))
         }
         StructuredTokenInput::TrueOrFalseRandom => {
             Ok(ParsedResolver::Condition(Box::new(RandomConditionNode)))

@@ -2,16 +2,16 @@
 
 use crate::core::{ActionResolver, Action, NodeResult, NodeError};
 use crate::nodes::evaluation_context::EvaluationContext;
-use super::condition_nodes::ConditionNode;
+use crate::nodes::unified_node::Node;
 
 #[derive(Debug)]
 pub struct ConditionCheckNode {
-    condition: Box<dyn ConditionNode>,
+    condition: Box<dyn Node<bool>>,
     next: Box<dyn ActionResolver>,
 }
 
 impl ConditionCheckNode {
-    pub fn new(condition: Box<dyn ConditionNode>, next: Box<dyn ActionResolver>) -> Self {
+    pub fn new(condition: Box<dyn Node<bool>>, next: Box<dyn ActionResolver>) -> Self {
         Self { condition, next }
     }
 }
