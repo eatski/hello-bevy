@@ -7,7 +7,7 @@ use super::condition_nodes::ConditionNode;
 pub struct RandomConditionNode;
 
 impl ConditionNode for RandomConditionNode {
-    fn evaluate(&self, _battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<bool> {
+    fn evaluate(&self, _eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<bool> {
         Ok(rng.gen_bool(0.5))
     }
 }
@@ -16,6 +16,7 @@ impl ConditionNode for RandomConditionNode {
 mod tests {
     use super::*;
     use crate::{Character, Team, TeamSide};
+    use crate::nodes::evaluation_context::EvaluationContext;
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
@@ -34,8 +35,9 @@ mod tests {
         // Test with seeded RNG for deterministic behavior
         let mut rng1 = StdRng::seed_from_u64(42);
         let mut rng2 = StdRng::seed_from_u64(42);
-        let result1 = random.evaluate(&battle_context, &mut rng1).unwrap();
-        let result2 = random.evaluate(&battle_context, &mut rng2).unwrap();
+        let eval_context = EvaluationContext::new(&battle_context);
+        let result1 = random.evaluate(&eval_context, &mut rng1).unwrap();
+        let result2 = random.evaluate(&eval_context, &mut rng2).unwrap();
         
         // Same seed should produce same result
         assert_eq!(result1, result2);
@@ -46,7 +48,7 @@ mod tests {
         let mut false_count = 0;
         
         for _ in 0..100 {
-            if random.evaluate(&battle_context, &mut rng).unwrap() {
+            if random.evaluate(&eval_context, &mut rng).unwrap() {
                 true_count += 1;
             } else {
                 false_count += 1;
@@ -73,9 +75,11 @@ mod tests {
         
         let mut results = Vec::new();
         
+        let eval_context = EvaluationContext::new(&battle_context);
+        
         // 同一RNGで20回評価
         for _ in 0..20 {
-            let result = random.evaluate(&battle_context, &mut rng).unwrap();
+            let result = random.evaluate(&eval_context, &mut rng).unwrap();
             results.push(result);
         }
         

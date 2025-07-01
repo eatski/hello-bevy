@@ -79,12 +79,12 @@ impl<'a> BattleContext<'a> {
 
 // Trait for nodes that evaluate to character IDs
 pub trait CharacterNode: Send + Sync + std::fmt::Debug {
-    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32>;
+    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32>;
 }
 
 impl CharacterNode for Box<dyn CharacterNode> {
-    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
-        (**self).evaluate(battle_context, rng)
+    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
+        (**self).evaluate(eval_context, rng)
     }
 }
 

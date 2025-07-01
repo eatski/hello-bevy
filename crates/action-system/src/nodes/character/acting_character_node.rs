@@ -6,8 +6,8 @@ use super::character_nodes::CharacterNode;
 pub struct ActingCharacterNode;
 
 impl CharacterNode for ActingCharacterNode {
-    fn evaluate(&self, battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
-        Ok(battle_context.get_acting_character().id)
+    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
+        Ok(eval_context.get_battle_context().get_acting_character().id)
     }
 }
 
@@ -15,6 +15,7 @@ impl CharacterNode for ActingCharacterNode {
 mod tests {
     use super::*;
     use crate::{Character, Team, TeamSide};
+    use crate::nodes::evaluation_context::EvaluationContext;
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
@@ -32,7 +33,8 @@ mod tests {
         
         // Test ActingCharacter node
         let acting_char_node = ActingCharacterNode;
-        let returned_char_id = acting_char_node.evaluate(&battle_context, &mut rng).unwrap();
+        let eval_context = EvaluationContext::new(&battle_context);
+        let returned_char_id = acting_char_node.evaluate(&eval_context, &mut rng).unwrap();
         assert_eq!(returned_char_id, acting_character.id);
     }
 }

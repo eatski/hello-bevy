@@ -1,6 +1,7 @@
 // Character HP node - returns HP from a character node
 
 use crate::nodes::value::ValueNode;
+use crate::nodes::evaluation_context::EvaluationContext;
 use super::character_nodes::CharacterNode;
 
 #[derive(Debug)]
@@ -15,8 +16,9 @@ impl CharacterHpNode {
 }
 
 impl ValueNode for CharacterHpNode {
-    fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
-        let target_id = self.character_node.evaluate(battle_context, rng)?;
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
+        let target_id = self.character_node.evaluate(eval_context, rng)?;
+        let battle_context = eval_context.get_battle_context();
         let target_character = battle_context.get_character_by_id(target_id)
             .ok_or_else(|| crate::core::NodeError::EvaluationError(format!("Character with ID {} not found", target_id)))?;
         Ok(target_character.hp)
@@ -44,6 +46,7 @@ mod tests {
         
         // Test CharacterHpNode with ActingCharacterNode
         let char_hp_node = CharacterHpNode::new(Box::new(ActingCharacterNode));
-        assert_eq!(char_hp_node.evaluate(&battle_context, &mut rng), Ok(100));
+        let eval_context = EvaluationContext::new(&battle_context);
+        assert_eq!(char_hp_node.evaluate(&eval_context, &mut rng), Ok(100));
     }
 }

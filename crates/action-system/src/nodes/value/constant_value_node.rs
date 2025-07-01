@@ -14,7 +14,7 @@ impl ConstantValueNode {
 }
 
 impl ValueNode for ConstantValueNode {
-    fn evaluate(&self, _battle_context: &crate::BattleContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
+    fn evaluate(&self, _eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
         Ok(self.value)
     }
 }
@@ -23,6 +23,7 @@ impl ValueNode for ConstantValueNode {
 mod tests {
     use super::*;
     use crate::{Character, Team, TeamSide};
+    use crate::nodes::evaluation_context::EvaluationContext;
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
@@ -40,6 +41,7 @@ mod tests {
         
         // Test Constant value node
         let value_node = ConstantValueNode::new(42);
-        assert_eq!(value_node.evaluate(&battle_context, &mut rng), Ok(42));
+        let eval_context = EvaluationContext::new(&battle_context);
+        assert_eq!(value_node.evaluate(&eval_context, &mut rng), Ok(42));
     }
 }

@@ -2,7 +2,7 @@
 
 use super::CharacterArrayNode;
 use crate::core::NodeResult;
-use crate::nodes::character::BattleContext;
+use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::value::ValueNode;
 
 #[derive(Debug)]
@@ -17,8 +17,8 @@ impl CountArrayNode {
 }
 
 impl ValueNode for CountArrayNode {
-    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
-        let characters = self.array_node.evaluate(battle_context, rng)?;
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
+        let characters = self.array_node.evaluate(eval_context, rng)?;
         Ok(characters.len() as i32)
     }
 }

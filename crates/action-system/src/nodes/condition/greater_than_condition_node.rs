@@ -2,6 +2,7 @@
 
 use super::condition_nodes::ConditionNode;
 use crate::nodes::value::ValueNode;
+use crate::nodes::evaluation_context::EvaluationContext;
 
 #[derive(Debug)]
 pub struct GreaterThanConditionNode {
@@ -16,9 +17,9 @@ impl GreaterThanConditionNode {
 }
 
 impl ConditionNode for GreaterThanConditionNode {
-    fn evaluate(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<bool> {
-        let left_value = self.left.evaluate(battle_context, rng)?;
-        let right_value = self.right.evaluate(battle_context, rng)?;
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<bool> {
+        let left_value = self.left.evaluate(eval_context, rng)?;
+        let right_value = self.right.evaluate(eval_context, rng)?;
         Ok(left_value > right_value)
     }
 }
@@ -48,12 +49,13 @@ mod tests {
             Box::new(ConstantValueNode::new(60)),
             Box::new(ConstantValueNode::new(40)),
         );
-        assert_eq!(greater_than_node.evaluate(&battle_context, &mut rng), Ok(true));
+        let eval_context = EvaluationContext::new(&battle_context);
+        assert_eq!(greater_than_node.evaluate(&eval_context, &mut rng), Ok(true));
         
         let greater_than_node_false = GreaterThanConditionNode::new(
             Box::new(ConstantValueNode::new(30)),
             Box::new(ConstantValueNode::new(50)),
         );
-        assert_eq!(greater_than_node_false.evaluate(&battle_context, &mut rng), Ok(false));
+        assert_eq!(greater_than_node_false.evaluate(&eval_context, &mut rng), Ok(false));
     }
 }

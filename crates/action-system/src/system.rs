@@ -3,6 +3,7 @@
 use rand::rngs::StdRng;
 use super::core::{Action, RuleNode, NodeError};
 use crate::BattleContext;
+use crate::nodes::evaluation_context::EvaluationContext;
 
 pub struct ActionCalculationSystem {
     pub rules: Vec<RuleNode>,
@@ -19,9 +20,10 @@ impl ActionCalculationSystem {
 
     pub fn calculate_action(&mut self, battle_context: &BattleContext) -> Option<Box<dyn Action>> {
         let rng = &mut self.rng;
+        let eval_context = EvaluationContext::new(battle_context);
 
         for rule in &self.rules {
-            match rule.resolve(battle_context, rng) {
+            match rule.resolve(&eval_context, rng) {
                 Ok(action) => {
                     return Some(action);
                 }

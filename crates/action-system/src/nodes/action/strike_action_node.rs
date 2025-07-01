@@ -2,6 +2,7 @@
 
 use crate::core::{ActionResolver, NodeResult, NodeError, Action, StrikeAction};
 use crate::nodes::character::CharacterNode;
+use crate::nodes::evaluation_context::EvaluationContext;
 
 #[derive(Debug)]
 pub struct StrikeActionNode {
@@ -15,7 +16,8 @@ impl StrikeActionNode {
 }
 
 impl ActionResolver for StrikeActionNode {
-    fn resolve(&self, battle_context: &crate::BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
+    fn resolve(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
+        let battle_context = eval_context.get_battle_context();
         let acting_character = battle_context.get_acting_character();
         
         // Check if acting character can attack (alive)
@@ -24,7 +26,7 @@ impl ActionResolver for StrikeActionNode {
         }
         
         // Evaluate target character ID
-        let target_id = self.target.evaluate(battle_context, rng)?;
+        let target_id = self.target.evaluate(eval_context, rng)?;
         
         // Create and return StrikeAction with the evaluated target ID
         Ok(Box::new(StrikeAction::new(target_id)))
@@ -55,7 +57,8 @@ mod tests {
         let strike = StrikeActionNode::new(target);
         let mut rng = StdRng::from_entropy();
         
-        let result = strike.resolve(&battle_context, &mut rng);
+        let eval_context = EvaluationContext::new(&battle_context);
+        let result = strike.resolve(&eval_context, &mut rng);
         assert!(result.is_ok(), "StrikeActionNode should return StrikeAction for alive character");
         if let Ok(action) = result {
             assert_eq!(action.get_action_name(), "Strike");
@@ -67,7 +70,8 @@ mod tests {
         let dead_battle_context = crate::BattleContext::new(&dead_character, TeamSide::Player, &dead_player_team, &dead_enemy_team);
         let target_dead = Box::new(ActingCharacterNode);
         let strike_dead = StrikeActionNode::new(target_dead);
-        let result = strike_dead.resolve(&dead_battle_context, &mut rng);
+        let dead_eval_context = EvaluationContext::new(&dead_battle_context);
+        let result = strike_dead.resolve(&dead_eval_context, &mut rng);
         assert!(matches!(result, Err(NodeError::Break)), "StrikeActionNode should return Break error for dead character");
     }
 }

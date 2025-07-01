@@ -2,7 +2,8 @@
 
 use super::CharacterArrayNode;
 use crate::core::{NodeError, NodeResult};
-use crate::nodes::character::{BattleContext, CharacterNode};
+use crate::nodes::character::CharacterNode;
+use crate::nodes::evaluation_context::EvaluationContext;
 use rand::Rng;
 
 #[derive(Debug)]
@@ -17,8 +18,8 @@ impl RandomPickNode {
 }
 
 impl CharacterNode for RandomPickNode {
-    fn evaluate(&self, battle_context: &BattleContext, rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
-        let characters = self.array_node.evaluate(battle_context, rng)?;
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
+        let characters = self.array_node.evaluate(eval_context, rng)?;
         if characters.is_empty() {
             return Err(NodeError::EvaluationError("Cannot pick from empty character array".to_string()));
         }
