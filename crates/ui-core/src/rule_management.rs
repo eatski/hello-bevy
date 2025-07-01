@@ -13,7 +13,8 @@ impl CurrentRules {
     pub fn new() -> Self {
         Self {
             rules: vec![
-                vec![],
+                // Default rule: Strike → RandomPick → AllCharacters
+                vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters],
                 vec![],
                 vec![],
                 vec![],
@@ -116,15 +117,16 @@ mod tests {
         let rules = CurrentRules::new();
         assert_eq!(rules.rules.len(), 5);
         assert_eq!(rules.selected_row, 0);
-        assert_eq!(rules.is_current_row_empty(), true);
-        assert_eq!(rules.has_valid_rules(), false);
+        assert_eq!(rules.is_current_row_empty(), false); // First row has default rule
+        assert_eq!(rules.has_valid_rules(), true); // Default rule is valid
     }
     
     #[test]
     fn test_token_manipulation() {
         let mut rules = CurrentRules::new();
         
-        // Add tokens to current row
+        // Clear default rule and add tokens to current row
+        rules.clear_current_row();
         rules.add_token_to_current_row(FlatTokenInput::Strike);
         rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         rules.add_token_to_current_row(FlatTokenInput::Heal);
@@ -171,10 +173,11 @@ mod tests {
     fn test_rule_count_and_validation() {
         let mut rules = CurrentRules::new();
         
-        assert_eq!(rules.non_empty_rule_count(), 0);
-        assert_eq!(rules.has_valid_rules(), false);
+        assert_eq!(rules.non_empty_rule_count(), 1); // Default rule exists
+        assert_eq!(rules.has_valid_rules(), true); // Default rule is valid
         
-        // Add tokens to first row
+        // Clear first row and add new tokens
+        rules.clear_current_row();
         rules.add_token_to_current_row(FlatTokenInput::Strike);
         rules.add_token_to_current_row(FlatTokenInput::RandomPick);
         rules.add_token_to_current_row(FlatTokenInput::AllCharacters);

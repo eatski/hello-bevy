@@ -271,14 +271,13 @@ cargo run --bin turn-based-rpg
 │   ├── ui-core/        # UIロジック（Bevy非依存）
 │   └── bevy-ui/        # Bevy UIシステム
 └── rules/              # JSON設定ファイル
-    ├── player_rules.json
     └── enemy_rules.json
 ```
 
 ## 🔧 カスタマイズ
 
 ### ルール設定のカスタマイズ
-`rules/player_rules.json` を編集してプレイヤーの行動パターンをカスタマイズできます。
+プレイヤーの行動パターンはUI上でトークンを組み合わせてカスタマイズできます。敵の行動パターンは `rules/enemy_rules.json` を編集して変更できます。
 
 ### 新しいトークンの追加
 `action-system` クレートの `Token` トレイトを実装することで新しいトークンタイプを追加できます。

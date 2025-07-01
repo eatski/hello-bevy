@@ -44,9 +44,27 @@ mod tests {
     }
 
     #[test]
-    fn test_load_player_rules_file() {
-        let rule_set = load_rules_from_file("../../rules/player_rules.json").unwrap();
+    fn test_load_json_rules_functionality() {
+        // Test JSON loading functionality using a test rule instead of player_rules.json
+        let test_json = r#"{
+            "rules": [
+                {
+                    "tokens": [
+                        {
+                            "type": "Strike",
+                            "target": {
+                                "type": "ActingCharacter"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }"#;
+        
+        let rule_set = parse_rules_from_json(test_json).unwrap();
         assert_ne!(rule_set.rules.len(), 0);
+        assert_eq!(rule_set.rules.len(), 1);
+        assert_eq!(rule_set.rules[0].tokens.len(), 1);
     }
 
     #[test]

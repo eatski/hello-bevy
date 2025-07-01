@@ -10,7 +10,7 @@ use json_rule::load_rules_from_file;
 use token_input::convert_ruleset_to_nodes;
 
 // チーム戦闘のセットアップ
-pub fn setup_team_battle(mut commands: Commands) {
+pub fn setup_team_battle(mut commands: Commands, current_rules: Res<BevyCurrentRules>) {
     // プレイヤーチーム
     let player_team = Team::new("勇者パーティー".to_string(), vec![
         GameCharacter::new(1, "勇者".to_string(), 100, 80, 25),
@@ -25,15 +25,11 @@ pub fn setup_team_battle(mut commands: Commands) {
         GameCharacter::new(6, "スライム".to_string(), 60, 60, 10),
     ]);
     
-    // Load player rules from JSON file for each character
-    let player_rule_set = load_rules_from_file("rules/player_rules.json")
-        .expect("Failed to load player rules from JSON file");
-    
-    // Create rules for each player character (3 characters)
+    // Use UI-configured rules for each player character (3 characters)
     let player_rules_per_character = vec![
-        convert_ruleset_to_nodes(&player_rule_set),
-        convert_ruleset_to_nodes(&player_rule_set),
-        convert_ruleset_to_nodes(&player_rule_set),
+        current_rules.0.convert_to_rule_nodes(),
+        current_rules.0.convert_to_rule_nodes(),
+        current_rules.0.convert_to_rule_nodes(),
     ];
     
     // Load enemy rules from JSON file for each character
@@ -47,7 +43,7 @@ pub fn setup_team_battle(mut commands: Commands) {
         convert_ruleset_to_nodes(&enemy_rule_set),
     ];
     
-    println!("Loaded team battle rules from JSON");
+    println!("Loaded team battle rules: UI rules for players, JSON for enemies");
     
     let rng = StdRng::from_entropy();
     let team_battle = TeamBattle::new(
@@ -65,6 +61,7 @@ pub fn setup_team_battle(mut commands: Commands) {
 pub fn handle_team_restart(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut game_team_battle: ResMut<GameTeamBattle>,
+    current_rules: Res<BevyCurrentRules>,
 ) {
     if game_team_battle.0.battle_over && 
        (keyboard_input.just_pressed(KeyCode::ShiftLeft) || keyboard_input.just_pressed(KeyCode::ShiftRight)) {
@@ -82,13 +79,11 @@ pub fn handle_team_restart(
             GameCharacter::new(6, "スライム".to_string(), 60, 60, 10),
         ]);
         
-        // Load rules from JSON
-        let player_rule_set = load_rules_from_file("rules/player_rules.json")
-            .expect("Failed to load player rules from JSON file");
+        // Use UI-configured rules for players
         let player_rules_per_character = vec![
-            convert_ruleset_to_nodes(&player_rule_set),
-            convert_ruleset_to_nodes(&player_rule_set),
-            convert_ruleset_to_nodes(&player_rule_set),
+            current_rules.0.convert_to_rule_nodes(),
+            current_rules.0.convert_to_rule_nodes(),
+            current_rules.0.convert_to_rule_nodes(),
         ];
         
         let enemy_rule_set = load_rules_from_file("rules/enemy_rules.json")

@@ -16,16 +16,13 @@ mod tests {
     #[test]
     fn test_rule_creation_workflow() {
         let mut game_state = GameState::new();
-        let mut rules = CurrentRules::new();
+        let rules = CurrentRules::new();
         
         // Start in rule creation mode
         assert_eq!(game_state.is_rule_creation_mode(), true);
-        assert_eq!(rules.has_valid_rules(), false);
+        assert_eq!(rules.has_valid_rules(), true); // Default rule exists
         
-        // Create a simple strike rule
-        rules.add_token_to_current_row(FlatTokenInput::Strike);
-        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
-        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
+        // Use the default rule (already a simple strike rule)
         assert_eq!(rules.has_valid_rules(), true);
         assert_eq!(rules.non_empty_rule_count(), 1);
         
@@ -80,7 +77,8 @@ mod tests {
     fn test_rule_editing_operations() {
         let mut rules = CurrentRules::new();
         
-        // Test adding and removing tokens
+        // Clear default rule and test adding and removing tokens
+        rules.clear_current_row();
         rules.add_token_to_current_row(FlatTokenInput::Check);
         rules.add_token_to_current_row(FlatTokenInput::Strike);
         rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
@@ -188,8 +186,9 @@ mod tests {
         let nodes3 = rules3.convert_to_rule_nodes();
         assert!(!nodes3.is_empty());
         
-        // Invalid: Empty rules
-        let rules4 = CurrentRules::new();
+        // Test cleared rules (empty after clearing)
+        let mut rules4 = CurrentRules::new();
+        rules4.clear_all();
         assert!(!rules4.has_valid_rules());
         let nodes4 = rules4.convert_to_rule_nodes();
         assert!(nodes4.is_empty());

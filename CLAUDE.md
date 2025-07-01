@@ -104,7 +104,6 @@ cargo build --workspace --release
 │           ├── display_text.rs - UI表示テキスト管理
 │           └── plugin.rs  - Bevyプラグイン統合
 └── rules/
-    ├── player_rules.json - プレイヤーのデフォルトルール設定
     └── enemy_rules.json  - 敵のデフォルトルール設定
 ```
 
