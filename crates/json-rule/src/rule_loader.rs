@@ -19,28 +19,23 @@ pub fn parse_rules_from_json(json_content: &str) -> Result<RuleSet, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use token_input::{RuleChain, StructuredTokenInput, convert_ruleset_to_nodes};
+    use token_input::{StructuredTokenInput, convert_ruleset_to_nodes};
 
     #[test]
     fn test_parse_simple_rule_json() {
         let rule_json = r#"{
             "rules": [
                 {
-                    "tokens": [
-                        {
-                            "type": "Strike",
-                            "target": {
-                                "type": "ActingCharacter"
-                            }
-                        }
-                    ]
+                    "type": "Strike",
+                    "target": {
+                        "type": "ActingCharacter"
+                    }
                 }
             ]
         }"#;
         
         let rule_set = parse_rules_from_json(rule_json).unwrap();
         assert_eq!(rule_set.rules.len(), 1);
-        assert_eq!(rule_set.rules[0].tokens.len(), 1);
     }
 
     #[test]
@@ -49,14 +44,10 @@ mod tests {
         let test_json = r#"{
             "rules": [
                 {
-                    "tokens": [
-                        {
-                            "type": "Strike",
-                            "target": {
-                                "type": "ActingCharacter"
-                            }
-                        }
-                    ]
+                    "type": "Strike",
+                    "target": {
+                        "type": "ActingCharacter"
+                    }
                 }
             ]
         }"#;
@@ -64,7 +55,6 @@ mod tests {
         let rule_set = parse_rules_from_json(test_json).unwrap();
         assert_ne!(rule_set.rules.len(), 0);
         assert_eq!(rule_set.rules.len(), 1);
-        assert_eq!(rule_set.rules[0].tokens.len(), 1);
     }
 
     #[test]
@@ -77,11 +67,7 @@ mod tests {
     fn test_convert_simple_nodes() {
         let rule_set = RuleSet {
             rules: vec![
-                RuleChain {
-                    tokens: vec![
-                        StructuredTokenInput::Strike { target: Box::new(StructuredTokenInput::ActingCharacter) },
-                    ],
-                },
+                StructuredTokenInput::Strike { target: Box::new(StructuredTokenInput::ActingCharacter) },
             ],
         };
         
@@ -93,16 +79,12 @@ mod tests {
     fn test_convert_complex_nodes() {
         let rule_set = RuleSet {
             rules: vec![
-                RuleChain {
-                    tokens: vec![
-                        StructuredTokenInput::Check {
-                            condition: Box::new(StructuredTokenInput::GreaterThan {
-                                left: Box::new(StructuredTokenInput::Number { value: 50 }),
-                                right: Box::new(StructuredTokenInput::CharacterHP),
-                            }),
-                            then_action: Box::new(StructuredTokenInput::Heal { target: Box::new(StructuredTokenInput::ActingCharacter) }),
-                        },
-                    ],
+                StructuredTokenInput::Check {
+                    condition: Box::new(StructuredTokenInput::GreaterThan {
+                        left: Box::new(StructuredTokenInput::Number { value: 50 }),
+                        right: Box::new(StructuredTokenInput::CharacterHP),
+                    }),
+                    then_action: Box::new(StructuredTokenInput::Heal { target: Box::new(StructuredTokenInput::ActingCharacter) }),
                 },
             ],
         };

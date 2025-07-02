@@ -266,13 +266,9 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
 pub fn convert_ruleset_to_nodes(ruleset: &RuleSet) -> Vec<RuleNode> {
     ruleset.rules
         .iter()
-        .filter_map(|chain| {
-            if chain.tokens.is_empty() {
-                return None;
-            }
-            
-            // 最初のトークンをActionResolverとして変換
-            match convert_structured_to_node(&chain.tokens[0]) {
+        .filter_map(|rule| {
+            // 各ルールをActionResolverとして変換
+            match convert_structured_to_node(rule) {
                 Ok(parsed) => {
                     match parsed.require_action() {
                         Ok(action) => Some(action),

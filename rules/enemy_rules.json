@@ -1,89 +1,79 @@
 {
   "rules": [
     {
-      "tokens": [
-        {
-          "type": "Check",
+      "type": "Check",
+      "condition": {
+        "type": "GreaterThan",
+        "left": {
+          "type": "CharacterHP"
+        },
+        "right": {
+          "type": "Number",
+          "value": 50
+        }
+      },
+      "then_action": {
+        "type": "Strike",
+        "target": {
+          "type": "RandomPick",
+          "array": {
+            "type": "FilterList",
+            "array": {
+              "type": "AllCharacters"
+            },
+            "condition": {
+              "type": "Eq",
+              "left": {
+                "type": "CharacterTeam",
+                "character": {
+                  "type": "Element"
+                }
+              },
+              "right": {
+                "type": "Hero"
+              }
+            }
+          }
+        }
+      }
+    },
+
+    {
+      "type": "Check",
+      "condition": {
+        "type": "TrueOrFalseRandom"
+      },
+      "then_action": {
+        "type": "Heal",
+        "target": {
+          "type": "ActingCharacter"
+        }
+      }
+    },
+
+    {
+      "type": "Strike",
+      "target": {
+        "type": "RandomPick",
+        "array": {
+          "type": "FilterList",
+          "array": {
+            "type": "AllCharacters"
+          },
           "condition": {
-            "type": "GreaterThan",
+            "type": "Eq",
             "left": {
-              "type": "CharacterHP"
+              "type": "CharacterTeam",
+              "character": {
+                "type": "Element"
+              }
             },
             "right": {
-              "type": "Number",
-              "value": 50
-            }
-          },
-          "then_action": {
-            "type": "Strike",
-            "target": {
-              "type": "RandomPick",
-              "array": {
-                "type": "FilterList",
-                "array": {
-                  "type": "AllCharacters"
-                },
-                "condition": {
-                  "type": "Eq",
-                  "left": {
-                    "type": "CharacterTeam",
-                    "character": {
-                      "type": "Element"
-                    }
-                  },
-                  "right": {
-                    "type": "Hero"
-                  }
-                }
-              }
+              "type": "Hero"
             }
           }
         }
-      ]
-    },
-    {
-      "tokens": [
-        {
-          "type": "Check",
-          "condition": {
-            "type": "TrueOrFalseRandom"
-          },
-          "then_action": {
-            "type": "Heal",
-            "target": {
-              "type": "ActingCharacter"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "tokens": [
-        {
-          "type": "Strike",
-          "target": {
-            "type": "RandomPick",
-            "array": {
-              "type": "FilterList",
-              "array": {
-                "type": "AllCharacters"
-              },
-              "condition": {
-                "type": "Eq",
-                "left": {
-                  "type": "CharacterTeam",
-                  "character": {
-                    "type": "Element"
-                  }
-                },
-                "right": {
-                  "type": "Hero"
-                }
-              }
-            }
-          }
-        }
-      ]
+      }
     }
   ]
 }
