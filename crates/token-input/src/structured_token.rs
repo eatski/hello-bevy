@@ -44,4 +44,18 @@ pub enum StructuredTokenInput {
     RandomPick {
         array: Box<StructuredTokenInput>,
     },
+    FilterList {
+        array: Box<StructuredTokenInput>,
+        condition: Box<StructuredTokenInput>,
+    },
+    Eq {
+        left: Box<StructuredTokenInput>,
+        right: Box<StructuredTokenInput>,
+    },
+    CharacterTeam {
+        character: Box<StructuredTokenInput>,
+    },
+    Element,
+    Enemy,
+    Hero,
 }

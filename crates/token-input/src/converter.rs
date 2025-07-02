@@ -1,7 +1,7 @@
 // Converter - FlatTokenInput <-> StructuredTokenInput <-> Node 変換
 
 use crate::{FlatTokenInput, StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, CharacterRandomPickNode, Character, Node, Action};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, TeamSideEqNode, CharacterTeamNode, ElementCharacterNode, EnemyNode, HeroNode, TeamSide};
 
 // パース結果を表すEnum
 #[derive(Debug)]
@@ -11,6 +11,8 @@ pub enum ParsedResolver {
     Value(Box<dyn Node<i32>>),
     Character(Box<dyn Node<i32>>),
     CharacterArray(Box<dyn Node<Vec<Character>>>),
+    TeamSide(Box<dyn Node<TeamSide>>),
+    ActualCharacter(Box<dyn Node<Character>>),
 }
 
 impl ParsedResolver {
@@ -46,6 +48,20 @@ impl ParsedResolver {
         match self {
             ParsedResolver::CharacterArray(character_array_node) => Ok(character_array_node),
             _ => Err(format!("Expected CharacterArray, got {:?}", self)),
+        }
+    }
+    
+    pub fn require_team_side(self) -> Result<Box<dyn Node<TeamSide>>, String> {
+        match self {
+            ParsedResolver::TeamSide(team_side_node) => Ok(team_side_node),
+            _ => Err(format!("Expected TeamSide, got {:?}", self)),
+        }
+    }
+    
+    pub fn require_actual_character(self) -> Result<Box<dyn Node<Character>>, String> {
+        match self {
+            ParsedResolver::ActualCharacter(character_node) => Ok(character_node),
+            _ => Err(format!("Expected ActualCharacter, got {:?}", self)),
         }
     }
 }
@@ -124,6 +140,40 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
             Ok((StructuredTokenInput::RandomPick { array: Box::new(array_token) }, 1 + array_consumed))
         }
         FlatTokenInput::TrueOrFalse => Ok((StructuredTokenInput::TrueOrFalseRandom, 1)),
+        FlatTokenInput::FilterList => {
+            if index + 2 >= tokens.len() {
+                return Err("FilterList requires an array and a condition".to_string());
+            }
+            let (array, array_consumed) = parse_flat_token(tokens, index + 1)?;
+            let (condition, condition_consumed) = parse_flat_token(tokens, index + 1 + array_consumed)?;
+            Ok((StructuredTokenInput::FilterList {
+                array: Box::new(array),
+                condition: Box::new(condition),
+            }, 1 + array_consumed + condition_consumed))
+        }
+        FlatTokenInput::Eq => {
+            if index + 2 >= tokens.len() {
+                return Err("Eq requires two operands".to_string());
+            }
+            let (left, left_consumed) = parse_flat_token(tokens, index + 1)?;
+            let (right, right_consumed) = parse_flat_token(tokens, index + 1 + left_consumed)?;
+            Ok((StructuredTokenInput::Eq {
+                left: Box::new(left),
+                right: Box::new(right),
+            }, 1 + left_consumed + right_consumed))
+        }
+        FlatTokenInput::CharacterTeam => {
+            if index + 1 >= tokens.len() {
+                return Err("CharacterTeam requires a character".to_string());
+            }
+            let (character, consumed) = parse_flat_token(tokens, index + 1)?;
+            Ok((StructuredTokenInput::CharacterTeam {
+                character: Box::new(character),
+            }, 1 + consumed))
+        }
+        FlatTokenInput::Element => Ok((StructuredTokenInput::Element, 1)),
+        FlatTokenInput::Enemy => Ok((StructuredTokenInput::Enemy, 1)),
+        FlatTokenInput::Hero => Ok((StructuredTokenInput::Hero, 1)),
     }
 }
 
@@ -171,7 +221,8 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::RandomPick { array } => {
             let array_node = convert_structured_to_node(array)?;
             let character_array_node = array_node.require_character_array()?;
-            Ok(ParsedResolver::Character(Box::new(CharacterRandomPickNode::from_character_array(character_array_node))))
+            // For backward compatibility, return Character ID using CharacterRandomPickNode
+            Ok(ParsedResolver::Character(Box::new(action_system::CharacterRandomPickNode::from_character_array(character_array_node))))
         }
         StructuredTokenInput::TrueOrFalseRandom => {
             Ok(ParsedResolver::Condition(Box::new(RandomConditionNode)))
@@ -179,6 +230,34 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::CharacterHP => {
             // Legacy support - assume acting character
             Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(Box::new(ActingCharacterNode)))))
+        }
+        StructuredTokenInput::FilterList { array, condition } => {
+            let array_node = convert_structured_to_node(array)?;
+            let condition_node = convert_structured_to_node(condition)?;
+            let character_array_node = array_node.require_character_array()?;
+            let condition_bool_node = condition_node.require_condition()?;
+            Ok(ParsedResolver::CharacterArray(Box::new(FilterListNode::new(character_array_node, condition_bool_node))))
+        }
+        StructuredTokenInput::Eq { left, right } => {
+            let left_node = convert_structured_to_node(left)?;
+            let right_node = convert_structured_to_node(right)?;
+            let left_team = left_node.require_team_side()?;
+            let right_team = right_node.require_team_side()?;
+            Ok(ParsedResolver::Condition(Box::new(TeamSideEqNode::new(left_team, right_team))))
+        }
+        StructuredTokenInput::CharacterTeam { character } => {
+            let character_node = convert_structured_to_node(character)?;
+            let actual_character_node = character_node.require_actual_character()?;
+            Ok(ParsedResolver::TeamSide(Box::new(CharacterTeamNode::new(actual_character_node))))
+        }
+        StructuredTokenInput::Element => {
+            Ok(ParsedResolver::ActualCharacter(Box::new(ElementCharacterNode::new())))
+        }
+        StructuredTokenInput::Enemy => {
+            Ok(ParsedResolver::TeamSide(Box::new(EnemyNode::new())))
+        }
+        StructuredTokenInput::Hero => {
+            Ok(ParsedResolver::TeamSide(Box::new(HeroNode::new())))
         }
     }
 }
@@ -314,5 +393,71 @@ mod tests {
         // Test structured to node conversion
         let result = convert_structured_to_node(&structured[0]).unwrap();
         assert!(result.require_character().is_ok());
+    }
+
+    #[test]
+    fn test_new_tokens_flat_to_structured() {
+        // Test new tokens: FilterList, Eq, CharacterTeam, Element, Enemy, Hero
+        let flat = vec![
+            FlatTokenInput::FilterList, FlatTokenInput::AllCharacters, FlatTokenInput::Eq, 
+            FlatTokenInput::CharacterTeam, FlatTokenInput::Element, FlatTokenInput::Enemy
+        ];
+        let structured = convert_flat_to_structured(&flat).unwrap();
+        
+        assert_eq!(structured.len(), 1);
+        match &structured[0] {
+            StructuredTokenInput::FilterList { array, condition } => {
+                match array.as_ref() {
+                    StructuredTokenInput::AllCharacters => (),
+                    _ => panic!("Expected AllCharacters array"),
+                }
+                match condition.as_ref() {
+                    StructuredTokenInput::Eq { left, right } => {
+                        match left.as_ref() {
+                            StructuredTokenInput::CharacterTeam { character } => {
+                                match character.as_ref() {
+                                    StructuredTokenInput::Element => (),
+                                    _ => panic!("Expected Element character"),
+                                }
+                            }
+                            _ => panic!("Expected CharacterTeam left"),
+                        }
+                        match right.as_ref() {
+                            StructuredTokenInput::Enemy => (),
+                            _ => panic!("Expected Enemy right"),
+                        }
+                    }
+                    _ => panic!("Expected Eq condition"),
+                }
+            }
+            _ => panic!("Expected FilterList"),
+        }
+    }
+
+    #[test]
+    fn test_enemy_hero_tokens() {
+        // Test Enemy token
+        let flat_enemy = vec![FlatTokenInput::Enemy];
+        let structured_enemy = convert_flat_to_structured(&flat_enemy).unwrap();
+        assert_eq!(structured_enemy.len(), 1);
+        match &structured_enemy[0] {
+            StructuredTokenInput::Enemy => (),
+            _ => panic!("Expected Enemy"),
+        }
+        
+        let result_enemy = convert_structured_to_node(&structured_enemy[0]).unwrap();
+        assert!(result_enemy.require_team_side().is_ok());
+        
+        // Test Hero token
+        let flat_hero = vec![FlatTokenInput::Hero];
+        let structured_hero = convert_flat_to_structured(&flat_hero).unwrap();
+        assert_eq!(structured_hero.len(), 1);
+        match &structured_hero[0] {
+            StructuredTokenInput::Hero => (),
+            _ => panic!("Expected Hero"),
+        }
+        
+        let result_hero = convert_structured_to_node(&structured_hero[0]).unwrap();
+        assert!(result_hero.require_team_side().is_ok());
     }
 }

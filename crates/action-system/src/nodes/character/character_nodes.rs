@@ -79,3 +79,5 @@ impl<'a> BattleContext<'a> {
 
 // Re-export individual character node modules
 pub use super::acting_character_node::ActingCharacterNode;
+pub use super::element_character_node::ElementCharacterNode;
+pub use super::random_character_pick_node::RandomCharacterPickNode;
