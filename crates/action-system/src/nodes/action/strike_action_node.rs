@@ -6,11 +6,11 @@ use crate::nodes::evaluation_context::EvaluationContext;
 
 #[derive(Debug)]
 pub struct StrikeActionNode {
-    target: Box<dyn Node<i32>>,
+    target: Box<dyn Node<crate::Character>>,
 }
 
 impl StrikeActionNode {
-    pub fn new(target: Box<dyn Node<i32>>) -> Self {
+    pub fn new(target: Box<dyn Node<crate::Character>>) -> Self {
         Self { target }
     }
 }
@@ -25,11 +25,11 @@ impl Node<Box<dyn Action>> for StrikeActionNode {
             return Err(NodeError::Break);
         }
         
-        // Evaluate target character ID
-        let target_id = self.target.evaluate(eval_context, rng)?;
+        // Evaluate target character
+        let target_character = self.target.evaluate(eval_context, rng)?;
         
-        // Create and return StrikeAction with the evaluated target ID
-        Ok(Box::new(StrikeAction::new(target_id)))
+        // Create and return StrikeAction with the target character's ID
+        Ok(Box::new(StrikeAction::new(target_character.id)))
     }
 }
 
@@ -52,7 +52,7 @@ mod tests {
         let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
         let battle_context = crate::BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
-        // Create strike action with enemy as target
+        // Create strike action with acting character as target
         let target = Box::new(ActingCharacterNode);
         let strike = StrikeActionNode::new(target);
         let mut rng = StdRng::from_entropy();

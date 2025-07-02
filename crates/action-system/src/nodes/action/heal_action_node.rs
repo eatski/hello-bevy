@@ -6,11 +6,11 @@ use crate::nodes::evaluation_context::EvaluationContext;
 
 #[derive(Debug)]
 pub struct HealActionNode {
-    target: Box<dyn Node<i32>>,
+    target: Box<dyn Node<crate::Character>>,
 }
 
 impl HealActionNode {
-    pub fn new(target: Box<dyn Node<i32>>) -> Self {
+    pub fn new(target: Box<dyn Node<crate::Character>>) -> Self {
         Self { target }
     }
 }
@@ -25,11 +25,11 @@ impl Node<Box<dyn Action>> for HealActionNode {
             return Err(NodeError::Break);
         }
         
-        // Evaluate target character ID
-        let target_id = self.target.evaluate(eval_context, rng)?;
+        // Evaluate target character
+        let target_character = self.target.evaluate(eval_context, rng)?;
         
-        // Create and return HealAction with the evaluated target ID
-        Ok(Box::new(HealAction::new(target_id)))
+        // Create and return HealAction with the target character's ID
+        Ok(Box::new(HealAction::new(target_character.id)))
     }
 }
 

@@ -9,10 +9,9 @@ pub enum ParsedResolver {
     Action(Box<dyn Node<Box<dyn Action>>>),
     Condition(Box<dyn Node<bool>>),
     Value(Box<dyn Node<i32>>),
-    Character(Box<dyn Node<i32>>),
+    Character(Box<dyn Node<Character>>),
     CharacterArray(Box<dyn Node<Vec<Character>>>),
     TeamSide(Box<dyn Node<TeamSide>>),
-    ActualCharacter(Box<dyn Node<Character>>),
 }
 
 impl ParsedResolver {
@@ -37,7 +36,7 @@ impl ParsedResolver {
         }
     }
     
-    pub fn require_character(self) -> Result<Box<dyn Node<i32>>, String> {
+    pub fn require_character(self) -> Result<Box<dyn Node<Character>>, String> {
         match self {
             ParsedResolver::Character(character_node) => Ok(character_node),
             _ => Err(format!("Expected Character, got {:?}", self)),
@@ -58,12 +57,6 @@ impl ParsedResolver {
         }
     }
     
-    pub fn require_actual_character(self) -> Result<Box<dyn Node<Character>>, String> {
-        match self {
-            ParsedResolver::ActualCharacter(character_node) => Ok(character_node),
-            _ => Err(format!("Expected ActualCharacter, got {:?}", self)),
-        }
-    }
 }
 
 // FlatTokenInput → StructuredTokenInput 変換
@@ -206,13 +199,14 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         }
         StructuredTokenInput::HP { character } => {
             let character_node = convert_structured_to_node(character)?;
-            let char_node = character_node.require_character()?;
-            Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(char_node))))
+            let character_target_node = character_node.require_character()?;
+            Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(character_target_node))))
         }
         StructuredTokenInput::Number { value } => {
             Ok(ParsedResolver::Value(Box::new(ConstantValueNode::new(*value))))
         }
         StructuredTokenInput::ActingCharacter => {
+            // ActingCharacterNode returns Character
             Ok(ParsedResolver::Character(Box::new(ActingCharacterNode)))
         }
         StructuredTokenInput::AllCharacters => {
@@ -221,7 +215,7 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::RandomPick { array } => {
             let array_node = convert_structured_to_node(array)?;
             let character_array_node = array_node.require_character_array()?;
-            // For backward compatibility, return Character ID using CharacterRandomPickNode
+            // CharacterRandomPickNode now returns Character directly
             Ok(ParsedResolver::Character(Box::new(action_system::CharacterRandomPickNode::from_character_array(character_array_node))))
         }
         StructuredTokenInput::TrueOrFalseRandom => {
@@ -247,11 +241,11 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         }
         StructuredTokenInput::CharacterTeam { character } => {
             let character_node = convert_structured_to_node(character)?;
-            let actual_character_node = character_node.require_actual_character()?;
-            Ok(ParsedResolver::TeamSide(Box::new(CharacterTeamNode::new(actual_character_node))))
+            let character_target_node = character_node.require_character()?;
+            Ok(ParsedResolver::TeamSide(Box::new(CharacterTeamNode::new(character_target_node))))
         }
         StructuredTokenInput::Element => {
-            Ok(ParsedResolver::ActualCharacter(Box::new(ElementCharacterNode::new())))
+            Ok(ParsedResolver::Character(Box::new(ElementCharacterNode::new())))
         }
         StructuredTokenInput::Enemy => {
             Ok(ParsedResolver::TeamSide(Box::new(EnemyNode::new())))

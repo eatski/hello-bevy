@@ -29,14 +29,14 @@ pub type RandomPickNode = CharacterRandomPickNode;
 
 // Unified implementations
 
-impl Node<i32> for CharacterRandomPickNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
+impl Node<Character> for CharacterRandomPickNode {
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Character> {
         let characters = self.array_node.evaluate(eval_context, rng)?;
         if characters.is_empty() {
             return Err(NodeError::EvaluationError("Cannot pick from empty character array".to_string()));
         }
         let index = rng.gen_range(0..characters.len());
-        Ok(characters[index].id)
+        Ok(characters[index].clone())
     }
 }
 
@@ -73,30 +73,6 @@ mod tests {
     use crate::{BattleContext, Team, TeamSide};
     use rand::SeedableRng;
 
-    #[test]
-    fn test_character_random_pick_node() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        // Create characters
-        let char1 = Character::new(1, "Char1".to_string(), 100, 100, 10);
-        let char2 = Character::new(2, "Char2".to_string(), 100, 100, 15);
-        let char3 = Character::new(3, "Char3".to_string(), 100, 100, 12);
-        
-        let player_team = Team::new("Player".to_string(), vec![char1.clone(), char2.clone(), char3.clone()]);
-        let enemy_team = Team::new("Enemy".to_string(), vec![]);
-        
-        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
-        
-        // Create CharacterRandomPickNode
-        let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let pick_node = CharacterRandomPickNode::from_character_array(team_array);
-        
-        let eval_context = EvaluationContext::new(&battle_context);
-        let picked_id = Node::<i32>::evaluate(&pick_node, &eval_context, &mut rng).unwrap();
-        
-        // Should pick one of the character IDs
-        assert!([1, 2, 3].contains(&picked_id));
-    }
 
     #[test]
     fn test_character_random_pick_empty_array() {
@@ -113,7 +89,7 @@ mod tests {
         let pick_node = CharacterRandomPickNode::from_character_array(empty_array);
         
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<i32>::evaluate(&pick_node, &eval_context, &mut rng);
+        let result = Node::<Character>::evaluate(&pick_node, &eval_context, &mut rng);
         
         // Should return error for empty array
         assert!(result.is_err());
@@ -165,30 +141,6 @@ mod tests {
     }
 
     // Unified Node<T> tests
-    #[test]
-    fn test_character_random_pick_node_unified() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        // Create characters
-        let char1 = Character::new(1, "Char1".to_string(), 100, 100, 10);
-        let char2 = Character::new(2, "Char2".to_string(), 100, 100, 15);
-        let char3 = Character::new(3, "Char3".to_string(), 100, 100, 12);
-        
-        let player_team = Team::new("Player".to_string(), vec![char1.clone(), char2.clone(), char3.clone()]);
-        let enemy_team = Team::new("Enemy".to_string(), vec![]);
-        
-        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
-        
-        // Create CharacterRandomPickNode
-        let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let pick_node = CharacterRandomPickNode::from_character_array(team_array);
-        
-        let eval_context = EvaluationContext::new(&battle_context);
-        let picked_id = Node::<i32>::evaluate(&pick_node, &eval_context, &mut rng).unwrap();
-        
-        // Should pick one of the character IDs
-        assert!([1, 2, 3].contains(&picked_id));
-    }
 
     #[test]
     fn test_value_random_pick_node_unified() {
@@ -210,5 +162,31 @@ mod tests {
         
         // Should pick one of the values
         assert!(values.contains(&picked_value));
+    }
+
+    #[test]
+    fn test_character_random_pick_node_returns_character() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
+        
+        // Create characters
+        let char1 = Character::new(1, "Char1".to_string(), 100, 100, 10);
+        let char2 = Character::new(2, "Char2".to_string(), 100, 100, 15);
+        let char3 = Character::new(3, "Char3".to_string(), 100, 100, 12);
+        
+        let player_team = Team::new("Player".to_string(), vec![char1.clone(), char2.clone(), char3.clone()]);
+        let enemy_team = Team::new("Enemy".to_string(), vec![]);
+        
+        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
+        
+        // Create CharacterRandomPickNode
+        let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
+        let pick_node = CharacterRandomPickNode::from_character_array(team_array);
+        
+        let eval_context = EvaluationContext::new(&battle_context);
+        let picked_character = Node::<Character>::evaluate(&pick_node, &eval_context, &mut rng).unwrap();
+        
+        // Should pick one of the characters
+        assert!([1, 2, 3].contains(&picked_character.id));
+        assert!(["Char1", "Char2", "Char3"].contains(&picked_character.name.as_str()));
     }
 }

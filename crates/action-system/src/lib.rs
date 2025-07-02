@@ -114,12 +114,12 @@ mod tests {
         let team_members_node = Box::new(TeamMembersNode::new(TeamSide::Player));
         let random_pick_node = CharacterRandomPickNode::from_character_array(team_members_node);
         let eval_context = EvaluationContext::new(&battle_context);
-        let result_id = Node::<i32>::evaluate(&random_pick_node, &eval_context, &mut rng).unwrap();
+        let result_character = Node::<Character>::evaluate(&random_pick_node, &eval_context, &mut rng).unwrap();
         
         // Should pick one of the team members
         let player1_id = player_team.members[0].id;
         let player2_id = player_team.members[1].id;
-        assert!(result_id == player1_id || result_id == player2_id);
+        assert!(result_character.id == player1_id || result_character.id == player2_id);
     }
 
 
@@ -148,14 +148,14 @@ mod tests {
         let team_members_node = Box::new(TeamMembersNode::new(TeamSide::Player));
         let random_pick_node = CharacterRandomPickNode::from_character_array(team_members_node);
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<i32>::evaluate(&random_pick_node, &eval_context, &mut rng);
+        let result = Node::<Character>::evaluate(&random_pick_node, &eval_context, &mut rng);
         
         // Should succeed since team has members (even if dead)
         assert!(result.is_ok());
-        let character_id = result.unwrap();
+        let character = result.unwrap();
         let player1_id = player_team.members[0].id;
         let player2_id = player_team.members[1].id;
-        assert!(character_id == player1_id || character_id == player2_id);
+        assert!(character.id == player1_id || character.id == player2_id);
     }
 
     #[test]
@@ -217,10 +217,10 @@ mod tests {
         
         let element_node = ElementNode::new();
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<i32>::evaluate(&element_node, &eval_context, &mut rng).unwrap();
+        let result = Node::<Character>::evaluate(&element_node, &eval_context, &mut rng).unwrap();
         
-        // Should return the acting character's ID
-        assert_eq!(result, 17);
+        // Should return the acting character
+        assert_eq!(result.id, 17);
     }
 
 }

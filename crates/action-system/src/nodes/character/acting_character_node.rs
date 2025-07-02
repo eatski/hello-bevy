@@ -5,9 +5,9 @@ use crate::nodes::unified_node::Node;
 #[derive(Debug)]
 pub struct ActingCharacterNode;
 
-impl Node<i32> for ActingCharacterNode {
-    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
-        Ok(eval_context.get_battle_context().get_acting_character().id)
+impl Node<crate::Character> for ActingCharacterNode {
+    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<crate::Character> {
+        Ok(eval_context.get_battle_context().get_acting_character().clone())
     }
 }
 
@@ -34,12 +34,12 @@ mod tests {
         // Test ActingCharacter node
         let acting_char_node = ActingCharacterNode;
         let eval_context = EvaluationContext::new(&battle_context);
-        let returned_char_id = Node::<i32>::evaluate(&acting_char_node, &eval_context, &mut rng).unwrap();
-        assert_eq!(returned_char_id, acting_character.id);
+        let returned_char = Node::<crate::Character>::evaluate(&acting_char_node, &eval_context, &mut rng).unwrap();
+        assert_eq!(returned_char.id, acting_character.id);
 
         // Test as boxed trait object
-        let boxed_node: Box<dyn Node<i32>> = Box::new(ActingCharacterNode);
+        let boxed_node: Box<dyn Node<crate::Character>> = Box::new(ActingCharacterNode);
         let boxed_result = boxed_node.evaluate(&eval_context, &mut rng).unwrap();
-        assert_eq!(boxed_result, acting_character.id);
+        assert_eq!(boxed_result.id, acting_character.id);
     }
 }
