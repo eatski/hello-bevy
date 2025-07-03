@@ -24,8 +24,6 @@ pub type CharacterRandomPickNode = GenericRandomPickNode<Character>;
 /// Value-specific RandomPickNode (returns picked value)
 pub type ValueRandomPickNode = GenericRandomPickNode<i32>;
 
-/// Legacy RandomPickNode type alias for backward compatibility
-pub type RandomPickNode = CharacterRandomPickNode;
 
 // Unified implementations
 
@@ -51,20 +49,6 @@ impl Node<i32> for ValueRandomPickNode {
     }
 }
 
-// Convenience constructors for backward compatibility
-impl CharacterRandomPickNode {
-    pub fn from_character_array(array_node: Box<dyn Node<Vec<Character>>>) -> Self {
-        GenericRandomPickNode::new(array_node)
-    }
-}
-
-impl ValueRandomPickNode {
-    pub fn from_value_array(array_node: Box<dyn Node<Vec<i32>>>) -> Self {
-        GenericRandomPickNode::new(array_node)
-    }
-}
-
-// Legacy RandomPickNode uses from_character_array constructor for backward compatibility
 
 #[cfg(test)]
 mod tests {
@@ -86,7 +70,7 @@ mod tests {
         
         // Create empty team array
         let empty_array = Box::new(TeamMembersNode::new(TeamSide::Enemy)); // Enemy team is empty
-        let pick_node = CharacterRandomPickNode::from_character_array(empty_array);
+        let pick_node = CharacterRandomPickNode::new(empty_array);
         
         let eval_context = EvaluationContext::new(&battle_context);
         let result = Node::<Character>::evaluate(&pick_node, &eval_context, &mut rng);
@@ -109,7 +93,7 @@ mod tests {
         // Create ValueRandomPickNode with constant array
         let values = vec![10, 20, 30, 40, 50];
         let value_array = Box::new(ConstantArrayNode::new(values.clone()));
-        let pick_node = ValueRandomPickNode::from_value_array(value_array);
+        let pick_node = ValueRandomPickNode::new(value_array);
         
         let eval_context = EvaluationContext::new(&battle_context);
         let picked_value = Node::<i32>::evaluate(&pick_node, &eval_context, &mut rng).unwrap();
@@ -130,7 +114,7 @@ mod tests {
         
         // Create ValueRandomPickNode with empty array
         let empty_array = Box::new(ConstantArrayNode::new(vec![]));
-        let pick_node = ValueRandomPickNode::from_value_array(empty_array);
+        let pick_node = ValueRandomPickNode::new(empty_array);
         
         let eval_context = EvaluationContext::new(&battle_context);
         let result = Node::<i32>::evaluate(&pick_node, &eval_context, &mut rng);
@@ -155,7 +139,7 @@ mod tests {
         // Create ValueRandomPickNode with constant array
         let values = vec![10, 20, 30, 40, 50];
         let value_array = Box::new(ConstantArrayNode::new(values.clone()));
-        let pick_node = ValueRandomPickNode::from_value_array(value_array);
+        let pick_node = ValueRandomPickNode::new(value_array);
         
         let eval_context = EvaluationContext::new(&battle_context);
         let picked_value = Node::<i32>::evaluate(&pick_node, &eval_context, &mut rng).unwrap();
@@ -180,7 +164,7 @@ mod tests {
         
         // Create CharacterRandomPickNode
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let pick_node = CharacterRandomPickNode::from_character_array(team_array);
+        let pick_node = CharacterRandomPickNode::new(team_array);
         
         let eval_context = EvaluationContext::new(&battle_context);
         let picked_character = Node::<Character>::evaluate(&pick_node, &eval_context, &mut rng).unwrap();

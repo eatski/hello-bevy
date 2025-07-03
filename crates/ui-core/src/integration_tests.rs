@@ -109,7 +109,6 @@ mod tests {
         assert_eq!(rules.selected_row, 0);
     }
     
-    // Note: UI token display tests moved to bevy-ui crate
     
     #[test]
     fn test_game_state_battle_integration() {

@@ -16,15 +16,6 @@ impl<T> Node<T> for Box<dyn Node<T>> {
     }
 }
 
-// Type aliases for backward compatibility and clarity
-pub type CharacterNode = dyn Node<i32>;           // Character ID
-pub type ValueNode = dyn Node<i32>;               // Numeric value  
-pub type ConditionNode = dyn Node<bool>;          // Boolean condition
-pub type ArrayNode<T> = dyn Node<Vec<T>>;         // Generic array
-
-// Specific array type aliases
-pub type CharacterArrayNode = dyn Node<Vec<crate::Character>>;
-pub type ValueArrayNode = dyn Node<Vec<i32>>;
 
 #[cfg(test)]
 mod tests {

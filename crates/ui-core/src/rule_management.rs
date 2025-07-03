@@ -106,7 +106,6 @@ impl CurrentRules {
     }
 }
 
-// Note: String formatting logic moved to bevy-ui crate
 
 #[cfg(test)]
 mod tests {

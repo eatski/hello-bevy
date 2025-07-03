@@ -216,13 +216,12 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             let array_node = convert_structured_to_node(array)?;
             let character_array_node = array_node.require_character_array()?;
             // CharacterRandomPickNode now returns Character directly
-            Ok(ParsedResolver::Character(Box::new(action_system::CharacterRandomPickNode::from_character_array(character_array_node))))
+            Ok(ParsedResolver::Character(Box::new(action_system::CharacterRandomPickNode::new(character_array_node))))
         }
         StructuredTokenInput::TrueOrFalseRandom => {
             Ok(ParsedResolver::Condition(Box::new(RandomConditionNode)))
         }
         StructuredTokenInput::CharacterHP => {
-            // Legacy support - assume acting character
             Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(Box::new(ActingCharacterNode)))))
         }
         StructuredTokenInput::FilterList { array, condition } => {

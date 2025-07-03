@@ -61,14 +61,6 @@ impl<'a> BattleContext<'a> {
         self.acting_team
     }
 
-    // Backward compatibility methods
-    pub fn player(&self) -> &'a crate::Character {
-        self.player_team.alive_members().first().copied().unwrap_or(&self.player_team.members[0])
-    }
-
-    pub fn enemy(&self) -> &'a crate::Character {
-        self.enemy_team.alive_members().first().copied().unwrap_or(&self.enemy_team.members[0])
-    }
 
     // ID-based character lookup
     pub fn get_character_by_id(&self, id: i32) -> Option<&'a crate::Character> {
@@ -77,7 +69,3 @@ impl<'a> BattleContext<'a> {
     }
 }
 
-// Re-export individual character node modules
-pub use super::acting_character_node::ActingCharacterNode;
-pub use super::element_character_node::ElementCharacterNode;
-pub use super::random_character_pick_node::RandomCharacterPickNode;

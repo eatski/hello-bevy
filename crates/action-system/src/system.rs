@@ -32,8 +32,6 @@ impl ActionCalculationSystem {
                     continue; // Try next rule
                 }
                 Err(_error) => {
-                    // エラーが発生した場合は次のルールを試す
-                    // 必要に応じてログ出力やエラーハンドリングを追加可能
                     continue;
                 }
             }
@@ -438,7 +436,7 @@ mod tests {
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanConditionNode::new(
                     Box::new(CharacterHpNode::new(Box::new(ActingCharacterNode))),
-                    Box::new(CharacterHpNode::new(Box::new(CharacterRandomPickNode::from_character_array(Box::new(AllCharactersNode::new()))))),
+                    Box::new(CharacterHpNode::new(Box::new(CharacterRandomPickNode::new(Box::new(AllCharactersNode::new()))))),
                 )),
                 Box::new(StrikeActionNode::new(Box::new(ActingCharacterNode))),
             )),

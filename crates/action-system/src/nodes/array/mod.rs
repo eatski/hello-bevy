@@ -9,6 +9,6 @@ pub mod constant_array_node;
 pub use all_characters_node::AllCharactersNode;
 pub use team_members_node::TeamMembersNode;
 pub use count_array_node::CountArrayNode;
-pub use random_pick_node::{RandomPickNode, GenericRandomPickNode, CharacterRandomPickNode, ValueRandomPickNode};
+pub use random_pick_node::{GenericRandomPickNode, CharacterRandomPickNode, ValueRandomPickNode};
 pub use filter_list_node::FilterListNode;
 pub use constant_array_node::ConstantArrayNode;
