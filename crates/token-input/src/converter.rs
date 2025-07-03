@@ -1,7 +1,8 @@
 // Converter - FlatTokenInput <-> StructuredTokenInput <-> Node 変換
 
 use crate::{FlatTokenInput, StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, TeamSideEqNode, CharacterTeamNode, ElementCharacterNode, EnemyNode, HeroNode, TeamSide};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementCharacterNode, EnemyNode, HeroNode, TeamSide};
+use action_system::nodes::condition::EqConditionNode;
 
 // パース結果を表すEnum
 #[derive(Debug)]
@@ -236,9 +237,24 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::Eq { left, right } => {
             let left_node = convert_structured_to_node(left)?;
             let right_node = convert_structured_to_node(right)?;
-            let left_team = left_node.require_team_side()?;
-            let right_team = right_node.require_team_side()?;
-            Ok(ParsedResolver::Condition(Box::new(TeamSideEqNode::new(left_team, right_team))))
+            
+            // Try to match types and create appropriate EqNode
+            match (left_node, right_node) {
+                // TeamSide comparison
+                (ParsedResolver::TeamSide(left_team), ParsedResolver::TeamSide(right_team)) => {
+                    Ok(ParsedResolver::Condition(Box::new(EqConditionNode::new(left_team, right_team))))
+                },
+                // Value comparison
+                (ParsedResolver::Value(left_value), ParsedResolver::Value(right_value)) => {
+                    Ok(ParsedResolver::Condition(Box::new(EqConditionNode::new(left_value, right_value))))
+                },
+                // Character comparison
+                (ParsedResolver::Character(left_character), ParsedResolver::Character(right_character)) => {
+                    Ok(ParsedResolver::Condition(Box::new(EqConditionNode::new(left_character, right_character))))
+                },
+                // Type mismatch
+                _ => Err(format!("Cannot compare different types in Eq: {:?} and {:?}", left, right)),
+            }
         }
         StructuredTokenInput::CharacterTeam { character } => {
             let character_node = convert_structured_to_node(character)?;
@@ -450,5 +466,83 @@ mod tests {
         
         let result_hero = convert_structured_to_node(&structured_hero[0]).unwrap();
         assert!(result_hero.require_team_side().is_ok());
+    }
+
+    #[test]
+    fn test_eq_value_comparison() {
+        // Test Eq with Number values
+        let flat = vec![
+            FlatTokenInput::Eq, 
+            FlatTokenInput::Number(10), 
+            FlatTokenInput::Number(10)
+        ];
+        let structured = convert_flat_to_structured(&flat).unwrap();
+        
+        assert_eq!(structured.len(), 1);
+        match &structured[0] {
+            StructuredTokenInput::Eq { left, right } => {
+                match (left.as_ref(), right.as_ref()) {
+                    (StructuredTokenInput::Number { value: 10 }, StructuredTokenInput::Number { value: 10 }) => (),
+                    _ => panic!("Expected Number(10) == Number(10)"),
+                }
+            }
+            _ => panic!("Expected Eq"),
+        }
+        
+        // Test structured to node conversion
+        let result = convert_structured_to_node(&structured[0]).unwrap();
+        assert!(result.require_condition().is_ok());
+    }
+
+    #[test]
+    fn test_eq_character_comparison() {
+        // Test Eq with Character values
+        let flat = vec![
+            FlatTokenInput::Eq, 
+            FlatTokenInput::ActingCharacter, 
+            FlatTokenInput::Element
+        ];
+        let structured = convert_flat_to_structured(&flat).unwrap();
+        
+        assert_eq!(structured.len(), 1);
+        match &structured[0] {
+            StructuredTokenInput::Eq { left, right } => {
+                match (left.as_ref(), right.as_ref()) {
+                    (StructuredTokenInput::ActingCharacter, StructuredTokenInput::Element) => (),
+                    _ => panic!("Expected ActingCharacter == Element"),
+                }
+            }
+            _ => panic!("Expected Eq"),
+        }
+        
+        // Test structured to node conversion
+        let result = convert_structured_to_node(&structured[0]).unwrap();
+        assert!(result.require_condition().is_ok());
+    }
+
+    #[test]
+    fn test_eq_team_comparison() {
+        // Test Eq with TeamSide values  
+        let flat = vec![
+            FlatTokenInput::Eq, 
+            FlatTokenInput::Enemy, 
+            FlatTokenInput::Hero
+        ];
+        let structured = convert_flat_to_structured(&flat).unwrap();
+        
+        assert_eq!(structured.len(), 1);
+        match &structured[0] {
+            StructuredTokenInput::Eq { left, right } => {
+                match (left.as_ref(), right.as_ref()) {
+                    (StructuredTokenInput::Enemy, StructuredTokenInput::Hero) => (),
+                    _ => panic!("Expected Enemy == Hero"),
+                }
+            }
+            _ => panic!("Expected Eq"),
+        }
+        
+        // Test structured to node conversion
+        let result = convert_structured_to_node(&structured[0]).unwrap();
+        assert!(result.require_condition().is_ok());
     }
 }
