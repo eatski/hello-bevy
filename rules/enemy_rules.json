@@ -5,7 +5,10 @@
       "condition": {
         "type": "GreaterThan",
         "left": {
-          "type": "CharacterHP"
+          "type": "CharacterHP",
+          "character": {
+            "type": "ActingCharacter"
+          }
         },
         "right": {
           "type": "Number",

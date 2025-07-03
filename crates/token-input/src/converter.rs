@@ -221,8 +221,10 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::TrueOrFalseRandom => {
             Ok(ParsedResolver::Condition(Box::new(RandomConditionNode)))
         }
-        StructuredTokenInput::CharacterHP => {
-            Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(Box::new(ActingCharacterNode)))))
+        StructuredTokenInput::CharacterHP { character } => {
+            let character_node = convert_structured_to_node(character)?;
+            let character_target_node = character_node.require_character()?;
+            Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(character_target_node))))
         }
         StructuredTokenInput::FilterList { array, condition } => {
             let array_node = convert_structured_to_node(array)?;

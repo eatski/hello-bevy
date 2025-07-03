@@ -28,7 +28,9 @@ pub enum StructuredTokenInput {
     Number {
         value: i32,
     },
-    CharacterHP,
+    CharacterHP {
+        character: Box<StructuredTokenInput>,
+    },
     HP {
         character: Box<StructuredTokenInput>,
     },
