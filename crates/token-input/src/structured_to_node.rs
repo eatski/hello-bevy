@@ -115,13 +115,6 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             let character_target_node = character_node.require_character()?;
             Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(character_target_node))))
         }
-        StructuredTokenInput::FilterList { array, condition } => {
-            let array_node = convert_structured_to_node(array)?;
-            let condition_node = convert_structured_to_node(condition)?;
-            let character_array_node = array_node.require_character_array()?;
-            let condition_bool_node = condition_node.require_condition()?;
-            Ok(ParsedResolver::CharacterArray(Box::new(FilterListNode::new(character_array_node, condition_bool_node))))
-        }
         StructuredTokenInput::Eq { left, right } => {
             let left_node = convert_structured_to_node(left)?;
             let right_node = convert_structured_to_node(right)?;
@@ -148,6 +141,13 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             let character_node = convert_structured_to_node(character)?;
             let character_target_node = character_node.require_character()?;
             Ok(ParsedResolver::TeamSide(Box::new(CharacterTeamNode::new(character_target_node))))
+        }
+        StructuredTokenInput::FilterList { array, condition } => {
+            let array_node = convert_structured_to_node(array)?;
+            let condition_node = convert_structured_to_node(condition)?;
+            let character_array_node = array_node.require_character_array()?;
+            let condition_bool_node = condition_node.require_condition()?;
+            Ok(ParsedResolver::CharacterArray(Box::new(FilterListNode::new(character_array_node, condition_bool_node))))
         }
         StructuredTokenInput::Element => {
             Ok(ParsedResolver::Character(Box::new(ElementCharacterNode::new())))
