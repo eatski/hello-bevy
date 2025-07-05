@@ -1,7 +1,7 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementCharacterNode, EnemyNode, HeroNode, TeamSide};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide};
 use action_system::nodes::condition::EqConditionNode;
 
 // パース結果を表すEnum
@@ -150,7 +150,7 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             Ok(ParsedResolver::CharacterArray(Box::new(FilterListNode::new(character_array_node, condition_bool_node))))
         }
         StructuredTokenInput::Element => {
-            Ok(ParsedResolver::Character(Box::new(ElementCharacterNode::new())))
+            Ok(ParsedResolver::Character(Box::new(ElementNode::new())))
         }
         StructuredTokenInput::Enemy => {
             Ok(ParsedResolver::TeamSide(Box::new(EnemyNode::new())))
