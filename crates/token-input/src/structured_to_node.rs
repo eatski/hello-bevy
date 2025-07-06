@@ -150,36 +150,38 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             ))
         }
         StructuredTokenInput::Eq { left, right } => {
-            let left_node = convert_structured_to_node(left)?;
-            let right_node = convert_structured_to_node(right)?;
-            
-            // Try to match types and create appropriate EqNode
-            let left_type = left_node.type_name.clone();
-            let right_type = right_node.type_name.clone();
-            
-            if left_type == "TeamSide" && right_type == "TeamSide" {
-                let left_team = left_node.require_team_side()?;
-                let right_team = right_node.require_team_side()?;
+            // Try TeamSide comparison
+            if let (Ok(left_team), Ok(right_team)) = (
+                convert_structured_to_node(left)?.require_team_side(),
+                convert_structured_to_node(right)?.require_team_side()
+            ) {
                 Ok(ParsedResolver::new(
                     Box::new(EqConditionNode::new(left_team, right_team)) as Box<dyn Node<bool>>,
                     "Condition".to_string()
                 ))
-            } else if left_type == "Value" && right_type == "Value" {
-                let left_value = left_node.require_value()?;
-                let right_value = right_node.require_value()?;
+            }
+            // Try Value comparison
+            else if let (Ok(left_value), Ok(right_value)) = (
+                convert_structured_to_node(left)?.require_value(),
+                convert_structured_to_node(right)?.require_value()
+            ) {
                 Ok(ParsedResolver::new(
                     Box::new(EqConditionNode::new(left_value, right_value)) as Box<dyn Node<bool>>,
                     "Condition".to_string()
                 ))
-            } else if left_type == "Character" && right_type == "Character" {
-                let left_character = left_node.require_character()?;
-                let right_character = right_node.require_character()?;
+            }
+            // Try Character comparison
+            else if let (Ok(left_character), Ok(right_character)) = (
+                convert_structured_to_node(left)?.require_character(),
+                convert_structured_to_node(right)?.require_character()
+            ) {
                 Ok(ParsedResolver::new(
                     Box::new(EqConditionNode::new(left_character, right_character)) as Box<dyn Node<bool>>,
                     "Condition".to_string()
                 ))
-            } else {
-                Err(format!("Cannot compare different types in Eq: {} vs {}", left_type, right_type))
+            }
+            else {
+                Err(format!("Cannot compare different types in Eq"))
             }
         }
         StructuredTokenInput::CharacterTeam { character } => {
