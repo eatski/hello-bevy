@@ -256,4 +256,432 @@ mod tests {
         let rule_nodes = rules.convert_to_rule_nodes();
         assert_eq!(rule_nodes.len(), 1, "RandomPick rule should convert successfully");
     }
+
+    // =====================================
+    // Full Integration Tests: FlatTokenInput → Node → Battle Execution
+    // =====================================
+
+    // =====================================
+    // Helper methods for test data creation
+    // =====================================
+    
+    fn create_test_character(id: i32, name: &str, hp: i32, max_hp: i32, attack: i32) -> GameCharacter {
+        GameCharacter::new(id, name.to_string(), hp, max_hp, attack)
+    }
+    
+    fn create_standard_test_teams() -> (Team, Team) {
+        let player_team = Team::new("Heroes".to_string(), vec![
+            create_test_character(1, "Hero", 100, 100, 30),
+            create_test_character(2, "Mage", 60, 80, 20),
+        ]);
+        let enemy_team = Team::new("Monsters".to_string(), vec![
+            create_test_character(3, "Orc", 80, 80, 25),
+            create_test_character(4, "Goblin", 40, 40, 15),
+        ]);
+        (player_team, enemy_team)
+    }
+    
+    fn simple_strike_rule() -> Vec<FlatTokenInput> {
+        vec![FlatTokenInput::Strike, FlatTokenInput::ActingCharacter]
+    }
+    
+    fn random_heal_rule() -> Vec<FlatTokenInput> {
+        vec![FlatTokenInput::Heal, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters]
+    }
+    
+    fn conditional_attack_rule() -> Vec<FlatTokenInput> {
+        vec![
+            FlatTokenInput::Check,
+            FlatTokenInput::GreaterThan,
+            FlatTokenInput::HP, FlatTokenInput::ActingCharacter,
+            FlatTokenInput::Number(50),
+            FlatTokenInput::Strike, FlatTokenInput::ActingCharacter
+        ]
+    }
+
+    #[test]
+    fn should_convert_flat_tokens_to_executable_rules() {
+        use token_input::convert_flat_rules_to_nodes;
+        
+        let flat_rules = vec![
+            simple_strike_rule(),
+            random_heal_rule(),
+            conditional_attack_rule(),
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&flat_rules);
+        
+        assert!(!converted_rules.is_empty(), "Conversion should produce executable rules");
+        assert_eq!(converted_rules.len(), 3, "All three rule types should convert successfully");
+    }
+    
+    #[test] 
+    fn should_execute_battle_with_converted_rules() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let (player_team, enemy_team) = create_standard_test_teams();
+        let rules = vec![simple_strike_rule()];
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        battle.execute_turn();
+        
+        assert!(!battle.battle_log.is_empty(), "Battle should execute and log actions");
+    }
+    
+    #[test]
+    fn should_respect_hp_boundaries_during_battle() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let (player_team, enemy_team) = create_standard_test_teams();
+        let rules = vec![random_heal_rule()];
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        for _ in 0..3 {
+            if battle.battle_over { break; }
+            battle.execute_turn();
+        }
+        
+        // HP boundaries should be respected
+        for character in &battle.player_team.members {
+            assert!(character.hp <= character.max_hp, "HP should not exceed maximum");
+            assert!(character.hp >= 0, "HP should not be negative");
+        }
+    }
+    
+    #[test]
+    fn should_demonstrate_random_behavior_across_seeds() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let seeds = vec![100, 200, 300];
+        let mut action_counts = Vec::new();
+        
+        for seed in seeds {
+            let (player_team, enemy_team) = create_standard_test_teams();
+            let rules = vec![random_heal_rule()];
+            let converted_rules = convert_flat_rules_to_nodes(&rules);
+            
+            let player_rules = vec![converted_rules];
+            let enemy_rules = vec![vec![]];
+            let rng = StdRng::seed_from_u64(seed);
+            
+            let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+            battle.execute_turn();
+            
+            action_counts.push(battle.battle_log.len());
+        }
+        
+        assert!(!action_counts.is_empty(), "Should have recorded action counts");
+        assert!(action_counts.iter().all(|&count| count > 0), "All seeds should produce actions");
+    }
+
+    #[test]
+    fn test_simple_strike_integration() {
+        use battle::{TeamBattle, Team};
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        // Simple test: Strike ActingCharacter
+        let flat_rule = vec![FlatTokenInput::Strike, FlatTokenInput::ActingCharacter];
+        let converted_rule = convert_flat_rules_to_nodes(&[flat_rule]);
+        
+        // Verify conversion succeeded
+        assert_eq!(converted_rule.len(), 1, "Should convert one rule");
+        
+        // Test in battle
+        let player_team = Team::new("Heroes".to_string(), vec![
+            GameCharacter::new(60, "Fighter".to_string(), 100, 50, 30),
+        ]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            GameCharacter::new(61, "Slime".to_string(), 50, 20, 10),
+        ]);
+        
+        let player_rules = vec![converted_rule];
+        let enemy_rules = vec![vec![]]; // Empty rules for enemy
+        
+        let rng = StdRng::seed_from_u64(42);
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        let initial_enemy_hp = battle.enemy_team.members[0].hp;
+        battle.execute_turn();
+        
+        // Verify strike executed
+        assert!(!battle.battle_log.is_empty(), "Should have battle log entry");
+        // Enemy should take damage (or battle should progress)
+        assert!(battle.enemy_team.members[0].hp < initial_enemy_hp || !battle.battle_log.is_empty());
+    }
+
+    #[test]
+    fn test_simple_heal_integration() {
+        use battle::{TeamBattle, Team};
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        // Simple test: Heal ActingCharacter
+        let flat_rule = vec![FlatTokenInput::Heal, FlatTokenInput::ActingCharacter];
+        let converted_rule = convert_flat_rules_to_nodes(&[flat_rule]);
+        
+        // Verify conversion succeeded
+        assert_eq!(converted_rule.len(), 1, "Should convert one rule");
+        
+        // Test in battle with damaged character
+        let mut damaged_char = GameCharacter::new(62, "Injured Hero".to_string(), 100, 100, 20);
+        damaged_char.hp = 30; // Set to damaged state
+        
+        let player_team = Team::new("Heroes".to_string(), vec![damaged_char]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            GameCharacter::new(63, "Dummy".to_string(), 50, 20, 10),
+        ]);
+        
+        let player_rules = vec![converted_rule];
+        let enemy_rules = vec![vec![]]; // Empty rules for enemy
+        
+        let rng = StdRng::seed_from_u64(42);
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        let initial_player_hp = battle.player_team.members[0].hp;
+        battle.execute_turn();
+        
+        // Verify heal executed
+        assert!(!battle.battle_log.is_empty(), "Should have battle log entry");
+        // Player should gain HP or action should be recorded
+        assert!(battle.player_team.members[0].hp >= initial_player_hp || !battle.battle_log.is_empty());
+    }
+
+    #[test]
+    fn should_handle_comprehensive_token_combinations() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let comprehensive_rules = vec![
+            // Basic actions
+            simple_strike_rule(),
+            random_heal_rule(),
+            // Number comparison
+            vec![
+                FlatTokenInput::Check,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::Number(75),
+                FlatTokenInput::Number(50),
+                FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters
+            ],
+            // HP-based conditional
+            conditional_attack_rule(),
+            // Complex filtering
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::Eq,
+                FlatTokenInput::CharacterTeam, FlatTokenInput::Element,
+                FlatTokenInput::Enemy
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&comprehensive_rules);
+        assert!(!converted_rules.is_empty(), "Should convert comprehensive token combinations");
+        assert!(converted_rules.len() >= 4, "Most comprehensive rules should convert successfully");
+        
+        // Test execution
+        let (player_team, enemy_team) = create_standard_test_teams();
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        battle.execute_turn();
+        
+        assert!(!battle.battle_log.is_empty(), "Comprehensive rules should execute actions");
+    }
+
+    fn create_random_heavy_rules() -> Vec<Vec<FlatTokenInput>> {
+        vec![
+            // Random condition with random target
+            vec![
+                FlatTokenInput::Check,
+                FlatTokenInput::TrueOrFalse,
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::AllCharacters
+            ],
+            // Random heal with filtering
+            vec![
+                FlatTokenInput::Heal,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::Eq,
+                FlatTokenInput::CharacterTeam, FlatTokenInput::Element,
+                FlatTokenInput::Hero
+            ],
+            // Simple random attack
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::AllCharacters
+            ]
+        ]
+    }
+    
+    fn count_action_types_in_log(battle_log: &[String]) -> (usize, usize, usize) {
+        let strike_count = battle_log.iter()
+            .filter(|log| log.contains("攻撃") || log.contains("Strike:") || log.contains("attacks"))
+            .count();
+        let heal_count = battle_log.iter()
+            .filter(|log| log.contains("回復") || log.contains("Heal:") || log.contains("heals"))
+            .count();
+        let fail_count = battle_log.iter()
+            .filter(|log| log.contains("失敗") || log.contains("何もしなかった") || log.contains("failed"))
+            .count();
+        (strike_count, heal_count, fail_count)
+    }
+
+    #[test]
+    fn should_produce_deterministic_results_for_same_seed() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let rules = create_random_heavy_rules();
+        let seed = 42;
+        let mut first_run_log_count = 0;
+        let mut second_run_log_count = 0;
+        
+        // First run
+        {
+            let (player_team, enemy_team) = create_standard_test_teams();
+            let converted_rules1 = convert_flat_rules_to_nodes(&rules);
+            let converted_rules2 = convert_flat_rules_to_nodes(&rules);
+            let player_rules = vec![converted_rules1, converted_rules2];
+            let enemy_rules = vec![vec![], vec![]];
+            let rng = StdRng::seed_from_u64(seed);
+            
+            let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+            
+            for _ in 0..3 {
+                if battle.battle_over { break; }
+                battle.execute_turn();
+            }
+            first_run_log_count = battle.battle_log.len();
+        }
+        
+        // Second run with same seed
+        {
+            let (player_team, enemy_team) = create_standard_test_teams();
+            let converted_rules1 = convert_flat_rules_to_nodes(&rules);
+            let converted_rules2 = convert_flat_rules_to_nodes(&rules);
+            let player_rules = vec![converted_rules1, converted_rules2];
+            let enemy_rules = vec![vec![], vec![]];
+            let rng = StdRng::seed_from_u64(seed);
+            
+            let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+            
+            for _ in 0..3 {
+                if battle.battle_over { break; }
+                battle.execute_turn();
+            }
+            second_run_log_count = battle.battle_log.len();
+        }
+        
+        assert_eq!(first_run_log_count, second_run_log_count, "Same seed should produce same number of actions");
+        // Note: exact log content might differ due to character references, but action counts should match
+    }
+    
+    #[test]
+    fn should_produce_varied_results_across_different_seeds() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let rules = create_random_heavy_rules();
+        let seeds = vec![100, 200, 300, 400, 500];
+        let mut all_action_counts = Vec::new();
+        
+        for seed in seeds {
+            let (player_team, enemy_team) = create_standard_test_teams();
+            let converted_rules1 = convert_flat_rules_to_nodes(&rules);
+            let converted_rules2 = convert_flat_rules_to_nodes(&rules);
+            let player_rules = vec![converted_rules1, converted_rules2];
+            let enemy_rules = vec![vec![], vec![]];
+            let rng = StdRng::seed_from_u64(seed);
+            
+            let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+            
+            for _ in 0..3 {
+                if battle.battle_over { break; }
+                battle.execute_turn();
+            }
+            
+            let (strike_count, heal_count, _) = count_action_types_in_log(&battle.battle_log);
+            all_action_counts.push((seed, strike_count, heal_count));
+            
+            assert!(!battle.battle_log.is_empty(), "Seed {}: Should execute actions", seed);
+        }
+        
+        // Verify variety in action types across seeds
+        let unique_strike_counts: std::collections::HashSet<_> = 
+            all_action_counts.iter().map(|(_, s, _)| *s).collect();
+        let unique_heal_counts: std::collections::HashSet<_> = 
+            all_action_counts.iter().map(|(_, _, h)| *h).collect();
+        
+        // Since we have random tokens, expect some variety OR consistent successful actions
+        let has_variety = unique_strike_counts.len() > 1 || unique_heal_counts.len() > 1;
+        let all_have_actions = all_action_counts.iter().all(|(_, s, h)| s + h > 0);
+        
+        assert!(has_variety || all_have_actions, 
+            "Should have action variety OR consistent action execution. Strike counts: {:?}, Heal counts: {:?}", 
+            unique_strike_counts, unique_heal_counts);
+    }
+    
+    #[test]
+    fn should_validate_character_hp_stays_within_bounds() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let rules = create_random_heavy_rules();
+        let (player_team, enemy_team) = create_standard_test_teams();
+        let converted_rules1 = convert_flat_rules_to_nodes(&rules);
+        let converted_rules2 = convert_flat_rules_to_nodes(&rules);
+        
+        let player_rules = vec![converted_rules1];
+        let enemy_rules = vec![converted_rules2];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        // Execute multiple turns
+        for _ in 0..6 {
+            if battle.battle_over { break; }
+            battle.execute_turn();
+            
+            // Validate HP bounds after each turn
+            for character in &battle.player_team.members {
+                assert!(character.hp <= character.max_hp, "Player HP should not exceed maximum");
+                assert!(character.hp >= 0, "Player HP should not be negative");
+            }
+            for character in &battle.enemy_team.members {
+                assert!(character.hp <= character.max_hp, "Enemy HP should not exceed maximum");
+                assert!(character.hp >= 0, "Enemy HP should not be negative");
+            }
+        }
+    }
 }

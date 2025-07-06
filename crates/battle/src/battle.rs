@@ -360,4 +360,5 @@ mod integration_tests {
         assert_eq!(team_battle.current_team, TeamSide::Player, "Should switch back to player team");
         assert_eq!(team_battle.current_turn, initial_turn + 1, "Turn counter should increment");
     }
+
 }
