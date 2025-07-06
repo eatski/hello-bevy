@@ -7,7 +7,6 @@ use crate::Character;
 use rand::Rng;
 
 /// Generic RandomPickNode that can pick from arrays of any type
-#[derive(Debug)]
 pub struct GenericRandomPickNode<T> {
     array_node: Box<dyn Node<Vec<T>>>,
 }

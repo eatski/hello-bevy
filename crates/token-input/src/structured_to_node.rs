@@ -5,7 +5,6 @@ use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingChara
 use action_system::nodes::condition::EqConditionNode;
 
 // パース結果を表すEnum
-#[derive(Debug)]
 pub enum ParsedResolver {
     Action(Box<dyn Node<Box<dyn Action>>>),
     Condition(Box<dyn Node<bool>>),
@@ -19,42 +18,42 @@ impl ParsedResolver {
     pub fn require_action(self) -> Result<Box<dyn Node<Box<dyn Action>>>, String> {
         match self {
             ParsedResolver::Action(action) => Ok(action),
-            _ => Err(format!("Expected Action, got {:?}", self)),
+            _ => Err(format!("Expected Action, got different type")),
         }
     }
     
     pub fn require_condition(self) -> Result<Box<dyn Node<bool>>, String> {
         match self {
             ParsedResolver::Condition(condition) => Ok(condition),
-            _ => Err(format!("Expected Condition, got {:?}", self)),
+            _ => Err(format!("Expected Condition, got different type")),
         }
     }
     
     pub fn require_value(self) -> Result<Box<dyn Node<i32>>, String> {
         match self {
             ParsedResolver::Value(value) => Ok(value),
-            _ => Err(format!("Expected Value, got {:?}", self)),
+            _ => Err(format!("Expected Value, got different type")),
         }
     }
     
     pub fn require_character(self) -> Result<Box<dyn Node<Character>>, String> {
         match self {
             ParsedResolver::Character(character_node) => Ok(character_node),
-            _ => Err(format!("Expected Character, got {:?}", self)),
+            _ => Err(format!("Expected Character, got different type")),
         }
     }
     
     pub fn require_character_array(self) -> Result<Box<dyn Node<Vec<Character>>>, String> {
         match self {
             ParsedResolver::CharacterArray(character_array_node) => Ok(character_array_node),
-            _ => Err(format!("Expected CharacterArray, got {:?}", self)),
+            _ => Err(format!("Expected CharacterArray, got different type")),
         }
     }
     
     pub fn require_team_side(self) -> Result<Box<dyn Node<TeamSide>>, String> {
         match self {
             ParsedResolver::TeamSide(team_side_node) => Ok(team_side_node),
-            _ => Err(format!("Expected TeamSide, got {:?}", self)),
+            _ => Err(format!("Expected TeamSide, got different type")),
         }
     }
 }
@@ -134,7 +133,7 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
                     Ok(ParsedResolver::Condition(Box::new(EqConditionNode::new(left_character, right_character))))
                 },
                 // Type mismatch
-                _ => Err(format!("Cannot compare different types in Eq: {:?} and {:?}", left, right)),
+                _ => Err(format!("Cannot compare different types in Eq")),
             }
         }
         StructuredTokenInput::CharacterTeam { character } => {

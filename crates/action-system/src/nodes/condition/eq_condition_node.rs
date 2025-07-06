@@ -4,7 +4,6 @@ use crate::nodes::unified_node::Node;
 use crate::TeamSide;
 use std::fmt;
 
-#[derive(Debug)]
 pub struct EqConditionNode<T> {
     left: Box<dyn Node<T>>,
     right: Box<dyn Node<T>>,
@@ -27,7 +26,6 @@ impl<T: PartialEq + fmt::Debug + Clone + Send + Sync + 'static> Node<bool> for E
 // Specialized for TeamSide comparison
 pub type TeamSideEqNode = EqConditionNode<TeamSide>;
 
-#[derive(Debug)]
 pub struct CharacterTeamNode {
     character_node: Box<dyn Node<crate::Character>>,
 }

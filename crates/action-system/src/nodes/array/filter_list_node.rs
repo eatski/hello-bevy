@@ -4,7 +4,6 @@ use crate::nodes::unified_node::Node;
 use crate::Character;
 
 /// Node that filters an array of characters based on a condition
-#[derive(Debug)]
 pub struct FilterListNode {
     array: Box<dyn Node<Vec<Character>>>,
     condition: Box<dyn Node<bool>>,

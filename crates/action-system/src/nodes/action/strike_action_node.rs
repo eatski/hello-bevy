@@ -4,7 +4,6 @@ use crate::core::{NodeResult, NodeError, Action, StrikeAction};
 use crate::nodes::unified_node::Node;
 use crate::nodes::evaluation_context::EvaluationContext;
 
-#[derive(Debug)]
 pub struct StrikeActionNode {
     target: Box<dyn Node<crate::Character>>,
 }

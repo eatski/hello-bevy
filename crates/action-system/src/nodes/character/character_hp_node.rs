@@ -3,7 +3,6 @@
 use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::Node;
 
-#[derive(Debug)]
 pub struct CharacterHpNode {
     pub character_node: Box<dyn Node<crate::Character>>,
 }

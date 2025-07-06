@@ -6,7 +6,6 @@ use crate::Character;
 use rand::Rng;
 
 /// RandomCharacterPickNode that returns the actual Character object
-#[derive(Debug)]
 pub struct RandomCharacterPickNode {
     array_node: Box<dyn Node<Vec<Character>>>,
 }

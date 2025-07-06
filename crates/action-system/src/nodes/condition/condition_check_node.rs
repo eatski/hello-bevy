@@ -4,7 +4,6 @@ use crate::core::{Action, NodeResult, NodeError};
 use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::Node;
 
-#[derive(Debug)]
 pub struct ConditionCheckNode {
     condition: Box<dyn Node<bool>>,
     next: Box<dyn Node<Box<dyn Action>>>,

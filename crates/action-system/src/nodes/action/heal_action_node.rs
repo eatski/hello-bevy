@@ -4,7 +4,6 @@ use crate::core::{NodeResult, NodeError, Action, HealAction};
 use crate::nodes::unified_node::Node;
 use crate::nodes::evaluation_context::EvaluationContext;
 
-#[derive(Debug)]
 pub struct HealActionNode {
     target: Box<dyn Node<crate::Character>>,
 }

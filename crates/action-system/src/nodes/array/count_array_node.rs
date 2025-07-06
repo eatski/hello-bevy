@@ -5,7 +5,6 @@ use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::Node;
 use crate::Character;
 
-#[derive(Debug)]
 pub struct CountArrayNode {
     array_node: Box<dyn Node<Vec<Character>>>,
 }

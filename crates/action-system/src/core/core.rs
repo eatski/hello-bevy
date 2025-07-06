@@ -56,7 +56,7 @@ impl BattleState {
 }
 
 // Trait for executable actions with target information
-pub trait Action: Send + Sync + std::fmt::Debug {
+pub trait Action {
     fn execute(&self, battle_context: &crate::BattleContext, battle_state: &mut BattleState) -> Result<(), String>;
     fn get_action_name(&self) -> &'static str;
 }

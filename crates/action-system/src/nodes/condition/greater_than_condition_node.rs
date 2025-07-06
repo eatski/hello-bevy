@@ -3,7 +3,6 @@
 use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::Node;
 
-#[derive(Debug)]
 pub struct GreaterThanConditionNode {
     pub left: Box<dyn Node<i32>>,
     pub right: Box<dyn Node<i32>>,

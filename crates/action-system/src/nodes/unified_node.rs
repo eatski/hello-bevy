@@ -5,12 +5,12 @@ use crate::nodes::evaluation_context::EvaluationContext;
 
 /// Unified generic trait for all node types
 /// Replaces CharacterNode, ValueNode, ConditionNode, and ArrayNode<T>
-pub trait Node<T>: Send + Sync + std::fmt::Debug {
+pub trait Node<T>: Send + Sync {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<T>;
 }
 
 // Box implementation for trait objects
-impl<T> Node<T> for Box<dyn Node<T>> {
+impl<T> Node<T> for Box<dyn Node<T> + Send + Sync> {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<T> {
         (**self).evaluate(eval_context, rng)
     }
