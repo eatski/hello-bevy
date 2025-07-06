@@ -3,57 +3,61 @@
 use crate::{StructuredTokenInput, RuleSet};
 use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide};
 use action_system::nodes::condition::EqConditionNode;
+use std::any::Any;
 
-// パース結果を表すEnum
-pub enum ParsedResolver {
-    Action(Box<dyn Node<Box<dyn Action>>>),
-    Condition(Box<dyn Node<bool>>),
-    Value(Box<dyn Node<i32>>),
-    Character(Box<dyn Node<Character>>),
-    CharacterArray(Box<dyn Node<Vec<Character>>>),
-    TeamSide(Box<dyn Node<TeamSide>>),
+// パース結果を表すAnyベースのResolver
+pub struct ParsedResolver {
+    pub(crate) node: Box<dyn Any>,
+    pub(crate) type_name: String,
 }
 
 impl ParsedResolver {
+    pub fn new<T: Any + 'static>(node: T, type_name: String) -> Self {
+        Self {
+            node: Box::new(node),
+            type_name,
+        }
+    }
+    
     pub fn require_action(self) -> Result<Box<dyn Node<Box<dyn Action>>>, String> {
-        match self {
-            ParsedResolver::Action(action) => Ok(action),
-            _ => Err(format!("Expected Action, got different type")),
+        match self.node.downcast::<Box<dyn Node<Box<dyn Action>>>>() {
+            Ok(action) => Ok(*action),
+            Err(_) => Err(format!("Expected Action, got {}", self.type_name)),
         }
     }
     
     pub fn require_condition(self) -> Result<Box<dyn Node<bool>>, String> {
-        match self {
-            ParsedResolver::Condition(condition) => Ok(condition),
-            _ => Err(format!("Expected Condition, got different type")),
+        match self.node.downcast::<Box<dyn Node<bool>>>() {
+            Ok(condition) => Ok(*condition),
+            Err(_) => Err(format!("Expected Condition, got {}", self.type_name)),
         }
     }
     
     pub fn require_value(self) -> Result<Box<dyn Node<i32>>, String> {
-        match self {
-            ParsedResolver::Value(value) => Ok(value),
-            _ => Err(format!("Expected Value, got different type")),
+        match self.node.downcast::<Box<dyn Node<i32>>>() {
+            Ok(value) => Ok(*value),
+            Err(_) => Err(format!("Expected Value, got {}", self.type_name)),
         }
     }
     
     pub fn require_character(self) -> Result<Box<dyn Node<Character>>, String> {
-        match self {
-            ParsedResolver::Character(character_node) => Ok(character_node),
-            _ => Err(format!("Expected Character, got different type")),
+        match self.node.downcast::<Box<dyn Node<Character>>>() {
+            Ok(character_node) => Ok(*character_node),
+            Err(_) => Err(format!("Expected Character, got {}", self.type_name)),
         }
     }
     
     pub fn require_character_array(self) -> Result<Box<dyn Node<Vec<Character>>>, String> {
-        match self {
-            ParsedResolver::CharacterArray(character_array_node) => Ok(character_array_node),
-            _ => Err(format!("Expected CharacterArray, got different type")),
+        match self.node.downcast::<Box<dyn Node<Vec<Character>>>>() {
+            Ok(character_array_node) => Ok(*character_array_node),
+            Err(_) => Err(format!("Expected CharacterArray, got {}", self.type_name)),
         }
     }
     
     pub fn require_team_side(self) -> Result<Box<dyn Node<TeamSide>>, String> {
-        match self {
-            ParsedResolver::TeamSide(team_side_node) => Ok(team_side_node),
-            _ => Err(format!("Expected TeamSide, got different type")),
+        match self.node.downcast::<Box<dyn Node<TeamSide>>>() {
+            Ok(team_side_node) => Ok(*team_side_node),
+            Err(_) => Err(format!("Expected TeamSide, got {}", self.type_name)),
         }
     }
 }
@@ -64,98 +68,155 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::Strike { target } => {
             let target_node = convert_structured_to_node(target)?;
             let character_node = target_node.require_character()?;
-            Ok(ParsedResolver::Action(Box::new(StrikeActionNode::new(character_node))))
+            Ok(ParsedResolver::new(
+                Box::new(StrikeActionNode::new(character_node)) as Box<dyn Node<Box<dyn Action>>>,
+                "Action".to_string()
+            ))
         }
         StructuredTokenInput::Heal { target } => {
             let target_node = convert_structured_to_node(target)?;
             let character_node = target_node.require_character()?;
-            Ok(ParsedResolver::Action(Box::new(HealActionNode::new(character_node))))
+            Ok(ParsedResolver::new(
+                Box::new(HealActionNode::new(character_node)) as Box<dyn Node<Box<dyn Action>>>,
+                "Action".to_string()
+            ))
         }
         StructuredTokenInput::Check { condition, then_action } => {
             let condition_node = convert_structured_to_node(condition)?;
             let action_node = convert_structured_to_node(then_action)?;
             let cond = condition_node.require_condition()?;
             let action = action_node.require_action()?;
-            Ok(ParsedResolver::Action(Box::new(ConditionCheckNode::new(cond, action))))
+            Ok(ParsedResolver::new(
+                Box::new(ConditionCheckNode::new(cond, action)) as Box<dyn Node<Box<dyn Action>>>,
+                "Action".to_string()
+            ))
         }
         StructuredTokenInput::GreaterThan { left, right } => {
             let left_node = convert_structured_to_node(left)?;
             let right_node = convert_structured_to_node(right)?;
             let left_val = left_node.require_value()?;
             let right_val = right_node.require_value()?;
-            Ok(ParsedResolver::Condition(Box::new(GreaterThanConditionNode::new(left_val, right_val))))
+            Ok(ParsedResolver::new(
+                Box::new(GreaterThanConditionNode::new(left_val, right_val)) as Box<dyn Node<bool>>,
+                "Condition".to_string()
+            ))
         }
         StructuredTokenInput::HP { character } => {
             let character_node = convert_structured_to_node(character)?;
             let character_target_node = character_node.require_character()?;
-            Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(character_target_node))))
+            Ok(ParsedResolver::new(
+                Box::new(CharacterHpNode::new(character_target_node)) as Box<dyn Node<i32>>,
+                "Value".to_string()
+            ))
         }
         StructuredTokenInput::Number { value } => {
-            Ok(ParsedResolver::Value(Box::new(ConstantValueNode::new(*value))))
+            Ok(ParsedResolver::new(
+                Box::new(ConstantValueNode::new(*value)) as Box<dyn Node<i32>>,
+                "Value".to_string()
+            ))
         }
         StructuredTokenInput::ActingCharacter => {
-            // ActingCharacterNode returns Character
-            Ok(ParsedResolver::Character(Box::new(ActingCharacterNode)))
+            Ok(ParsedResolver::new(
+                Box::new(ActingCharacterNode) as Box<dyn Node<Character>>,
+                "Character".to_string()
+            ))
         }
         StructuredTokenInput::AllCharacters => {
-            Ok(ParsedResolver::CharacterArray(Box::new(AllCharactersNode::new())))
+            Ok(ParsedResolver::new(
+                Box::new(AllCharactersNode::new()) as Box<dyn Node<Vec<Character>>>,
+                "CharacterArray".to_string()
+            ))
         }
         StructuredTokenInput::RandomPick { array } => {
             let array_node = convert_structured_to_node(array)?;
             let character_array_node = array_node.require_character_array()?;
-            // CharacterRandomPickNode now returns Character directly
-            Ok(ParsedResolver::Character(Box::new(action_system::CharacterRandomPickNode::new(character_array_node))))
+            Ok(ParsedResolver::new(
+                Box::new(action_system::CharacterRandomPickNode::new(character_array_node)) as Box<dyn Node<Character>>,
+                "Character".to_string()
+            ))
         }
         StructuredTokenInput::TrueOrFalseRandom => {
-            Ok(ParsedResolver::Condition(Box::new(RandomConditionNode)))
+            Ok(ParsedResolver::new(
+                Box::new(RandomConditionNode) as Box<dyn Node<bool>>,
+                "Condition".to_string()
+            ))
         }
         StructuredTokenInput::CharacterHP { character } => {
             let character_node = convert_structured_to_node(character)?;
             let character_target_node = character_node.require_character()?;
-            Ok(ParsedResolver::Value(Box::new(CharacterHpNode::new(character_target_node))))
+            Ok(ParsedResolver::new(
+                Box::new(CharacterHpNode::new(character_target_node)) as Box<dyn Node<i32>>,
+                "Value".to_string()
+            ))
         }
         StructuredTokenInput::Eq { left, right } => {
             let left_node = convert_structured_to_node(left)?;
             let right_node = convert_structured_to_node(right)?;
             
             // Try to match types and create appropriate EqNode
-            match (left_node, right_node) {
-                // TeamSide comparison
-                (ParsedResolver::TeamSide(left_team), ParsedResolver::TeamSide(right_team)) => {
-                    Ok(ParsedResolver::Condition(Box::new(EqConditionNode::new(left_team, right_team))))
-                },
-                // Value comparison
-                (ParsedResolver::Value(left_value), ParsedResolver::Value(right_value)) => {
-                    Ok(ParsedResolver::Condition(Box::new(EqConditionNode::new(left_value, right_value))))
-                },
-                // Character comparison
-                (ParsedResolver::Character(left_character), ParsedResolver::Character(right_character)) => {
-                    Ok(ParsedResolver::Condition(Box::new(EqConditionNode::new(left_character, right_character))))
-                },
-                // Type mismatch
-                _ => Err(format!("Cannot compare different types in Eq")),
+            let left_type = left_node.type_name.clone();
+            let right_type = right_node.type_name.clone();
+            
+            if left_type == "TeamSide" && right_type == "TeamSide" {
+                let left_team = left_node.require_team_side()?;
+                let right_team = right_node.require_team_side()?;
+                Ok(ParsedResolver::new(
+                    Box::new(EqConditionNode::new(left_team, right_team)) as Box<dyn Node<bool>>,
+                    "Condition".to_string()
+                ))
+            } else if left_type == "Value" && right_type == "Value" {
+                let left_value = left_node.require_value()?;
+                let right_value = right_node.require_value()?;
+                Ok(ParsedResolver::new(
+                    Box::new(EqConditionNode::new(left_value, right_value)) as Box<dyn Node<bool>>,
+                    "Condition".to_string()
+                ))
+            } else if left_type == "Character" && right_type == "Character" {
+                let left_character = left_node.require_character()?;
+                let right_character = right_node.require_character()?;
+                Ok(ParsedResolver::new(
+                    Box::new(EqConditionNode::new(left_character, right_character)) as Box<dyn Node<bool>>,
+                    "Condition".to_string()
+                ))
+            } else {
+                Err(format!("Cannot compare different types in Eq: {} vs {}", left_type, right_type))
             }
         }
         StructuredTokenInput::CharacterTeam { character } => {
             let character_node = convert_structured_to_node(character)?;
             let character_target_node = character_node.require_character()?;
-            Ok(ParsedResolver::TeamSide(Box::new(CharacterTeamNode::new(character_target_node))))
+            Ok(ParsedResolver::new(
+                Box::new(CharacterTeamNode::new(character_target_node)) as Box<dyn Node<TeamSide>>,
+                "TeamSide".to_string()
+            ))
         }
         StructuredTokenInput::FilterList { array, condition } => {
             let array_node = convert_structured_to_node(array)?;
             let condition_node = convert_structured_to_node(condition)?;
             let character_array_node = array_node.require_character_array()?;
             let condition_bool_node = condition_node.require_condition()?;
-            Ok(ParsedResolver::CharacterArray(Box::new(FilterListNode::new(character_array_node, condition_bool_node))))
+            Ok(ParsedResolver::new(
+                Box::new(FilterListNode::new(character_array_node, condition_bool_node)) as Box<dyn Node<Vec<Character>>>,
+                "CharacterArray".to_string()
+            ))
         }
         StructuredTokenInput::Element => {
-            Ok(ParsedResolver::Character(Box::new(ElementNode::new())))
+            Ok(ParsedResolver::new(
+                Box::new(ElementNode::new()) as Box<dyn Node<Character>>,
+                "Character".to_string()
+            ))
         }
         StructuredTokenInput::Enemy => {
-            Ok(ParsedResolver::TeamSide(Box::new(EnemyNode::new())))
+            Ok(ParsedResolver::new(
+                Box::new(EnemyNode::new()) as Box<dyn Node<TeamSide>>,
+                "TeamSide".to_string()
+            ))
         }
         StructuredTokenInput::Hero => {
-            Ok(ParsedResolver::TeamSide(Box::new(HeroNode::new())))
+            Ok(ParsedResolver::new(
+                Box::new(HeroNode::new()) as Box<dyn Node<TeamSide>>,
+                "TeamSide".to_string()
+            ))
         }
     }
 }
