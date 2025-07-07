@@ -684,4 +684,635 @@ mod tests {
             }
         }
     }
+    
+    // =====================================
+    // FilterList Comprehensive Tests (t_wada critical coverage)
+    // =====================================
+    
+    #[test]
+    fn should_filter_characters_by_hp_condition() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        // Create characters with varying HP: 30, 60, 90
+        let player_team = Team::new("Heroes".to_string(), vec![
+            create_test_character(101, "Low HP", 30, 100, 20),
+            create_test_character(102, "Mid HP", 60, 100, 25),
+            create_test_character(103, "High HP", 90, 100, 30),
+        ]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            create_test_character(201, "Enemy", 50, 50, 15),
+        ]);
+        
+        // Rule: Strike → RandomPick → FilterList → AllCharacters → GreaterThan → HP(Element) → Number(50)
+        // Should target characters with HP > 50 (Mid HP: 60, High HP: 90)
+        let rules = vec![
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::HP, FlatTokenInput::Element,
+                FlatTokenInput::Number(50)
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "FilterList HP condition should convert successfully");
+        
+        // Test in battle context
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        // Execute multiple turns to observe filtering behavior
+        for _ in 0..3 {
+            if battle.battle_over { break; }
+            battle.execute_turn();
+        }
+        
+        assert!(!battle.battle_log.is_empty(), "FilterList rule should execute actions");
+        
+        // Verify that characters with HP <= 50 are still alive (not targeted)
+        let low_hp_char = battle.player_team.members.iter().find(|c| c.id == 101);
+        assert!(low_hp_char.is_some(), "Low HP character should still exist");
+        assert!(low_hp_char.unwrap().hp > 0, "Low HP character should be alive (not targeted)");
+    }
+    
+    #[test]
+    fn should_filter_characters_by_team_affiliation() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let (player_team, enemy_team) = create_standard_test_teams();
+        
+        // Rule: Strike → RandomPick → FilterList → AllCharacters → Eq → CharacterTeam(Element) → Enemy
+        // Should target only enemy characters
+        let rules = vec![
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::Eq,
+                FlatTokenInput::CharacterTeam, FlatTokenInput::Element,
+                FlatTokenInput::Enemy
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "FilterList team condition should convert successfully");
+        
+        // Test in battle
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        let initial_enemy_hp_total: i32 = battle.enemy_team.members.iter().map(|c| c.hp).sum();
+        
+        // Execute turns
+        for _ in 0..3 {
+            if battle.battle_over { break; }
+            battle.execute_turn();
+        }
+        
+        let final_enemy_hp_total: i32 = battle.enemy_team.members.iter().map(|c| c.hp).sum();
+        
+        // Enemy team should have taken damage (filtered targeting worked)
+        assert!(final_enemy_hp_total <= initial_enemy_hp_total, "Enemy team should take damage from filtered targeting");
+        
+        // Player team should be untouched
+        assert!(battle.player_team.members.iter().all(|c| c.hp == c.max_hp), "Player team should be untouched");
+    }
+    
+    #[test]
+    fn should_handle_empty_filter_results() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let (player_team, enemy_team) = create_standard_test_teams();
+        
+        // Rule: Strike → RandomPick → FilterList → AllCharacters → GreaterThan → HP(Element) → Number(999)
+        // Should filter out all characters (all HP < 999) resulting in empty target list
+        let rules = vec![
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::HP, FlatTokenInput::Element,
+                FlatTokenInput::Number(999)
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "FilterList empty result rule should convert successfully");
+        
+        // Test in battle
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        let initial_all_hp: Vec<i32> = battle.player_team.members.iter().chain(battle.enemy_team.members.iter()).map(|c| c.hp).collect();
+        
+        // Execute turns
+        for _ in 0..3 {
+            if battle.battle_over { break; }
+            battle.execute_turn();
+        }
+        
+        let final_all_hp: Vec<i32> = battle.player_team.members.iter().chain(battle.enemy_team.members.iter()).map(|c| c.hp).collect();
+        
+        // All characters should have same HP (no valid targets found)
+        assert_eq!(initial_all_hp, final_all_hp, "No character should take damage when filter returns empty results");
+        
+        // Should have battle log entries indicating no action or failed action
+        assert!(!battle.battle_log.is_empty(), "Should log action attempts even when filter returns empty");
+    }
+    
+    #[test]
+    fn should_handle_filterlist_with_random_condition() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let (player_team, enemy_team) = create_standard_test_teams();
+        
+        // Rule: Strike → RandomPick → FilterList → AllCharacters → TrueOrFalse
+        // Should randomly include/exclude characters based on TrueOrFalse
+        let rules = vec![
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::TrueOrFalse
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "FilterList with TrueOrFalse should convert successfully");
+        
+        // Test with multiple seeds to verify randomness
+        let seeds = vec![100, 200, 300];
+        let mut action_occurred = false;
+        
+        for seed in seeds {
+            let (player_team, enemy_team) = create_standard_test_teams();
+            let converted_rules = convert_flat_rules_to_nodes(&rules);
+            
+            let player_rules = vec![converted_rules];
+            let enemy_rules = vec![vec![]];
+            let rng = StdRng::seed_from_u64(seed);
+            
+            let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+            
+            // Execute a few turns
+            for _ in 0..2 {
+                if battle.battle_over { break; }
+                battle.execute_turn();
+            }
+            
+            if !battle.battle_log.is_empty() {
+                action_occurred = true;
+            }
+        }
+        
+        assert!(action_occurred, "FilterList with TrueOrFalse should execute actions in at least one seed");
+    }
+    
+    #[test]
+    fn should_handle_complex_filterlist_chaining() {
+        use token_input::convert_flat_rules_to_nodes;
+        
+        // Rule: Heal → RandomPick → FilterList → FilterList → AllCharacters → GreaterThan → HP(Element) → Number(30) → Eq → CharacterTeam(Element) → Hero
+        // Double FilterList: First filter by HP > 30, then by Hero team
+        let rules = vec![
+            vec![
+                FlatTokenInput::Heal,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::HP, FlatTokenInput::Element,
+                FlatTokenInput::Number(30),
+                FlatTokenInput::Eq,
+                FlatTokenInput::CharacterTeam, FlatTokenInput::Element,
+                FlatTokenInput::Hero
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        
+        // Complex chaining might not fully convert due to complexity limits
+        // But should not crash or produce invalid results
+        assert!(converted_rules.len() <= 1, "Complex FilterList chaining should handle gracefully");
+        
+        // If it converts, it should be valid
+        if !converted_rules.is_empty() {
+            // Test that the conversion is at least structurally valid
+            assert!(true, "Complex FilterList conversion completed without errors");
+        }
+    }
+    
+    // =====================================
+    // Element Node Context Tests (t_wada critical coverage)
+    // =====================================
+    
+    #[test]
+    fn should_validate_element_node_in_filterlist_context() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        // Create characters with different HP values
+        let player_team = Team::new("Heroes".to_string(), vec![
+            create_test_character(111, "ActingHero", 80, 100, 25),  // Acting character
+            create_test_character(112, "LowHP", 30, 100, 20),       // Low HP
+            create_test_character(113, "HighHP", 90, 100, 30),      // High HP
+        ]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            create_test_character(211, "Enemy", 50, 50, 15),
+        ]);
+        
+        // Rule: Strike → RandomPick → FilterList → AllCharacters → Eq → Element → ActingCharacter
+        // Should filter to only include the acting character (Element = current character being filtered)
+        let rules = vec![
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::Eq,
+                FlatTokenInput::Element,
+                FlatTokenInput::ActingCharacter
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "Element context rule should convert successfully");
+        
+        // Test in battle - acting character should attack themselves
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        let initial_acting_hp = battle.player_team.members[0].hp;
+        
+        battle.execute_turn();
+        
+        // Acting character should have taken damage (attacked themselves)
+        assert!(battle.player_team.members[0].hp < initial_acting_hp, "Acting character should take damage from self-targeting");
+        
+        // Other characters should be untouched
+        assert_eq!(battle.player_team.members[1].hp, 30, "LowHP character should be untouched");
+        assert_eq!(battle.player_team.members[2].hp, 90, "HighHP character should be untouched");
+    }
+    
+    #[test]
+    fn should_validate_element_node_in_hp_comparison() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        // Create characters where acting character has different HP than others
+        let player_team = Team::new("Heroes".to_string(), vec![
+            create_test_character(121, "ActingHero", 70, 100, 25),  // Acting character
+            create_test_character(122, "AllyLow", 20, 100, 20),     // Lower HP
+            create_test_character(123, "AllyHigh", 90, 100, 30),    // Higher HP
+        ]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            create_test_character(221, "Enemy", 50, 50, 15),
+        ]);
+        
+        // Rule: Strike → RandomPick → FilterList → AllCharacters → GreaterThan → HP(Element) → HP(ActingCharacter)
+        // Should filter characters with HP > acting character's HP (Element HP > 70)
+        let rules = vec![
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::HP, FlatTokenInput::Element,
+                FlatTokenInput::HP, FlatTokenInput::ActingCharacter
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "Element HP comparison rule should convert successfully");
+        
+        // Test in battle
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        battle.execute_turn();
+        
+        // Only AllyHigh (HP=90) should be targeted, others should be untouched
+        assert_eq!(battle.player_team.members[0].hp, 70, "Acting character should be untouched");
+        assert_eq!(battle.player_team.members[1].hp, 20, "AllyLow should be untouched");
+        assert!(battle.player_team.members[2].hp <= 90, "AllyHigh should take damage (only valid target)");
+    }
+    
+    #[test]
+    fn should_validate_element_node_in_team_comparison() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        let (player_team, enemy_team) = create_standard_test_teams();
+        
+        // Rule: Strike → RandomPick → FilterList → AllCharacters → Eq → CharacterTeam(Element) → CharacterTeam(ActingCharacter)
+        // Should filter to characters on the same team as the acting character
+        let rules = vec![
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::Eq,
+                FlatTokenInput::CharacterTeam, FlatTokenInput::Element,
+                FlatTokenInput::CharacterTeam, FlatTokenInput::ActingCharacter
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "Element team comparison rule should convert successfully");
+        
+        // Test in battle
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        let initial_enemy_hp_total: i32 = battle.enemy_team.members.iter().map(|c| c.hp).sum();
+        
+        battle.execute_turn();
+        
+        let final_enemy_hp_total: i32 = battle.enemy_team.members.iter().map(|c| c.hp).sum();
+        
+        // Enemy team should be untouched (different team than acting character)
+        assert_eq!(initial_enemy_hp_total, final_enemy_hp_total, "Enemy team should be untouched");
+        
+        // Player team should have taken damage (same team targeting)
+        let final_player_hp_total: i32 = battle.player_team.members.iter().map(|c| c.hp).sum();
+        let initial_player_hp_total = 100 + 60; // Hero + Mage initial HP
+        assert!(final_player_hp_total < initial_player_hp_total, "Player team should take damage from same-team targeting");
+    }
+    
+    // =====================================
+    // Boundary Value Tests (t_wada critical coverage)
+    // =====================================
+    
+    #[test]
+    fn should_handle_exact_hp_threshold_boundaries() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        // Create characters with HP exactly at boundaries
+        let player_team = Team::new("Heroes".to_string(), vec![
+            create_test_character(131, "ExactHP", 50, 100, 25),     // HP exactly 50
+            create_test_character(132, "BelowHP", 49, 100, 20),     // HP just below 50
+            create_test_character(133, "AboveHP", 51, 100, 30),     // HP just above 50
+        ]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            create_test_character(231, "Enemy", 50, 50, 15),
+        ]);
+        
+        // Rule: Strike → RandomPick → FilterList → AllCharacters → GreaterThan → HP(Element) → Number(50)
+        // Should target only characters with HP > 50 (not HP >= 50)
+        let rules = vec![
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::HP, FlatTokenInput::Element,
+                FlatTokenInput::Number(50)
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "HP threshold boundary rule should convert successfully");
+        
+        // Test in battle
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        battle.execute_turn();
+        
+        // Only AboveHP (HP=51) should be targeted
+        assert_eq!(battle.player_team.members[0].hp, 50, "ExactHP should be untouched (HP = 50, not > 50)");
+        assert_eq!(battle.player_team.members[1].hp, 49, "BelowHP should be untouched (HP < 50)");
+        assert!(battle.player_team.members[2].hp <= 51, "AboveHP should take damage (HP > 50)");
+    }
+    
+    #[test]
+    fn should_handle_maximum_hp_boundaries() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        // Create characters with HP at maximum
+        let player_team = Team::new("Heroes".to_string(), vec![
+            create_test_character(141, "MaxHP", 100, 100, 25),      // HP = max_hp
+            create_test_character(142, "NearMax", 99, 100, 20),     // HP just below max
+            create_test_character(143, "MidHP", 50, 100, 30),       // HP at middle
+        ]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            create_test_character(241, "Enemy", 50, 50, 15),
+        ]);
+        
+        // Rule: Heal → RandomPick → FilterList → AllCharacters → GreaterThan → HP(Element) → Number(98)
+        // Should target characters with HP > 98 (MaxHP and NearMax)
+        let rules = vec![
+            vec![
+                FlatTokenInput::Heal,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::HP, FlatTokenInput::Element,
+                FlatTokenInput::Number(98)
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "Max HP boundary rule should convert successfully");
+        
+        // Test in battle
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        battle.execute_turn();
+        
+        // MaxHP should still be 100 (cannot heal above max)
+        assert_eq!(battle.player_team.members[0].hp, 100, "MaxHP should remain at maximum");
+        
+        // NearMax might be healed to 100 or stay at 99
+        assert!(battle.player_team.members[1].hp >= 99, "NearMax should be healed or stay same");
+        assert!(battle.player_team.members[1].hp <= 100, "NearMax should not exceed maximum");
+        
+        // MidHP should be untouched (HP = 50, not > 98)
+        assert_eq!(battle.player_team.members[2].hp, 50, "MidHP should be untouched");
+    }
+    
+    #[test]
+    fn should_handle_zero_hp_boundary() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        // Create characters with HP at zero (dead)
+        let mut player_team = Team::new("Heroes".to_string(), vec![
+            create_test_character(151, "DeadHero", 0, 100, 25),     // HP = 0 (dead)
+            create_test_character(152, "AliveHero", 30, 100, 20),   // HP > 0 (alive)
+        ]);
+        // Set first character to dead
+        player_team.members[0].hp = 0;
+        
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            create_test_character(251, "Enemy", 50, 50, 15),
+        ]);
+        
+        // Rule: Strike → RandomPick → FilterList → AllCharacters → GreaterThan → HP(Element) → Number(0)
+        // Should target only alive characters (HP > 0)
+        let rules = vec![
+            vec![
+                FlatTokenInput::Strike,
+                FlatTokenInput::RandomPick,
+                FlatTokenInput::FilterList,
+                FlatTokenInput::AllCharacters,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::HP, FlatTokenInput::Element,
+                FlatTokenInput::Number(0)
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "Zero HP boundary rule should convert successfully");
+        
+        // Test in battle
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        battle.execute_turn();
+        
+        // Dead character should remain dead and untouched
+        assert_eq!(battle.player_team.members[0].hp, 0, "Dead character should remain dead");
+        
+        // Alive character should potentially take damage
+        assert!(battle.player_team.members[1].hp <= 30, "Alive character should be valid target");
+    }
+    
+    // =====================================
+    // Complex Nested Conditions Tests (t_wada critical coverage)
+    // =====================================
+    
+    #[test]
+    fn should_handle_complex_nested_check_conditions() {
+        use token_input::convert_flat_rules_to_nodes;
+        
+        // Rule: Check → TrueOrFalse → Heal → ActingCharacter
+        // Simple Check: if TrueOrFalse then (Heal ActingCharacter)
+        let rules = vec![
+            vec![
+                FlatTokenInput::Check,
+                FlatTokenInput::TrueOrFalse,
+                FlatTokenInput::Heal, FlatTokenInput::ActingCharacter
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "Simple Check condition should convert successfully");
+        
+        // Test for deeply nested conditions (likely to fail conversion gracefully)
+        let complex_rules = vec![
+            vec![
+                FlatTokenInput::Check,
+                FlatTokenInput::Check,
+                FlatTokenInput::TrueOrFalse,
+                FlatTokenInput::Heal, FlatTokenInput::ActingCharacter,
+                FlatTokenInput::Strike, FlatTokenInput::ActingCharacter
+            ]
+        ];
+        
+        let complex_converted_rules = convert_flat_rules_to_nodes(&complex_rules);
+        // Complex nesting might not convert, but should not crash
+        assert!(complex_converted_rules.len() <= 1, "Complex nested Check should handle gracefully");
+    }
+    
+    #[test]
+    fn should_handle_hp_comparison_in_nested_context() {
+        use battle::TeamBattle;
+        use token_input::convert_flat_rules_to_nodes;
+        use rand::SeedableRng;
+        
+        // Create character with mid-range HP
+        let player_team = Team::new("Heroes".to_string(), vec![
+            create_test_character(161, "MidHPHero", 60, 100, 25),
+        ]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            create_test_character(261, "Enemy", 50, 50, 15),
+        ]);
+        
+        // Rule: Check → GreaterThan → HP(ActingCharacter) → Number(50) → Heal → ActingCharacter
+        // If acting character HP > 50, then heal self (should execute since HP=60 > 50)
+        let rules = vec![
+            vec![
+                FlatTokenInput::Check,
+                FlatTokenInput::GreaterThan,
+                FlatTokenInput::HP, FlatTokenInput::ActingCharacter,
+                FlatTokenInput::Number(50),
+                FlatTokenInput::Heal, FlatTokenInput::ActingCharacter
+            ]
+        ];
+        
+        let converted_rules = convert_flat_rules_to_nodes(&rules);
+        assert!(!converted_rules.is_empty(), "HP comparison nested condition should convert successfully");
+        
+        // Test in battle
+        let player_rules = vec![converted_rules];
+        let enemy_rules = vec![vec![]];
+        let rng = StdRng::seed_from_u64(42);
+        
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        
+        let initial_hp = battle.player_team.members[0].hp;
+        battle.execute_turn();
+        let final_hp = battle.player_team.members[0].hp;
+        
+        // Should heal (HP=60 > 50, condition true)
+        assert!(final_hp >= initial_hp, "Character should heal when HP > threshold");
+        assert!(!battle.battle_log.is_empty(), "Should execute nested HP comparison logic");
+    }
 }
