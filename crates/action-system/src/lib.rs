@@ -212,15 +212,16 @@ mod tests {
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
         let character = Character::new(17, "Test Character".to_string(), 100, 100, 20);
-        let team = Team::new("Test Team".to_string(), vec![character.clone()]);
+        let current_element = Character::new(42, "Current Element".to_string(), 80, 80, 15);
+        let team = Team::new("Test Team".to_string(), vec![character.clone(), current_element.clone()]);
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
         
         let element_node = ElementNode::new();
-        let eval_context = EvaluationContext::new(&battle_context);
+        let eval_context = EvaluationContext::with_element(&battle_context, &current_element);
         let result = Node::<Character>::evaluate(&element_node, &eval_context, &mut rng).unwrap();
         
-        // Should return the acting character
-        assert_eq!(result.id, 17);
+        // Should return the current element
+        assert_eq!(result.id, 42);
     }
 
 }

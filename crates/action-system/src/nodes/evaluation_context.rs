@@ -28,10 +28,6 @@ impl<'a> EvaluationContext<'a> {
         }
     }
     
-    /// Gets the current element being processed, or falls back to acting character
-    pub fn get_current_character(&self) -> &'a Character {
-        self.current_element.unwrap_or(self.battle_context.get_acting_character())
-    }
     
     /// Gets the battle context
     pub fn get_battle_context(&self) -> &'a BattleContext<'a> {
@@ -61,7 +57,7 @@ mod tests {
         let eval_context = EvaluationContext::new(&battle_context);
         
         assert!(eval_context.current_element.is_none());
-        assert_eq!(eval_context.get_current_character().id, 1);
+        assert_eq!(eval_context.battle_context.get_acting_character().id, 1);
     }
     
     #[test]
@@ -74,7 +70,7 @@ mod tests {
         let eval_context = EvaluationContext::with_element(&battle_context, &element_character);
         
         assert!(eval_context.current_element.is_some());
-        assert_eq!(eval_context.get_current_character().id, 2); // Should return element character
+        assert_eq!(eval_context.current_element.unwrap().id, 2); // Should return element character
         assert_eq!(eval_context.get_battle_context().get_acting_character().id, 1); // Battle context should be unchanged
     }
     
@@ -89,7 +85,7 @@ mod tests {
         let eval_context1 = EvaluationContext::with_element(&battle_context, &element1);
         let eval_context2 = eval_context1.with_new_element(&element2);
         
-        assert_eq!(eval_context1.get_current_character().id, 2);
-        assert_eq!(eval_context2.get_current_character().id, 3);
+        assert_eq!(eval_context1.current_element.unwrap().id, 2);
+        assert_eq!(eval_context2.current_element.unwrap().id, 3);
     }
 }
