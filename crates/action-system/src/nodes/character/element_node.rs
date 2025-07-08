@@ -19,7 +19,7 @@ impl Default for ElementNode {
     }
 }
 
-// Unified implementation
+// Unified implementation for Character
 impl Node<crate::Character> for ElementNode {
     fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<crate::Character> {
         // Return the current character being processed (current element in array operations)
@@ -28,6 +28,32 @@ impl Node<crate::Character> for ElementNode {
                 Ok(character.clone())
             }
             Some(_) => Err(crate::core::NodeError::EvaluationError("Current element is not a Character".to_string())),
+            None => Err(crate::core::NodeError::EvaluationError("No current element available - ElementNode requires array context".to_string()))
+        }
+    }
+}
+
+// Implementation for Value
+impl Node<i32> for ElementNode {
+    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
+        match &eval_context.current_element {
+            Some(crate::nodes::evaluation_context::CurrentElement::Value(value)) => {
+                Ok(*value)
+            }
+            Some(_) => Err(crate::core::NodeError::EvaluationError("Current element is not a Value".to_string())),
+            None => Err(crate::core::NodeError::EvaluationError("No current element available - ElementNode requires array context".to_string()))
+        }
+    }
+}
+
+// Implementation for TeamSide
+impl Node<crate::TeamSide> for ElementNode {
+    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<crate::TeamSide> {
+        match &eval_context.current_element {
+            Some(crate::nodes::evaluation_context::CurrentElement::TeamSide(team_side)) => {
+                Ok(*team_side)
+            }
+            Some(_) => Err(crate::core::NodeError::EvaluationError("Current element is not a TeamSide".to_string())),
             None => Err(crate::core::NodeError::EvaluationError("No current element available - ElementNode requires array context".to_string()))
         }
     }
@@ -83,6 +109,36 @@ mod tests {
         let eval_context = EvaluationContext::with_element(&battle_context, &current_element);
         let result = Node::<crate::Character>::evaluate(&element_node, &eval_context, &mut rng).unwrap();
         assert_eq!(result.id, 99);
+    }
+
+    #[test]
+    fn test_element_node_with_different_types() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
+        
+        let character = Character::new(1, "Test".to_string(), 100, 100, 20);
+        let team = Team::new("Test Team".to_string(), vec![character.clone()]);
+        let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
+        
+        let element_node = ElementNode::new();
+        
+        // Test with Value element - should succeed with Node<i32>
+        let value_eval_context = EvaluationContext::with_value_element(&battle_context, 42);
+        let value_result = Node::<i32>::evaluate(&element_node, &value_eval_context, &mut rng);
+        assert!(value_result.is_ok(), "ElementNode should succeed with Value element");
+        assert_eq!(value_result.unwrap(), 42);
+        
+        // Test with TeamSide element - should succeed with Node<TeamSide>
+        let team_eval_context = EvaluationContext::with_team_side_element(&battle_context, TeamSide::Enemy);
+        let team_result = Node::<crate::TeamSide>::evaluate(&element_node, &team_eval_context, &mut rng);
+        assert!(team_result.is_ok(), "ElementNode should succeed with TeamSide element");
+        assert_eq!(team_result.unwrap(), TeamSide::Enemy);
+        
+        // Test type mismatches - should fail
+        let value_as_char_result = Node::<crate::Character>::evaluate(&element_node, &value_eval_context, &mut rng);
+        assert!(value_as_char_result.is_err(), "ElementNode should fail when expecting Character but got Value");
+        
+        let team_as_value_result = Node::<i32>::evaluate(&element_node, &team_eval_context, &mut rng);
+        assert!(team_as_value_result.is_err(), "ElementNode should fail when expecting Value but got TeamSide");
     }
 
     #[test]

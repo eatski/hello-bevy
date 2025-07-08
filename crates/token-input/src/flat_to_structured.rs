@@ -89,6 +89,17 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
                 condition: Box::new(condition),
             }, 1 + array_consumed + condition_consumed))
         }
+        FlatTokenInput::Map => {
+            if index + 2 >= tokens.len() {
+                return Err("Map requires an array and a transform function".to_string());
+            }
+            let (array, array_consumed) = parse_flat_token(tokens, index + 1)?;
+            let (transform, transform_consumed) = parse_flat_token(tokens, index + 1 + array_consumed)?;
+            Ok((StructuredTokenInput::Map {
+                array: Box::new(array),
+                transform: Box::new(transform),
+            }, 1 + array_consumed + transform_consumed))
+        }
         FlatTokenInput::Eq => {
             if index + 2 >= tokens.len() {
                 return Err("Eq requires two operands".to_string());

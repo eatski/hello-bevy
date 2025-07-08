@@ -13,6 +13,7 @@ pub enum FlatTokenInput {
     GreaterThan,
     TrueOrFalse,
     FilterList,       // リストフィルタリング
+    Map,              // 配列マッピング
     Eq,               // 等価比較
     CharacterTeam,    // キャラクターのチーム取得
     Element,          // 現在の要素（フィルタリング中のキャラクター）
@@ -38,6 +39,7 @@ impl FlatTokenInput {
             FlatTokenInput::GreaterThan => "L-gt-R".to_string(),
             FlatTokenInput::TrueOrFalse => "50/50".to_string(),
             FlatTokenInput::FilterList => "FilterList".to_string(),
+            FlatTokenInput::Map => "Map".to_string(),
             FlatTokenInput::Eq => "Eq".to_string(),
             FlatTokenInput::CharacterTeam => "CharTeam".to_string(),
             FlatTokenInput::Element => "Element".to_string(),

@@ -1,7 +1,7 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode};
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
 
@@ -54,12 +54,56 @@ impl ParsedResolver {
         }
     }
     
+    pub fn require_value_array(self) -> Result<Box<dyn Node<Vec<i32>>>, String> {
+        match self.node.downcast::<Box<dyn Node<Vec<i32>>>>() {
+            Ok(value_array_node) => Ok(*value_array_node),
+            Err(_) => Err(format!("Expected ValueArray, got {}", self.type_name)),
+        }
+    }
+    
     pub fn require_team_side(self) -> Result<Box<dyn Node<TeamSide>>, String> {
         match self.node.downcast::<Box<dyn Node<TeamSide>>>() {
             Ok(team_side_node) => Ok(*team_side_node),
             Err(_) => Err(format!("Expected TeamSide, got {}", self.type_name)),
         }
     }
+}
+
+// Simple macro that auto-generates type combination tests
+// Adding new types only requires updating this single list
+macro_rules! try_all_mapping_combinations {
+    (
+        $array:expr, $transform:expr;
+        $(($array_method:ident, $transform_method:ident, $mapping_node:ident, $result_type:ty, $type_name:expr)),*
+    ) => {
+        $(
+            if let (Ok(array_node), Ok(transform_node)) = (
+                convert_structured_to_node($array)?.$array_method(),
+                convert_structured_to_node($transform)?.$transform_method()
+            ) {
+                return Ok(ParsedResolver::new(
+                    Box::new($mapping_node::new(array_node, transform_node)) as Box<dyn Node<$result_type>>,
+                    $type_name.to_string()
+                ));
+            }
+        )*
+    };
+}
+
+fn convert_map_token(array: &StructuredTokenInput, transform: &StructuredTokenInput) -> Result<ParsedResolver, String> {
+    // All mapping combinations are automatically tried
+    // To add new types: just add a new line below following the same pattern
+    try_all_mapping_combinations!(
+        array, transform;
+        (require_character_array, require_character, CharacterToCharacterMappingNode, Vec<Character>, "CharacterArray"),
+        (require_character_array, require_value, CharacterToValueMappingNode, Vec<i32>, "ValueArray"),
+        (require_value_array, require_value, ValueToValueMappingNode, Vec<i32>, "ValueArray"),
+        (require_value_array, require_character, ValueToCharacterMappingNode, Vec<Character>, "CharacterArray")
+        // NEW TYPES GO HERE - no other changes needed anywhere else!
+        // Example: (require_team_side_array, require_team_side, TeamSideToTeamSideMappingNode, Vec<TeamSide>, "TeamSideArray")
+    );
+    
+    Err(format!("Cannot determine mapping type for Map - no compatible array→transform combination found"))
 }
 
 // StructuredTokenInput → Node 変換
@@ -201,6 +245,9 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
                 Box::new(FilterListNode::new(character_array_node, condition_bool_node)) as Box<dyn Node<Vec<Character>>>,
                 "CharacterArray".to_string()
             ))
+        }
+        StructuredTokenInput::Map { array, transform } => {
+            convert_map_token(array, transform)
         }
         StructuredTokenInput::Element => {
             Ok(ParsedResolver::new(

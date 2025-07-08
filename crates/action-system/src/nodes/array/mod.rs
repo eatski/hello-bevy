@@ -4,6 +4,7 @@ pub mod count_array_node;
 pub mod random_pick_node;
 pub mod filter_list_node;
 pub mod constant_array_node;
+pub mod mapping_node;
 
 // Re-export core array implementations
 pub use all_characters_node::AllCharactersNode;
@@ -12,3 +13,10 @@ pub use count_array_node::CountArrayNode;
 pub use random_pick_node::{GenericRandomPickNode, CharacterRandomPickNode, ValueRandomPickNode};
 pub use filter_list_node::FilterListNode;
 pub use constant_array_node::ConstantArrayNode;
+pub use mapping_node::{
+    MappingNode, 
+    CharacterToCharacterMappingNode, 
+    CharacterToValueMappingNode, 
+    ValueToValueMappingNode, 
+    ValueToCharacterMappingNode
+};

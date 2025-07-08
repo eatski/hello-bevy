@@ -45,6 +45,10 @@ pub enum StructuredTokenInput {
         array: Box<StructuredTokenInput>,
         condition: Box<StructuredTokenInput>,
     },
+    Map {
+        array: Box<StructuredTokenInput>,
+        transform: Box<StructuredTokenInput>,
+    },
     Eq {
         left: Box<StructuredTokenInput>,
         right: Box<StructuredTokenInput>,
