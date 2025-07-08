@@ -1,7 +1,7 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode};
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
 
@@ -65,6 +65,13 @@ impl ParsedResolver {
         match self.node.downcast::<Box<dyn Node<TeamSide>>>() {
             Ok(team_side_node) => Ok(*team_side_node),
             Err(_) => Err(format!("Expected TeamSide, got {}", self.type_name)),
+        }
+    }
+    
+    pub fn require_team_side_array(self) -> Result<Box<dyn Node<Vec<TeamSide>>>, String> {
+        match self.node.downcast::<Box<dyn Node<Vec<TeamSide>>>>() {
+            Ok(team_side_array_node) => Ok(*team_side_array_node),
+            Err(_) => Err(format!("Expected TeamSideArray, got {}", self.type_name)),
         }
     }
 }
@@ -171,6 +178,12 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
                 "CharacterArray".to_string()
             ))
         }
+        StructuredTokenInput::AllTeamSides => {
+            Ok(ParsedResolver::new(
+                Box::new(AllTeamSidesNode::new()) as Box<dyn Node<Vec<TeamSide>>>,
+                "TeamSideArray".to_string()
+            ))
+        }
         StructuredTokenInput::RandomPick { array } => {
             let array_node = convert_structured_to_node(array)?;
             let character_array_node = array_node.require_character_array()?;
@@ -183,14 +196,6 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             Ok(ParsedResolver::new(
                 Box::new(RandomConditionNode) as Box<dyn Node<bool>>,
                 "Condition".to_string()
-            ))
-        }
-        StructuredTokenInput::CharacterHP { character } => {
-            let character_node = convert_structured_to_node(character)?;
-            let character_target_node = character_node.require_character()?;
-            Ok(ParsedResolver::new(
-                Box::new(CharacterHpNode::new(character_target_node)) as Box<dyn Node<i32>>,
-                "Value".to_string()
             ))
         }
         StructuredTokenInput::Eq { left, right } => {

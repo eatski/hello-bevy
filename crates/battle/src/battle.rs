@@ -117,11 +117,25 @@ impl TeamBattle {
         let acting_character = match self.current_team {
             TeamSide::Player => {
                 let alive_members = self.player_team.alive_members();
-                alive_members.get(self.current_character_index).copied().unwrap()
+                match alive_members.get(self.current_character_index).copied() {
+                    Some(character) => character,
+                    None => {
+                        // Invalid character index, advance turn
+                        self.advance_turn();
+                        return;
+                    }
+                }
             }
             TeamSide::Enemy => {
                 let alive_members = self.enemy_team.alive_members();
-                alive_members.get(self.current_character_index).copied().unwrap()
+                match alive_members.get(self.current_character_index).copied() {
+                    Some(character) => character,
+                    None => {
+                        // Invalid character index, advance turn
+                        self.advance_turn();
+                        return;
+                    }
+                }
             }
         };
         

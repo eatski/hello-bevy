@@ -5,7 +5,7 @@
       "condition": {
         "type": "GreaterThan",
         "left": {
-          "type": "CharacterHP",
+          "type": "HP",
           "character": {
             "type": "ActingCharacter"
           }

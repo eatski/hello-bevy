@@ -28,9 +28,6 @@ pub enum StructuredTokenInput {
     Number {
         value: i32,
     },
-    CharacterHP {
-        character: Box<StructuredTokenInput>,
-    },
     HP {
         character: Box<StructuredTokenInput>,
     },
@@ -38,6 +35,7 @@ pub enum StructuredTokenInput {
     ActingCharacter,
     // Array types
     AllCharacters,
+    AllTeamSides,
     RandomPick {
         array: Box<StructuredTokenInput>,
     },
