@@ -23,9 +23,13 @@ impl Default for ElementNode {
 impl Node<crate::Character> for ElementNode {
     fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<crate::Character> {
         // Return the current character being processed (current element in array operations)
-        eval_context.current_element
-            .cloned()
-            .ok_or_else(|| crate::core::NodeError::EvaluationError("No current element available - ElementNode requires array context".to_string()))
+        match &eval_context.current_element {
+            Some(crate::nodes::evaluation_context::CurrentElement::Character(character)) => {
+                Ok(character.clone())
+            }
+            Some(_) => Err(crate::core::NodeError::EvaluationError("Current element is not a Character".to_string())),
+            None => Err(crate::core::NodeError::EvaluationError("No current element available - ElementNode requires array context".to_string()))
+        }
     }
 }
 

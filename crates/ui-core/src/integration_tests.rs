@@ -562,8 +562,8 @@ mod tests {
         
         let rules = create_random_heavy_rules();
         let seed = 42;
-        let mut first_run_log_count = 0;
-        let mut second_run_log_count = 0;
+        let first_run_log_count;
+        let second_run_log_count;
         
         // First run
         {
@@ -847,7 +847,7 @@ mod tests {
         use token_input::convert_flat_rules_to_nodes;
         use rand::SeedableRng;
         
-        let (player_team, enemy_team) = create_standard_test_teams();
+        let (_player_team, _enemy_team) = create_standard_test_teams();
         
         // Rule: Strike → RandomPick → FilterList → AllCharacters → TrueOrFalse
         // Should randomly include/exclude characters based on TrueOrFalse
