@@ -20,6 +20,7 @@ pub enum FlatTokenInput {
     Enemy,            // 敵チーム定数
     Hero,             // 味方チーム定数
     Max,              // 配列の最大値
+    Min,              // 配列の最小値
 }
 
 // 表示テキストは元のUITokenTypeと同じ
@@ -47,6 +48,7 @@ impl FlatTokenInput {
             FlatTokenInput::Enemy => "Enemy".to_string(),
             FlatTokenInput::Hero => "Hero".to_string(),
             FlatTokenInput::Max => "Max".to_string(),
+            FlatTokenInput::Min => "Min".to_string(),
         }
     }
 }

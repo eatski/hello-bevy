@@ -11,7 +11,7 @@ pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
 pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterHpNode, ElementNode, RandomCharacterPickNode};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
-pub use nodes::array::{AllCharactersNode, TeamMembersNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode};
+pub use nodes::array::{AllCharactersNode, TeamMembersNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode};
 pub use nodes::unified_node::Node;
 pub use system::ActionCalculationSystem;
 

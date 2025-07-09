@@ -60,4 +60,7 @@ pub enum StructuredTokenInput {
     Max {
         array: Box<StructuredTokenInput>,
     },
+    Min {
+        array: Box<StructuredTokenInput>,
+    },
 }

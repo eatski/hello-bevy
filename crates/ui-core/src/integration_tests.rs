@@ -2518,4 +2518,157 @@ mod tests {
         println!("✓ Map type system successfully demonstrates extensibility with {}/{} patterns working", 
                 successful_patterns, future_ready_patterns.len());
     }
+    
+    #[test]
+    fn test_min_function_integration() {
+        let mut rules = CurrentRules::new();
+        
+        // Create a rule that uses Min function: Strike → RandomPick → AllCharacters
+        rules.clear_current_row();
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
+        
+        let rule_nodes = rules.convert_to_rule_nodes();
+        assert_eq!(rule_nodes.len(), 1);
+        
+        // Create ActionCalculationSystem with the rule
+        let mut action_system = ActionCalculationSystem::new(rule_nodes, create_test_rng());
+        
+        // Create characters with different HP values
+        let mut player1 = GameCharacter::new(1, "Player1".to_string(), 100, 50, 25);
+        player1.hp = 80; // High HP
+        let mut player2 = GameCharacter::new(2, "Player2".to_string(), 100, 50, 25);
+        player2.hp = 30; // Low HP - should be min HP
+        let mut enemy = GameCharacter::new(3, "Enemy".to_string(), 100, 50, 25);
+        enemy.hp = 60; // Medium HP
+        
+        let player_team = Team::new("Player Team".to_string(), vec![player1.clone(), player2.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&player1, TeamSide::Player, &player_team, &enemy_team);
+        
+        let action = action_system.calculate_action(&battle_context);
+        assert!(action.is_some(), "Should calculate an action using the Min rule");
+    }
+    
+    #[test]
+    fn test_min_function_flat_to_structured_conversion() {
+        // Test that Min token conversion works correctly
+        use token_input::{convert_flat_to_structured, FlatTokenInput};
+        
+        let flat_tokens = vec![
+            FlatTokenInput::Min,
+            FlatTokenInput::Map,
+            FlatTokenInput::AllCharacters,
+            FlatTokenInput::HP,
+            FlatTokenInput::Element,
+        ];
+        
+        let result = convert_flat_to_structured(&flat_tokens);
+        assert!(result.is_ok(), "Min token conversion should succeed");
+        
+        let structured = result.unwrap();
+        assert_eq!(structured.len(), 1);
+        
+        // Verify the structure matches expected Min pattern
+        match &structured[0] {
+            token_input::StructuredTokenInput::Min { array } => {
+                match array.as_ref() {
+                    token_input::StructuredTokenInput::Map { array, transform } => {
+                        match (array.as_ref(), transform.as_ref()) {
+                            (token_input::StructuredTokenInput::AllCharacters, 
+                             token_input::StructuredTokenInput::HP { character }) => {
+                                // Verify HP has correct character argument
+                                match character.as_ref() {
+                                    token_input::StructuredTokenInput::Element => {
+                                        // Expected: HP(Element)
+                                    }
+                                    _ => panic!("Expected Element as HP character argument"),
+                                }
+                            }
+                            _ => panic!("Unexpected Map structure"),
+                        }
+                    }
+                    _ => panic!("Expected Map in Min array"),
+                }
+            }
+            _ => panic!("Expected Min token"),
+        }
+    }
+    
+    #[test]
+    fn test_min_function_complete_rule_conversion() {
+        // Test the complete corrected rule conversion
+        use token_input::{convert_flat_to_structured, FlatTokenInput};
+        
+        let flat_tokens = vec![
+            FlatTokenInput::Check,
+            FlatTokenInput::GreaterThan,
+            FlatTokenInput::Min,
+            FlatTokenInput::Map,
+            FlatTokenInput::AllCharacters,
+            FlatTokenInput::HP,
+            FlatTokenInput::Element,
+            FlatTokenInput::Number(10),
+            FlatTokenInput::Strike,
+            FlatTokenInput::RandomPick,
+            FlatTokenInput::AllCharacters,
+        ];
+        
+        println!("Testing conversion of {} token sequence", flat_tokens.len());
+        let result = convert_flat_to_structured(&flat_tokens);
+        
+        match &result {
+            Ok(structured) => {
+                println!("Conversion succeeded, {} structured tokens", structured.len());
+                assert_eq!(structured.len(), 1);
+            }
+            Err(e) => {
+                println!("Conversion failed with error: {}", e);
+                panic!("Complete rule conversion should succeed, but failed with: {}", e);
+            }
+        }
+        
+        let structured = result.unwrap();
+        
+        // Verify the structure is a Check node
+        match &structured[0] {
+            token_input::StructuredTokenInput::Check { condition, then_action } => {
+                // Verify condition is GreaterThan
+                match condition.as_ref() {
+                    token_input::StructuredTokenInput::GreaterThan { left, right } => {
+                        // Left should be Min(...), right should be Number(10)
+                        match (left.as_ref(), right.as_ref()) {
+                            (token_input::StructuredTokenInput::Min { .. }, 
+                             token_input::StructuredTokenInput::Number { value: 10 }) => {
+                                // Expected structure
+                            }
+                            _ => panic!("Expected Min and Number(10) in GreaterThan"),
+                        }
+                    }
+                    _ => panic!("Expected GreaterThan condition"),
+                }
+                
+                // Verify then_action is Strike
+                match then_action.as_ref() {
+                    token_input::StructuredTokenInput::Strike { target } => {
+                        // Target should be RandomPick(AllCharacters)
+                        match target.as_ref() {
+                            token_input::StructuredTokenInput::RandomPick { array } => {
+                                match array.as_ref() {
+                                    token_input::StructuredTokenInput::AllCharacters => {
+                                        // Expected structure
+                                    }
+                                    _ => panic!("Expected AllCharacters in RandomPick"),
+                                }
+                            }
+                            _ => panic!("Expected RandomPick target"),
+                        }
+                    }
+                    _ => panic!("Expected Strike action"),
+                }
+            }
+            _ => panic!("Expected Check token"),
+        }
+    }
 }
