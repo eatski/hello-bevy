@@ -35,26 +35,35 @@ cargo build --workspace --release
 ```
 
 
-## 🗣️ ユーザーフィードバック履歴
-### 開発時の注意事項
-- **コンパイル確認**: 変更後は必ず`cargo check`を実行すること
-- **ドキュメント更新**: 一般的なフィードバックはこのドキュメントを更新すること
-- **UI分離**: 具体的なキャラクター設定はmain.rsに、汎用的なUIロジックはui.rsに分離すること
-- **JSON設定**: キャラクターのruleはJSON外部ファイルから読み込み可能になった（フォールバック機構付き）
-- **UI検証**: トークン配置の有効性検証ロジックは削除済み - 実際の変換処理でのみ妥当性が確認される
-- **変換アーキテクチャ**: UIの直接変換を廃止し、rule-parserを経由する統一パイプラインに変更（UI TokenType → rule-parser RuleSet → combat-engine RuleToken）
-- **UI関心分離**: UI層をBevy依存（bevy-ui）とBevy非依存（ui-core）に完全分離、文字列表示はBevy層に集約
-- **トークン原子性**: UITokenType::HPを分割し、ActingCharacterとHPを個別トークンとして管理する原子的設計に変更
-- **チーム戦闘移行**: 1vs1戦闘システムを完全に削除し、チーム戦闘システムに統一（TeamBattleクラス、Team構造体、チーム管理機能で置き換え）
-- **UI最適化**: Rule設定セクションを小さくし、戦闘ログを削除してUIをコンパクト化
-- **ランダムターゲット実装**: Strikeアクションで標的をランダムに決定するよう変更（以前は最初に見つかった生存キャラクターを攻撃）
-- **1v1戦闘完全削除**: Battle構造体、impl Battle、1v1戦闘関連テスト（26個）を完全削除し、チーム戦闘のみのシステムに統一
-- **main.rsリファクタリング**: 起動処理のみに集中、具体的なロジックをbevy-uiクレートに委譲（DI的なアーキテクチャ）
-- **IDベースターゲティング実装**: CharacterにIDフィールドを追加し、ActionトレイトのtargetをIDで指定するように変更、BattleStateを用いた実際の戦闘処理を実装
-- **設定可能ターゲット実装**: StrikeとHealアクションで標的をUI/JSONから設定可能に（ActingCharacter、RandomCharacterなど選択可、UI/JSON両層で必須指定、フォールバック廃止）
-- **token-inputクレート新設**: UITokenTypeをFlatTokenInput、JsonTokenInputをStructuredTokenInputとして統一化、UI入力→FlatTokenInput→StructuredTokenInput→Nodeの変換パイプライン実装
-- **Max関数実装完了**: MaxNode実装、統合、テスト追加完了
-- **フォールバック完全削除**: エラーの無視とフォールバックルールの使用を完全に廃止、convert_flat_rules_to_nodes_strict関数で厳密なエラーハンドリング実装、silent failure完全解消
+## 🗣️ 開発ガイドライン
+
+### ❌ してはいけないこと
+- **フォールバック使用**: エラーの無視、フォールバック機構の使用は完全に禁止
+- **Silent failure**: エラーを隠蔽する実装は禁止
+- **循環依存**: クレート間の循環依存を作成すること
+- **同一層依存**: 同じ階層レベルのクレート間で相互依存すること
+- **1v1戦闘実装**: 1vs1戦闘システムは完全に削除済み、再実装禁止
+- **UI直接変換**: UIからaction-systemへの直接変換は禁止
+- **Bevy依存の混在**: ui-coreにBevy依存コードを追加すること
+- **コンパイル確認なし**: 変更後にcargo checkを実行しないこと
+
+### ✅ 必ずやるべきこと
+- **厳密なエラーハンドリング**: 全てのエラーケースで適切な処理を実装
+- **統一パイプライン使用**: UI入力→FlatTokenInput→StructuredTokenInput→Nodeの変換パイプライン利用
+- **クレート分離原則**: 各クレートの責任境界を明確に保つ
+- **チーム戦闘統一**: TeamBattleクラス、Team構造体を使用した戦闘システム実装
+- **原子的トークン設計**: ActingCharacterとHPを個別トークンとして管理
+- **ID指定ターゲティング**: ActionトレイトのtargetをIDで指定する実装
+- **設定可能ターゲット**: StrikeとHealアクションで標的をUI/JSONから設定可能に
+- **統合テスト追加**: 新機能実装時はcrates/ui-core/src/integration_tests.rsに追加
+- **ドキュメント更新**: 設計変更、新機能追加時はこのCLAUDE.mdを更新
+
+### 🔧 開発プロセス
+- **コンパイル確認**: 変更後は必ず`cargo check --workspace`を実行
+- **テスト実行**: 全crateのテストを`cargo test --workspace`で実行
+- **UI分離**: 具体的なキャラクター設定はmain.rsに、汎用的なUIロジックはui.rsに分離
+- **JSON設定**: キャラクターのruleはJSON外部ファイルから読み込み可能
+- **main.rs役割**: 起動処理のみに集中、具体的なロジックをbevy-uiクレートに委譲（DI的なアーキテクチャ）
 
 ## 🏗️ アーキテクチャ設計
 
