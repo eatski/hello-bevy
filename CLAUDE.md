@@ -2,9 +2,9 @@
 
 ## 📝　重要
 タスク完了時に必ず以下を実施するように事前にタスク化すること
+- crates/ui-core/src/integration_tests.rs にテストケースの追加（必要に応じて）
 - `cargo check --workspace` (警告も全て修正すること)
 - `cargo test --workspace` (全crateのテストを実行)
-- crates/ui-core/src/integration_tests.rs にテストケースの追加（必要に応じて）
 - README.mdの最新化
 - このCLAUDE.mdファイルは常に最新の状態に保つこと
   - ユーザーからの一般的なフィードバックもここに記録
