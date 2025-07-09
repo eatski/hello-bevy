@@ -6,6 +6,7 @@ pub mod filter_list_node;
 pub mod constant_array_node;
 pub mod mapping_node;
 pub mod all_team_sides_node;
+pub mod max_node;
 
 // Re-export core array implementations
 pub use all_characters_node::AllCharactersNode;
@@ -22,3 +23,4 @@ pub use mapping_node::{
     ValueToCharacterMappingNode
 };
 pub use all_team_sides_node::AllTeamSidesNode;
+pub use max_node::MaxNode;

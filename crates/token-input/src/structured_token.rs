@@ -57,4 +57,7 @@ pub enum StructuredTokenInput {
     Element,
     Enemy,
     Hero,
+    Max {
+        array: Box<StructuredTokenInput>,
+    },
 }

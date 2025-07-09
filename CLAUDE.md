@@ -52,6 +52,8 @@ cargo build --workspace --release
 - **IDベースターゲティング実装**: CharacterにIDフィールドを追加し、ActionトレイトのtargetをIDで指定するように変更、BattleStateを用いた実際の戦闘処理を実装
 - **設定可能ターゲット実装**: StrikeとHealアクションで標的をUI/JSONから設定可能に（ActingCharacter、RandomCharacterなど選択可、UI/JSON両層で必須指定、フォールバック廃止）
 - **token-inputクレート新設**: UITokenTypeをFlatTokenInput、JsonTokenInputをStructuredTokenInputとして統一化、UI入力→FlatTokenInput→StructuredTokenInput→Nodeの変換パイプライン実装
+- **Max関数実装完了**: MaxNode実装、統合、テスト追加完了
+- **フォールバック完全削除**: エラーの無視とフォールバックルールの使用を完全に廃止、convert_flat_rules_to_nodes_strict関数で厳密なエラーハンドリング実装、silent failure完全解消
 
 ## 🏗️ アーキテクチャ設計
 

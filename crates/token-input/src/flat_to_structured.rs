@@ -123,6 +123,13 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
         FlatTokenInput::Element => Ok((StructuredTokenInput::Element, 1)),
         FlatTokenInput::Enemy => Ok((StructuredTokenInput::Enemy, 1)),
         FlatTokenInput::Hero => Ok((StructuredTokenInput::Hero, 1)),
+        FlatTokenInput::Max => {
+            if index + 1 >= tokens.len() {
+                return Err("Max requires an array argument".to_string());
+            }
+            let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
+            Ok((StructuredTokenInput::Max { array: Box::new(array_token) }, 1 + array_consumed))
+        }
     }
 }
 
@@ -136,6 +143,7 @@ pub fn convert_flat_rules_to_nodes(flat_rules: &[Vec<FlatTokenInput>]) -> Vec<Ru
             match convert_flat_to_structured(rule_row) {
                 Ok(structured_tokens) => {
                     if structured_tokens.is_empty() {
+                        println!("WARNING: Empty structured tokens for rule: {:?}", rule_row);
                         return None;
                     }
                     
@@ -143,16 +151,57 @@ pub fn convert_flat_rules_to_nodes(flat_rules: &[Vec<FlatTokenInput>]) -> Vec<Ru
                         Ok(parsed) => {
                             match parsed.require_action() {
                                 Ok(action) => Some(action),
-                                Err(_) => None,
+                                Err(e) => {
+                                    println!("ERROR: Failed to require action for rule: {:?}", rule_row);
+                                    println!("       Error: {}", e);
+                                    None
+                                }
                             }
                         }
-                        Err(_) => None,
+                        Err(e) => {
+                            println!("ERROR: Failed to convert structured to node for rule: {:?}", rule_row);
+                            println!("       Error: {}", e);
+                            None
+                        }
                     }
                 }
-                Err(_) => None,
+                Err(e) => {
+                    println!("ERROR: Failed to convert flat to structured for rule: {:?}", rule_row);
+                    println!("       Error: {}", e);
+                    None
+                }
             }
         })
         .collect()
+}
+
+// Result版 - エラーを明示的に返す
+pub fn convert_flat_rules_to_nodes_strict(flat_rules: &[Vec<FlatTokenInput>]) -> Result<Vec<RuleNode>, String> {
+    let mut result = Vec::new();
+    
+    for (rule_index, rule_row) in flat_rules.iter().enumerate() {
+        if rule_row.is_empty() {
+            continue;
+        }
+        
+        // FlatTokenInput → StructuredTokenInput → Node
+        let structured_tokens = convert_flat_to_structured(rule_row)
+            .map_err(|e| format!("Rule {}: Failed to convert flat to structured: {}", rule_index, e))?;
+        
+        if structured_tokens.is_empty() {
+            return Err(format!("Rule {}: Empty structured tokens", rule_index));
+        }
+        
+        let parsed = convert_structured_to_node(&structured_tokens[0])
+            .map_err(|e| format!("Rule {}: Failed to convert structured to node: {}", rule_index, e))?;
+        
+        let action = parsed.require_action()
+            .map_err(|e| format!("Rule {}: Failed to require action: {}", rule_index, e))?;
+        
+        result.push(action);
+    }
+    
+    Ok(result)
 }
 
 #[cfg(test)]

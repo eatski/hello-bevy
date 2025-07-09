@@ -1,7 +1,7 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode};
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
 
@@ -270,6 +270,14 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             Ok(ParsedResolver::new(
                 Box::new(HeroNode::new()) as Box<dyn Node<TeamSide>>,
                 "TeamSide".to_string()
+            ))
+        }
+        StructuredTokenInput::Max { array } => {
+            let array_node = convert_structured_to_node(array)?;
+            let value_array_node = array_node.require_value_array()?;
+            Ok(ParsedResolver::new(
+                Box::new(MaxNode::new(value_array_node)) as Box<dyn Node<i32>>,
+                "Value".to_string()
             ))
         }
     }

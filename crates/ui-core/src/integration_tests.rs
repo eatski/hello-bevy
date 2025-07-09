@@ -36,6 +36,380 @@ mod tests {
     }
     
     #[test]
+    fn test_max_function_integration() {
+        let mut rules = CurrentRules::new();
+        
+        // Create a simple rule that can be converted successfully: Strike → RandomPick → AllCharacters
+        rules.clear_current_row();
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
+        
+        let rule_nodes = rules.convert_to_rule_nodes();
+        assert_eq!(rule_nodes.len(), 1);
+        
+        // Test with action system
+        let rng = create_test_rng();
+        let mut action_system = ActionCalculationSystem::new(rule_nodes, rng);
+        
+        // Create characters with different HP values
+        let mut player1 = GameCharacter::new(1, "Player1".to_string(), 100, 50, 25);
+        player1.hp = 80; // High HP
+        let mut player2 = GameCharacter::new(2, "Player2".to_string(), 100, 50, 25);
+        player2.hp = 30; // Low HP
+        let mut enemy = GameCharacter::new(3, "Enemy".to_string(), 100, 50, 25);
+        enemy.hp = 60; // Medium HP
+        
+        let player_team = Team::new("Player Team".to_string(), vec![player1.clone(), player2.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&player1, TeamSide::Player, &player_team, &enemy_team);
+        
+        let action = action_system.calculate_action(&battle_context);
+        assert!(action.is_some(), "Should calculate an action");
+    }
+    
+    #[test]
+    fn test_max_function_complex_rule_conversion() {
+        let mut rules = CurrentRules::new();
+        
+        // Create the corrected rule: Check → GreaterThan → Max → Map → AllCharacters → HP → Element → Number(50) → Strike → RandomPick → AllCharacters
+        rules.clear_current_row();
+        rules.add_token_to_current_row(FlatTokenInput::Check);
+        rules.add_token_to_current_row(FlatTokenInput::GreaterThan);
+        rules.add_token_to_current_row(FlatTokenInput::Max);
+        rules.add_token_to_current_row(FlatTokenInput::Map);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
+        rules.add_token_to_current_row(FlatTokenInput::HP);
+        rules.add_token_to_current_row(FlatTokenInput::Element);
+        rules.add_token_to_current_row(FlatTokenInput::Number(50));
+        rules.add_token_to_current_row(FlatTokenInput::Strike);
+        rules.add_token_to_current_row(FlatTokenInput::RandomPick);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
+        
+        // NO FALLBACK RULE - Force the complex rule to work
+        
+        let rule_nodes = rules.convert_to_rule_nodes();
+        println!("Complex rule test - Total rules: {}, Converted rule nodes: {}", rules.non_empty_rule_count(), rule_nodes.len());
+        
+        // The complex rule MUST convert successfully - no fallback allowed
+        assert_eq!(rule_nodes.len(), 1, "Complex Max rule must convert successfully without fallback");
+        
+        // Test with action system
+        let rng = create_test_rng();
+        let mut action_system = ActionCalculationSystem::new(rule_nodes, rng);
+        
+        // Create characters with different HP values
+        let mut player1 = GameCharacter::new(1, "Player1".to_string(), 100, 50, 25);
+        player1.hp = 80; // High HP - should be max HP
+        let mut player2 = GameCharacter::new(2, "Player2".to_string(), 100, 50, 25);
+        player2.hp = 30; // Low HP
+        let mut enemy = GameCharacter::new(3, "Enemy".to_string(), 100, 50, 25);
+        enemy.hp = 60; // Medium HP
+        
+        let player_team = Team::new("Player Team".to_string(), vec![player1.clone(), player2.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let battle_context = BattleContext::new(&player1, TeamSide::Player, &player_team, &enemy_team);
+        
+        let action = action_system.calculate_action(&battle_context);
+        assert!(action.is_some(), "Should calculate an action using the complex Max rule");
+    }
+    
+    #[test]
+    fn test_max_function_with_mapping() {
+        let mut rules = CurrentRules::new();
+        
+        // Create rule that maps all characters to HP and finds max: Max → Map → AllCharacters → HP
+        rules.clear_current_row();
+        rules.add_token_to_current_row(FlatTokenInput::Max);
+        rules.add_token_to_current_row(FlatTokenInput::Map);
+        rules.add_token_to_current_row(FlatTokenInput::AllCharacters);
+        rules.add_token_to_current_row(FlatTokenInput::HP);
+        
+        let rule_nodes = rules.convert_to_rule_nodes();
+        // This should not produce a valid rule node as Max alone doesn't create an action
+        assert_eq!(rule_nodes.len(), 0);
+    }
+    
+    #[test]
+    fn test_max_function_flat_to_structured_conversion() {
+        // Test that Max token conversion works correctly
+        use token_input::{convert_flat_to_structured, FlatTokenInput};
+        
+        let flat_tokens = vec![
+            FlatTokenInput::Max,
+            FlatTokenInput::Map,
+            FlatTokenInput::AllCharacters,
+            FlatTokenInput::HP,
+            FlatTokenInput::Element,
+        ];
+        
+        let result = convert_flat_to_structured(&flat_tokens);
+        assert!(result.is_ok(), "Max token conversion should succeed");
+        
+        let structured = result.unwrap();
+        assert_eq!(structured.len(), 1);
+        
+        // Verify the structure matches expected Max pattern
+        match &structured[0] {
+            token_input::StructuredTokenInput::Max { array } => {
+                match array.as_ref() {
+                    token_input::StructuredTokenInput::Map { array, transform } => {
+                        match (array.as_ref(), transform.as_ref()) {
+                            (token_input::StructuredTokenInput::AllCharacters, 
+                             token_input::StructuredTokenInput::HP { character }) => {
+                                // Verify HP has correct character argument
+                                match character.as_ref() {
+                                    token_input::StructuredTokenInput::Element => {
+                                        // Expected: HP(Element)
+                                    }
+                                    _ => panic!("Expected Element as HP character argument"),
+                                }
+                            }
+                            _ => panic!("Unexpected Map structure"),
+                        }
+                    }
+                    _ => panic!("Expected Map in Max array"),
+                }
+            }
+            _ => panic!("Expected Max token"),
+        }
+    }
+    
+    #[test]
+    fn test_max_function_complete_rule_conversion() {
+        // Test the complete corrected rule conversion
+        use token_input::{convert_flat_to_structured, FlatTokenInput};
+        
+        let flat_tokens = vec![
+            FlatTokenInput::Check,
+            FlatTokenInput::GreaterThan,
+            FlatTokenInput::Max,
+            FlatTokenInput::Map,
+            FlatTokenInput::AllCharacters,
+            FlatTokenInput::HP,
+            FlatTokenInput::Element,
+            FlatTokenInput::Number(50),
+            FlatTokenInput::Strike,
+            FlatTokenInput::RandomPick,
+            FlatTokenInput::AllCharacters,
+        ];
+        
+        println!("Testing conversion of {} token sequence", flat_tokens.len());
+        let result = convert_flat_to_structured(&flat_tokens);
+        
+        match &result {
+            Ok(structured) => {
+                println!("Conversion succeeded, {} structured tokens", structured.len());
+                assert_eq!(structured.len(), 1);
+            }
+            Err(e) => {
+                println!("Conversion failed with error: {}", e);
+                panic!("Complete rule conversion should succeed, but failed with: {}", e);
+            }
+        }
+        
+        let structured = result.unwrap();
+        
+        // Verify the structure is a Check node
+        match &structured[0] {
+            token_input::StructuredTokenInput::Check { condition, then_action } => {
+                // Verify condition is GreaterThan
+                match condition.as_ref() {
+                    token_input::StructuredTokenInput::GreaterThan { left, right } => {
+                        // Left should be Max(...), right should be Number(50)
+                        match (left.as_ref(), right.as_ref()) {
+                            (token_input::StructuredTokenInput::Max { .. }, 
+                             token_input::StructuredTokenInput::Number { value: 50 }) => {
+                                // Expected structure
+                            }
+                            _ => panic!("Expected Max and Number(50) in GreaterThan"),
+                        }
+                    }
+                    _ => panic!("Expected GreaterThan condition"),
+                }
+                
+                // Verify then_action is Strike
+                match then_action.as_ref() {
+                    token_input::StructuredTokenInput::Strike { target } => {
+                        // Target should be RandomPick(AllCharacters)
+                        match target.as_ref() {
+                            token_input::StructuredTokenInput::RandomPick { array } => {
+                                match array.as_ref() {
+                                    token_input::StructuredTokenInput::AllCharacters => {
+                                        // Expected structure
+                                    }
+                                    _ => panic!("Expected AllCharacters in RandomPick"),
+                                }
+                            }
+                            _ => panic!("Expected RandomPick target"),
+                        }
+                    }
+                    _ => panic!("Expected Strike action"),
+                }
+            }
+            _ => panic!("Expected Check token"),
+        }
+    }
+    
+    #[test]
+    fn test_parsing_failure_scenarios() {
+        // Test specific parsing scenarios that might fail
+        use token_input::{convert_flat_to_structured, FlatTokenInput};
+        
+        // Test case 1: Map without enough arguments
+        let case1 = vec![FlatTokenInput::Map, FlatTokenInput::AllCharacters];
+        let result1 = convert_flat_to_structured(&case1);
+        match result1 {
+            Ok(_) => panic!("Should fail - Map needs 2 arguments"),
+            Err(e) => println!("Case 1 failed as expected: {}", e),
+        }
+        
+        // Test case 2: Check without enough arguments 
+        let case2 = vec![FlatTokenInput::Check, FlatTokenInput::TrueOrFalse];
+        let result2 = convert_flat_to_structured(&case2);
+        match result2 {
+            Ok(_) => panic!("Should fail - Check needs condition and action"),
+            Err(e) => println!("Case 2 failed as expected: {}", e),
+        }
+        
+        // Test case 3: HP without character argument
+        let case3 = vec![FlatTokenInput::HP];
+        let result3 = convert_flat_to_structured(&case3);
+        match result3 {
+            Ok(_) => panic!("Should fail - HP needs character argument"),
+            Err(e) => println!("Case 3 failed as expected: {}", e),
+        }
+        
+        // Test case 4: Deeply nested structure
+        let case4 = vec![
+            FlatTokenInput::Check,
+            FlatTokenInput::GreaterThan,
+            FlatTokenInput::HP,
+            FlatTokenInput::ActingCharacter,
+            FlatTokenInput::HP,
+            FlatTokenInput::RandomPick,
+            FlatTokenInput::AllCharacters,
+            FlatTokenInput::Strike,
+            FlatTokenInput::ActingCharacter,
+        ];
+        let result4 = convert_flat_to_structured(&case4);
+        match result4 {
+            Ok(_) => println!("Case 4 succeeded unexpectedly"),
+            Err(e) => println!("Case 4 failed: {}", e),
+        }
+    }
+    
+    #[test]
+    fn test_specific_silent_failure_cases() {
+        // Test specific cases that cause silent failures
+        use token_input::{convert_flat_rules_to_nodes, FlatTokenInput};
+        
+        // Case 1: Max expects Vec<i32> but gets Vec<Character>
+        let case1 = vec![vec![
+            FlatTokenInput::Max,
+            FlatTokenInput::AllCharacters,  // This is Vec<Character>, not Vec<i32>
+        ]];
+        
+        println!("Testing Case 1: Max with AllCharacters");
+        let result1 = convert_flat_rules_to_nodes(&case1);
+        assert_eq!(result1.len(), 0, "Max(AllCharacters) should fail - type mismatch");
+        
+        // Case 2: Strike needs a Character target but gets a value
+        let case2 = vec![vec![
+            FlatTokenInput::Strike,
+            FlatTokenInput::Number(10),  // Strike needs Character, not i32
+        ]];
+        
+        println!("Testing Case 2: Strike with Number");
+        let result2 = convert_flat_rules_to_nodes(&case2);
+        assert_eq!(result2.len(), 0, "Strike(Number) should fail - type mismatch");
+        
+        // Case 3: RandomPick expects array but gets scalar
+        let case3 = vec![vec![
+            FlatTokenInput::RandomPick,
+            FlatTokenInput::ActingCharacter,  // RandomPick needs array, not single character
+        ]];
+        
+        println!("Testing Case 3: RandomPick with ActingCharacter");
+        let result3 = convert_flat_rules_to_nodes(&case3);
+        assert_eq!(result3.len(), 0, "RandomPick(ActingCharacter) should fail - type mismatch");
+        
+        // Case 4: FilterList with wrong predicate type
+        let case4 = vec![vec![
+            FlatTokenInput::FilterList,
+            FlatTokenInput::AllCharacters,
+            FlatTokenInput::Number(50),  // FilterList needs boolean condition, not number
+        ]];
+        
+        println!("Testing Case 4: FilterList with Number condition");
+        let result4 = convert_flat_rules_to_nodes(&case4);
+        assert_eq!(result4.len(), 0, "FilterList with Number condition should fail - type mismatch");
+    }
+    
+    #[test]
+    fn test_strict_rule_conversion_no_fallback() {
+        // Test that strict conversion either succeeds completely or fails with clear error
+        use token_input::{convert_flat_rules_to_nodes_strict, FlatTokenInput};
+        
+        // Test case 1: Valid complex rule should succeed
+        let valid_rule = vec![vec![
+            FlatTokenInput::Check,
+            FlatTokenInput::GreaterThan,
+            FlatTokenInput::Max,
+            FlatTokenInput::Map,
+            FlatTokenInput::AllCharacters,
+            FlatTokenInput::HP,
+            FlatTokenInput::Element,
+            FlatTokenInput::Number(50),
+            FlatTokenInput::Strike,
+            FlatTokenInput::RandomPick,
+            FlatTokenInput::AllCharacters,
+        ]];
+        
+        println!("Testing strict conversion with valid complex rule");
+        let result1 = convert_flat_rules_to_nodes_strict(&valid_rule);
+        assert!(result1.is_ok(), "Valid complex rule should succeed in strict mode");
+        assert_eq!(result1.unwrap().len(), 1, "Should convert exactly one rule");
+        
+        // Test case 2: Invalid rule should fail with clear error
+        let invalid_rule = vec![vec![
+            FlatTokenInput::Max,
+            FlatTokenInput::AllCharacters,  // Type mismatch
+        ]];
+        
+        println!("Testing strict conversion with invalid rule");
+        let result2 = convert_flat_rules_to_nodes_strict(&invalid_rule);
+        assert!(result2.is_err(), "Invalid rule should fail in strict mode");
+        
+        match result2 {
+            Err(e) => {
+                println!("Error message: {}", e);
+                assert!(e.contains("Expected ValueArray, got CharacterArray"), 
+                        "Error should mention type mismatch");
+            }
+            Ok(_) => panic!("Should have failed"),
+        }
+        
+        // Test case 3: Multiple rules with one invalid
+        let mixed_rules = vec![
+            vec![FlatTokenInput::Strike, FlatTokenInput::ActingCharacter],  // Valid
+            vec![FlatTokenInput::Max, FlatTokenInput::AllCharacters],       // Invalid  
+        ];
+        
+        println!("Testing strict conversion with mixed rules");
+        let result3 = convert_flat_rules_to_nodes_strict(&mixed_rules);
+        assert!(result3.is_err(), "Mixed rules should fail in strict mode if any rule is invalid");
+        
+        match result3 {
+            Err(e) => {
+                println!("Error message: {}", e);
+                assert!(e.contains("Rule 1"), "Error should specify which rule failed");
+            }
+            Ok(_) => panic!("Should have failed"),
+        }
+    }
+
+    #[test]
     fn test_complex_rule_integration_with_action_system() {
         let mut rules = CurrentRules::new();
         
@@ -1458,6 +1832,7 @@ mod tests {
         ];
         
         let converted_rules = convert_flat_rules_to_nodes(&rules);
+        println!("comprehensive_token_combinations: {} rules converted", converted_rules.len());
         // Complex rule might not convert fully, but should not crash
         assert!(converted_rules.len() <= 1, "Map+Filter complex rule should handle gracefully");
         

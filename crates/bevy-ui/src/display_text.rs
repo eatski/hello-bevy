@@ -41,6 +41,7 @@ mod tests {
         assert_eq!(FlatTokenInput::HP.display_text(), "HP");
         assert_eq!(FlatTokenInput::GreaterThan.display_text(), "L-gt-R");
         assert_eq!(FlatTokenInput::TrueOrFalse.display_text(), "50/50");
+        assert_eq!(FlatTokenInput::Max.display_text(), "Max");
     }
     
     #[test]

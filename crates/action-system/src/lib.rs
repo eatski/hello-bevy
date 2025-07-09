@@ -11,7 +11,7 @@ pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
 pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterHpNode, ElementNode, RandomCharacterPickNode};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
-pub use nodes::array::{AllCharactersNode, TeamMembersNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode};
+pub use nodes::array::{AllCharactersNode, TeamMembersNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode};
 pub use nodes::unified_node::Node;
 pub use system::ActionCalculationSystem;
 
@@ -222,6 +222,84 @@ mod tests {
         
         // Should return the current element
         assert_eq!(result.id, 42);
+    }
+
+    #[test]
+    fn test_max_node_integration() {
+        use crate::nodes::array::{MaxNode, ConstantArrayNode};
+        
+        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
+        
+        let character = Character::new(18, "Test Character".to_string(), 100, 100, 20);
+        let team = Team::new("Test Team".to_string(), vec![character.clone()]);
+        let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
+        
+        // Test MaxNode with constant array
+        let array_node = Box::new(ConstantArrayNode::new(vec![10, 50, 30, 80, 20]));
+        let max_node = MaxNode::new(array_node);
+        let eval_context = EvaluationContext::new(&battle_context);
+        let result = Node::<i32>::evaluate(&max_node, &eval_context, &mut rng).unwrap();
+        
+        assert_eq!(result, 80);
+    }
+
+    #[test]
+    fn test_max_node_with_character_hp_integration() {
+        use crate::nodes::array::{MaxNode, MappingNode, TeamMembersNode};
+        use crate::nodes::character::{CharacterHpNode, ElementNode};
+        
+        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
+        
+        // Create characters with different HP values
+        let mut char1 = Character::new(19, "Character 1".to_string(), 100, 100, 10);
+        char1.hp = 30;
+        let mut char2 = Character::new(20, "Character 2".to_string(), 100, 100, 15);
+        char2.hp = 80;
+        let mut char3 = Character::new(21, "Character 3".to_string(), 100, 100, 12);
+        char3.hp = 60;
+        
+        let player_team = Team::new("Player".to_string(), vec![
+            char1.clone(), 
+            char2.clone(), 
+            char3.clone()
+        ]);
+        let enemy_team = Team::new("Enemy".to_string(), vec![]);
+        
+        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
+        
+        // Create a mapping from team members to their HP values
+        let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
+        let hp_mapping = Box::new(CharacterHpNode::new(Box::new(ElementNode::new())));
+        let mapping_node = MappingNode::new(team_array, hp_mapping);
+        
+        // Find the maximum HP using MaxNode
+        let max_node = MaxNode::new(Box::new(mapping_node));
+        let eval_context = EvaluationContext::new(&battle_context);
+        let result = Node::<i32>::evaluate(&max_node, &eval_context, &mut rng).unwrap();
+        
+        // Should return the maximum HP value (80)
+        assert_eq!(result, 80);
+    }
+
+    #[test]
+    fn test_max_node_empty_array_integration() {
+        use crate::nodes::array::{MaxNode, ConstantArrayNode};
+        
+        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
+        
+        let character = Character::new(22, "Test Character".to_string(), 100, 100, 20);
+        let team = Team::new("Test Team".to_string(), vec![character.clone()]);
+        let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
+        
+        // Test MaxNode with empty array
+        let array_node = Box::new(ConstantArrayNode::new(vec![]));
+        let max_node = MaxNode::new(array_node);
+        let eval_context = EvaluationContext::new(&battle_context);
+        let result = Node::<i32>::evaluate(&max_node, &eval_context, &mut rng);
+        
+        // Should return an error for empty array
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Cannot find max of empty array"));
     }
 
 }

@@ -19,6 +19,7 @@ pub enum FlatTokenInput {
     Element,          // 現在の要素（フィルタリング中のキャラクター）
     Enemy,            // 敵チーム定数
     Hero,             // 味方チーム定数
+    Max,              // 配列の最大値
 }
 
 // 表示テキストは元のUITokenTypeと同じ
@@ -45,6 +46,7 @@ impl FlatTokenInput {
             FlatTokenInput::Element => "Element".to_string(),
             FlatTokenInput::Enemy => "Enemy".to_string(),
             FlatTokenInput::Hero => "Hero".to_string(),
+            FlatTokenInput::Max => "Max".to_string(),
         }
     }
 }
