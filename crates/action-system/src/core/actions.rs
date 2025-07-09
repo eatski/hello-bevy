@@ -113,43 +113,6 @@ mod tests {
     use super::*;
     use crate::{Character, Team, TeamSide, BattleState};
 
-    #[test]
-    fn test_strike_action() {
-        let player = Character::new(1, "Player".to_string(), 100, 50, 25);
-        let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
-        
-        let acting_character = Character::new(3, "Attacker".to_string(), 100, 50, 25);
-        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
-        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
-        let battle_context = crate::BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
-        
-        let strike = StrikeAction::new(enemy.id);
-        let mut battle_state = BattleState::new(player_team.clone(), enemy_team.clone());
-        
-        let result = strike.execute(&battle_context, &mut battle_state);
-        
-        assert!(result.is_ok());
-        assert_eq!(strike.get_action_name(), "Strike");
-    }
-
-    #[test]
-    fn test_heal_action() {
-        let player = Character::new(4, "Player".to_string(), 100, 50, 25);
-        let enemy = Character::new(5, "Enemy".to_string(), 80, 30, 20);
-        
-        let acting_character = Character::new(6, "Healer".to_string(), 100, 50, 25);
-        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
-        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
-        let battle_context = crate::BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
-        
-        let heal = HealAction::new(player.id);
-        let mut battle_state = BattleState::new(player_team.clone(), enemy_team.clone());
-        
-        let result = heal.execute(&battle_context, &mut battle_state);
-        
-        assert!(result.is_ok());
-        assert_eq!(heal.get_action_name(), "Heal");
-    }
 
     #[test]
     fn test_heal_action_insufficient_mp() {

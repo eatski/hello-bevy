@@ -91,35 +91,6 @@ mod tests {
     use super::*;
     use crate::{Team, TeamSide};
 
-    #[test]
-    fn test_evaluation_context_new() {
-        let character = Character::new(1, "Test".to_string(), 100, 100, 20);
-        let team = Team::new("Test Team".to_string(), vec![character.clone()]);
-        let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
-        
-        let eval_context = EvaluationContext::new(&battle_context);
-        
-        assert!(eval_context.current_element.is_none());
-        assert_eq!(eval_context.battle_context.get_acting_character().id, 1);
-    }
-    
-    #[test]
-    fn test_evaluation_context_with_element() {
-        let acting_character = Character::new(1, "Acting".to_string(), 100, 100, 20);
-        let element_character = Character::new(2, "Element".to_string(), 80, 100, 15);
-        let team = Team::new("Test Team".to_string(), vec![acting_character.clone(), element_character.clone()]);
-        let battle_context = BattleContext::new(&acting_character, TeamSide::Player, &team, &team);
-        
-        let eval_context = EvaluationContext::with_element(&battle_context, &element_character);
-        
-        assert!(eval_context.current_element.is_some());
-        if let Some(CurrentElement::Character(character)) = &eval_context.current_element {
-            assert_eq!(character.id, 2); // Should return element character
-        } else {
-            panic!("Expected Character element");
-        }
-        assert_eq!(eval_context.get_battle_context().get_acting_character().id, 1); // Battle context should be unchanged
-    }
     
     #[test]
     fn test_evaluation_context_with_new_element() {

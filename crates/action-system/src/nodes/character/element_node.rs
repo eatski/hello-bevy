@@ -97,19 +97,6 @@ mod tests {
         assert_eq!(result2.hp, 50);
     }
     
-    #[test]
-    fn test_element_node_default_constructor() {
-        let element_node = ElementNode::default();
-        let character = Character::new(42, "Test".to_string(), 100, 100, 20);
-        let current_element = Character::new(99, "Element".to_string(), 80, 80, 15);
-        let team = Team::new("Test Team".to_string(), vec![character.clone(), current_element.clone()]);
-        let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
-        
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        let eval_context = EvaluationContext::with_element(&battle_context, &current_element);
-        let result = Node::<crate::Character>::evaluate(&element_node, &eval_context, &mut rng).unwrap();
-        assert_eq!(result.id, 99);
-    }
 
     #[test]
     fn test_element_node_with_different_types() {

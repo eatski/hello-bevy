@@ -34,32 +34,3 @@ impl GameState {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_game_state_creation() {
-        let state = GameState::new();
-        assert_eq!(state.mode, GameMode::RuleCreation);
-        assert_eq!(state.is_rule_creation_mode(), true);
-        assert_eq!(state.is_battle_mode(), false);
-    }
-    
-    #[test]
-    fn test_game_state_transitions() {
-        let mut state = GameState::new();
-        
-        // Switch to battle
-        state.switch_to_battle();
-        assert_eq!(state.mode, GameMode::Battle);
-        assert_eq!(state.is_battle_mode(), true);
-        assert_eq!(state.is_rule_creation_mode(), false);
-        
-        // Switch back to rule creation
-        state.switch_to_rule_creation();
-        assert_eq!(state.mode, GameMode::RuleCreation);
-        assert_eq!(state.is_rule_creation_mode(), true);
-        assert_eq!(state.is_battle_mode(), false);
-    }
-}

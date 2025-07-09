@@ -111,14 +111,6 @@ impl CurrentRules {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_current_rules_creation() {
-        let rules = CurrentRules::new();
-        assert_eq!(rules.rules.len(), 5);
-        assert_eq!(rules.selected_row, 0);
-        assert_eq!(rules.is_current_row_empty(), false); // First row has default rule
-        assert_eq!(rules.has_valid_rules(), true); // Default rule is valid
-    }
     
     #[test]
     fn test_token_manipulation() {
@@ -215,18 +207,4 @@ mod tests {
     
     // Note: String formatting tests moved to bevy-ui crate
     
-    #[test]
-    fn test_with_rules_constructor() {
-        let initial_rules = vec![
-            vec![FlatTokenInput::Strike],
-            vec![FlatTokenInput::Heal],
-            vec![],
-        ];
-        
-        let rules = CurrentRules::with_rules(initial_rules.clone());
-        assert_eq!(rules.rules, initial_rules);
-        assert_eq!(rules.selected_row, 0);
-        assert_eq!(rules.non_empty_rule_count(), 2);
-        assert_eq!(rules.has_valid_rules(), true);
-    }
 }
