@@ -94,7 +94,7 @@ Bevy Engineで開発されたRustベースのターンベースRPGバトルゲ�
 - **Number**: 特定の数値を返す（1~100）
 
 #### 状況系
-- **CharacterHP**: 引数のキャラクターのHPを返す
+- **CharacterHP**: 引数のキャラクターのHPを返す（CharacterHP型を返し、数値として扱える）
 - **ActingCharacter**: ロジックを計算しているキャラクター自身を返す
 - **TeamCharacters**: ロジックを計算しているキャラクターが所属するするチームのキャラクターの配列を返す
 
@@ -129,6 +129,13 @@ Bevy Engineで開発されたRustベースのターンベースRPGバトルゲ�
 - **Element**: 配列操作時に使用できる配列の要素（FilterListの条件内で現在評価中のキャラクターを参照）✅
 - **RandomPick**: 配列から1つ要素を取り出す ✅
 - **FilterList**: 配列から条件に当てはまる要素を絞る ✅
+
+#### 特別な型系
+
+- **CharacterHP**: HPの値と元のキャラクターの両方を持つ型
+  - 数値として扱える（算術演算、比較演算に対応）
+  - HpCharacterNodeでキャラクターを取得可能
+  - CharacterHpValueNodeでキャラクターからCharacterHP型を生成
 
 ##### JSON設定例
 HPが50より小さい味方キャラクターからランダムに1人ヒールする計算式
@@ -231,11 +238,11 @@ turn-based-rpg (root)
 cargo test --workspace
 
 # 個別クレートのテスト
-cargo test -p action-system    # 32テスト
-cargo test -p token-input      # 3テスト
+cargo test -p action-system    # 85テスト
+cargo test -p token-input      # 17テスト
 cargo test -p json-rule        # 5テスト  
 cargo test -p battle           # 3テスト
-cargo test -p ui-core          # 16テスト
+cargo test -p ui-core          # 31テスト
 cargo test -p bevy-ui          # 3テスト
 ```
 

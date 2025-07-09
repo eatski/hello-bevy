@@ -31,10 +31,19 @@ pub enum StructuredTokenInput {
     HP {
         character: Box<StructuredTokenInput>,
     },
+    CharacterHPValue {
+        character: Box<StructuredTokenInput>,
+    },
+    HpCharacter {
+        character_hp: Box<StructuredTokenInput>,
+    },
     // Character types
     ActingCharacter,
     // Array types
     AllCharacters,
+    TeamMembers {
+        team_side: Box<StructuredTokenInput>,
+    },
     AllTeamSides,
     RandomPick {
         array: Box<StructuredTokenInput>,

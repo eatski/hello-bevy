@@ -5,13 +5,13 @@ pub mod nodes;
 pub mod system;
 
 // Re-export essential types only
-pub use core::{Character, Team, TeamSide, Action, BattleState, RuleNode, NodeError, NodeResult};
+pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, RuleNode, NodeError, NodeResult};
 pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode, TeamSideEqNode, CharacterTeamNode};
 pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
-pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterHpNode, ElementNode, RandomCharacterPickNode};
+pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterHpNode, CharacterHpValueNode, HpCharacterNode, ElementNode, RandomCharacterPickNode};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
-pub use nodes::array::{AllCharactersNode, TeamMembersNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode};
+pub use nodes::array::{AllCharactersNode, TeamMembersNode, TeamMembersNodeWithNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode, MinCharacterHPNode, CharacterHPToCharacterMappingNode, CharacterToCharacterHPMappingNode};
 pub use nodes::unified_node::Node;
 pub use system::ActionCalculationSystem;
 

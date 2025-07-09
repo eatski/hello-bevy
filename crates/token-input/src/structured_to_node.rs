@@ -74,6 +74,13 @@ impl ParsedResolver {
             Err(_) => Err(format!("Expected TeamSideArray, got {}", self.type_name)),
         }
     }
+    
+    pub fn require_character_hp(self) -> Result<Box<dyn Node<action_system::CharacterHP>>, String> {
+        match self.node.downcast::<Box<dyn Node<action_system::CharacterHP>>>() {
+            Ok(character_hp_node) => Ok(*character_hp_node),
+            Err(_) => Err(format!("Expected CharacterHP, got {}", self.type_name)),
+        }
+    }
 }
 
 // Simple macro that auto-generates type combination tests
@@ -160,6 +167,22 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
                 "Value".to_string()
             ))
         }
+        StructuredTokenInput::CharacterHPValue { character } => {
+            let character_node = convert_structured_to_node(character)?;
+            let character_target_node = character_node.require_character()?;
+            Ok(ParsedResolver::new(
+                Box::new(action_system::CharacterHpValueNode::new(character_target_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                "CharacterHP".to_string()
+            ))
+        }
+        StructuredTokenInput::HpCharacter { character_hp } => {
+            let character_hp_node = convert_structured_to_node(character_hp)?;
+            let character_hp_target_node = character_hp_node.require_character_hp()?;
+            Ok(ParsedResolver::new(
+                Box::new(action_system::HpCharacterNode::new(character_hp_target_node)) as Box<dyn Node<Character>>,
+                "Character".to_string()
+            ))
+        }
         StructuredTokenInput::Number { value } => {
             Ok(ParsedResolver::new(
                 Box::new(ConstantValueNode::new(*value)) as Box<dyn Node<i32>>,
@@ -175,6 +198,14 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::AllCharacters => {
             Ok(ParsedResolver::new(
                 Box::new(AllCharactersNode::new()) as Box<dyn Node<Vec<Character>>>,
+                "CharacterArray".to_string()
+            ))
+        }
+        StructuredTokenInput::TeamMembers { team_side } => {
+            let team_side_node = convert_structured_to_node(team_side)?;
+            let team_side_target_node = team_side_node.require_team_side()?;
+            Ok(ParsedResolver::new(
+                Box::new(action_system::TeamMembersNode::new_with_node(team_side_target_node)) as Box<dyn Node<Vec<Character>>>,
                 "CharacterArray".to_string()
             ))
         }
@@ -335,6 +366,26 @@ mod tests {
     fn test_random_pick_node_conversion() {
         let structured = StructuredTokenInput::RandomPick { 
             array: Box::new(StructuredTokenInput::AllCharacters) 
+        };
+        let result = convert_structured_to_node(&structured).unwrap();
+        assert!(result.require_character().is_ok());
+    }
+
+    #[test]
+    fn test_character_hp_value_node_conversion() {
+        let structured = StructuredTokenInput::CharacterHPValue { 
+            character: Box::new(StructuredTokenInput::ActingCharacter) 
+        };
+        let result = convert_structured_to_node(&structured).unwrap();
+        assert!(result.require_character_hp().is_ok());
+    }
+
+    #[test]
+    fn test_hp_character_node_conversion() {
+        let structured = StructuredTokenInput::HpCharacter { 
+            character_hp: Box::new(StructuredTokenInput::CharacterHPValue { 
+                character: Box::new(StructuredTokenInput::ActingCharacter) 
+            }) 
         };
         let result = convert_structured_to_node(&structured).unwrap();
         assert!(result.require_character().is_ok());

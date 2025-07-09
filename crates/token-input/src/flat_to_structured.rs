@@ -67,9 +67,30 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
             let (character, consumed) = parse_flat_token(tokens, index + 1)?;
             Ok((StructuredTokenInput::HP { character: Box::new(character) }, 1 + consumed))
         }
+        FlatTokenInput::CharacterHPValue => {
+            if index + 1 >= tokens.len() {
+                return Err("CharacterHPValue requires a character".to_string());
+            }
+            let (character, consumed) = parse_flat_token(tokens, index + 1)?;
+            Ok((StructuredTokenInput::CharacterHPValue { character: Box::new(character) }, 1 + consumed))
+        }
+        FlatTokenInput::HpCharacter => {
+            if index + 1 >= tokens.len() {
+                return Err("HpCharacter requires a character HP".to_string());
+            }
+            let (character_hp, consumed) = parse_flat_token(tokens, index + 1)?;
+            Ok((StructuredTokenInput::HpCharacter { character_hp: Box::new(character_hp) }, 1 + consumed))
+        }
         FlatTokenInput::Number(n) => Ok((StructuredTokenInput::Number { value: *n as i32 }, 1)),
         FlatTokenInput::ActingCharacter => Ok((StructuredTokenInput::ActingCharacter, 1)),
         FlatTokenInput::AllCharacters => Ok((StructuredTokenInput::AllCharacters, 1)),
+        FlatTokenInput::TeamMembers => {
+            if index + 1 >= tokens.len() {
+                return Err("TeamMembers requires a team side".to_string());
+            }
+            let (team_side, consumed) = parse_flat_token(tokens, index + 1)?;
+            Ok((StructuredTokenInput::TeamMembers { team_side: Box::new(team_side) }, 1 + consumed))
+        }
         FlatTokenInput::RandomPick => {
             if index + 1 >= tokens.len() {
                 return Err("RandomPick requires an array argument".to_string());
@@ -233,6 +254,45 @@ mod tests {
     }
 
     #[test]
+    fn test_character_hp_value_flat_to_structured() {
+        let flat = vec![FlatTokenInput::CharacterHPValue, FlatTokenInput::ActingCharacter];
+        let structured = convert_flat_to_structured(&flat).unwrap();
+        
+        assert_eq!(structured.len(), 1);
+        match &structured[0] {
+            StructuredTokenInput::CharacterHPValue { character } => {
+                match character.as_ref() {
+                    StructuredTokenInput::ActingCharacter => (),
+                    _ => panic!("Expected ActingCharacter target"),
+                }
+            }
+            _ => panic!("Expected CharacterHPValue"),
+        }
+    }
+
+    #[test]
+    fn test_hp_character_flat_to_structured() {
+        let flat = vec![FlatTokenInput::HpCharacter, FlatTokenInput::CharacterHPValue, FlatTokenInput::ActingCharacter];
+        let structured = convert_flat_to_structured(&flat).unwrap();
+        
+        assert_eq!(structured.len(), 1);
+        match &structured[0] {
+            StructuredTokenInput::HpCharacter { character_hp } => {
+                match character_hp.as_ref() {
+                    StructuredTokenInput::CharacterHPValue { character } => {
+                        match character.as_ref() {
+                            StructuredTokenInput::ActingCharacter => (),
+                            _ => panic!("Expected ActingCharacter target"),
+                        }
+                    }
+                    _ => panic!("Expected CharacterHPValue"),
+                }
+            }
+            _ => panic!("Expected HpCharacter"),
+        }
+    }
+
+    #[test]
     fn test_all_characters_token() {
         // Test FlatTokenInput::AllCharacters conversion
         let flat = vec![FlatTokenInput::AllCharacters];
@@ -343,6 +403,28 @@ mod tests {
             }
             _ => panic!("Expected Eq"),
         }
+    }
+
+    #[test]
+    fn test_character_hp_integration() {
+        // Test CharacterHPValue integration
+        let flat_rules = vec![
+            vec![FlatTokenInput::Strike, FlatTokenInput::HpCharacter, FlatTokenInput::CharacterHPValue, FlatTokenInput::ActingCharacter],
+        ];
+        
+        let nodes = convert_flat_rules_to_nodes(&flat_rules);
+        assert_eq!(nodes.len(), 1);
+    }
+
+    #[test]
+    fn test_character_hp_value_integration() {
+        // Test standalone CharacterHPValue
+        let flat_rules = vec![
+            vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters],
+        ];
+        
+        let nodes = convert_flat_rules_to_nodes(&flat_rules);
+        assert_eq!(nodes.len(), 1);
     }
 
     #[test]
