@@ -278,8 +278,8 @@ turn-based-rpg (root バイナリ)
    - ワークスペースのCargo.tomlに追加
 
 ## 🧪 テスト設計（クレート別）
-### 統合テスト (62テスト)
-- **`action-system` クレート**: 32テスト - アクションシステム・乱数テスト
+### 統合テスト (133テスト)
+- **`action-system` クレート**: 75テスト - アクションシステム・乱数テスト
   - ActionResolver, Token, 各種トークンの動作テスト
   - ActionCalculationSystemの統合テスト
   - **seed固定乱数テスト**: 複数seed・複数実行の検証
@@ -287,7 +287,7 @@ turn-based-rpg (root バイナリ)
     - `test_same_seed_multiple_executions_can_differ`: 同一seedで複数回実行時のRNG状態変化検証
     - `test_single_rng_multiple_evaluations_differ`: RandomConditionNodeで1つのRNGでの複数評価検証
     - `test_single_rng_multiple_character_selections_vary`: RandomCharacterNodeで1つのRNGでの複数選択検証
-- **`token-input` クレート**: 3テスト - トークン変換テスト
+- **`token-input` クレート**: 17テスト - トークン変換テスト
   - FlatTokenInput → StructuredTokenInput変換テスト
   - StructuredTokenInput → Node変換テスト
   - 統合変換パイプラインテスト
@@ -301,10 +301,31 @@ turn-based-rpg (root バイナリ)
   - JSON読み込み・解析テスト
   - RuleSet → ActionResolver変換テスト
   - エラーハンドリングテスト
-- **`ui-core` クレート**: 16テスト - UIロジック・統合テスト
-  - ルール管理・変換システムテスト
-  - FlatTokenInput変換・バリデーションテスト
-  - ゲームステート管理テスト
+- **`ui-core` クレート**: 30テスト - UIロジック・**エンドツーエンド統合テスト**
+  - **統合テスト (22テスト)**: UIから入力したトークンで実際の戦闘を実行し、結果を検証
+    - `test_basic_strike_ui_to_battle_integration`: 基本攻撃の実行と敵へのダメージ検証
+    - `test_heal_ui_to_battle_integration`: 回復の実行とHP回復検証
+    - `test_conditional_strike_ui_to_battle_integration`: 条件付き攻撃の実行検証
+    - `test_low_hp_no_action_ui_to_battle_integration`: 条件不満時のアクション無実行検証
+    - `test_target_specific_strike_ui_to_battle_integration`: 特定ターゲット攻撃検証
+    - `test_multi_character_battle_ui_to_battle_integration`: 複数キャラクター戦闘検証
+    - `test_team_vs_team_battle_ui_to_battle_integration`: チーム対チーム戦闘検証
+    - `test_ui_rule_creation_to_battle_workflow`: UI規則作成→戦闘実行の完全ワークフロー検証
+    - `test_multiple_rules_ui_to_battle_integration`: 複数ルール協働検証
+    - `test_battle_completion_ui_to_battle_integration`: 戦闘終了検証
+    - `test_empty_rules_ui_to_battle_integration`: 空ルール時の挙動検証
+    - `test_complex_conditional_combinations_ui_to_battle_integration`: 複雑条件組み合わせ検証
+    - `test_hp_threshold_variations_ui_to_battle_integration`: HP閾値バリエーション検証
+    - `test_mp_constraint_healing_ui_to_battle_integration`: MP制約回復検証
+    - `test_zero_hp_character_exclusion_ui_to_battle_integration`: 倒れたキャラクター除外検証
+    - `test_random_pick_consistency_ui_to_battle_integration`: ランダム選択一貫性検証
+    - `test_boundary_values_ui_to_battle_integration`: 境界値検証
+    - `test_max_hp_characters_ui_to_battle_integration`: 最大HP時の挙動検証
+    - `test_min_values_ui_to_battle_integration`: Min関数検証
+    - `test_character_team_filtering_ui_to_battle_integration`: チームフィルタリング検証
+    - `test_sequential_rule_execution_ui_to_battle_integration`: 順次ルール実行検証
+    - `test_extended_battle_duration_ui_to_battle_integration`: 長期戦闘検証
+  - ゲームステート管理・ルール管理テスト (8テスト)
 - **`bevy-ui` クレート**: 3テスト - Bevy UI表示テスト
   - UI表示・フォーマットテスト
   - トークン表示テキストテスト
