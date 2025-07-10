@@ -304,8 +304,8 @@ mod tests {
         // Test the core logic of finding minimum HP character using action-system components
         use action_system::{
             Character, Team, TeamSide, BattleContext, EvaluationContext,
-            CharacterToHpMappingNode, MinCharacterHPNode, CharacterHpToCharacterNode,
-            TeamMembersNode, Node
+            CharacterToHpMappingNode, MinNode, CharacterHpToCharacterNode,
+            TeamMembersNode, Node, CharacterHP
         };
         use rand::rngs::StdRng;
         
@@ -325,10 +325,10 @@ mod tests {
         let eval_context = EvaluationContext::new(&battle_context);
         
         // Create the node chain:
-        // TeamMembersNode(Enemy) -> CharacterToHpMappingNode -> MinCharacterHPNode -> HpCharacterNode
+        // TeamMembersNode(Enemy) -> CharacterToHpMappingNode -> MinNode -> HpCharacterNode
         let team_members_node = TeamMembersNode::new(TeamSide::Enemy);
         let character_to_hp_mapping = CharacterToHpMappingNode::new(Box::new(team_members_node));
-        let min_hp_node = MinCharacterHPNode::new(Box::new(character_to_hp_mapping));
+        let min_hp_node = MinNode::<CharacterHP>::new(Box::new(character_to_hp_mapping));
         let hp_to_character_node = CharacterHpToCharacterNode::new(Box::new(min_hp_node));
         
         // Execute the chain
@@ -1347,14 +1347,14 @@ mod tests {
         // and verify through actual battle execution that the lowest HP enemy takes damage
         use action_system::{
             Character as GameCharacter, Team, TeamSide,
-            CharacterToHpMappingNode, MinCharacterHPNode, CharacterHpToCharacterNode,
-            TeamMembersNode, StrikeActionNode
+            CharacterToHpMappingNode, MinNode, CharacterHpToCharacterNode,
+            TeamMembersNode, StrikeActionNode, CharacterHP
         };
         
         // Build custom rule node: Strike(CharacterHpToCharacter(Min(Map(TeamMembers(Enemy), CharacterToHp))))
         let target_lowest_hp_enemy_rule = StrikeActionNode::new(Box::new(
             CharacterHpToCharacterNode::new(Box::new(
-                MinCharacterHPNode::new(Box::new(
+                MinNode::<CharacterHP>::new(Box::new(
                     CharacterToHpMappingNode::new(Box::new(
                         TeamMembersNode::new(TeamSide::Enemy)
                     ))

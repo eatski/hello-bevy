@@ -1,7 +1,7 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, CharacterToHpMappingNode, AllTeamSidesNode, MaxNode, MinNode, MaxCharacterHPNode, MinCharacterHPNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, CharacterToHpMappingNode, AllTeamSidesNode, MaxNode, MinNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
 
@@ -363,7 +363,7 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             // Try Vec<CharacterHP>
             else if let Ok(character_hp_array_node) = convert_structured_to_node(array)?.require_character_hp_array() {
                 Ok(ParsedResolver::new(
-                    Box::new(MaxCharacterHPNode::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                    Box::new(MaxNode::<action_system::CharacterHP>::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
                     "CharacterHP".to_string()
                 ))
             }
@@ -377,14 +377,14 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             // Try Vec<i32> first
             if let Ok(value_array_node) = array_node.require_value_array() {
                 Ok(ParsedResolver::new(
-                    Box::new(action_system::GameNumericMaxNode::<i32>::new(value_array_node)) as Box<dyn Node<i32>>,
+                    Box::new(action_system::MaxNode::<i32>::new(value_array_node)) as Box<dyn Node<i32>>,
                     "Value".to_string()
                 ))
             }
             // Try Vec<CharacterHP>
             else if let Ok(character_hp_array_node) = convert_structured_to_node(array)?.require_character_hp_array() {
                 Ok(ParsedResolver::new(
-                    Box::new(action_system::GameNumericMaxNode::<action_system::CharacterHP>::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                    Box::new(action_system::MaxNode::<action_system::CharacterHP>::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
                     "CharacterHP".to_string()
                 ))
             }
@@ -405,7 +405,7 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             // Try Vec<CharacterHP>
             else if let Ok(character_hp_array_node) = convert_structured_to_node(array)?.require_character_hp_array() {
                 Ok(ParsedResolver::new(
-                    Box::new(MinCharacterHPNode::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                    Box::new(MinNode::<action_system::CharacterHP>::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
                     "CharacterHP".to_string()
                 ))
             }
@@ -419,14 +419,14 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
             // Try Vec<i32> first
             if let Ok(value_array_node) = array_node.require_value_array() {
                 Ok(ParsedResolver::new(
-                    Box::new(action_system::GameNumericMinNode::<i32>::new(value_array_node)) as Box<dyn Node<i32>>,
+                    Box::new(action_system::MinNode::<i32>::new(value_array_node)) as Box<dyn Node<i32>>,
                     "Value".to_string()
                 ))
             }
             // Try Vec<CharacterHP>
             else if let Ok(character_hp_array_node) = convert_structured_to_node(array)?.require_character_hp_array() {
                 Ok(ParsedResolver::new(
-                    Box::new(action_system::GameNumericMinNode::<action_system::CharacterHP>::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                    Box::new(action_system::MinNode::<action_system::CharacterHP>::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
                     "CharacterHP".to_string()
                 ))
             }
