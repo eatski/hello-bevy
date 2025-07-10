@@ -1,5 +1,6 @@
 // Evaluation context - manages the context for node evaluation including current element being processed
 use crate::Character;
+use crate::core::character_hp::CharacterHP;
 use crate::nodes::character::BattleContext;
 
 /// Represents different types of values that can be used as current elements
@@ -11,6 +12,8 @@ pub enum CurrentElement {
     Value(i32),
     /// A team side
     TeamSide(crate::TeamSide),
+    /// A character HP value
+    CharacterHP(CharacterHP),
 }
 
 /// Context for evaluating nodes, includes both battle context and current element being processed

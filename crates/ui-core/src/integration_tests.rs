@@ -5,6 +5,7 @@ use crate::{GameState, CurrentRules, FlatTokenInput};
 use battle::{TeamBattle, Team, Character as GameCharacter};
 use token_input::convert_flat_rules_to_nodes;
 use rand::{SeedableRng, rngs::StdRng};
+use action_system::{CharacterToHpNode, ElementNode};
 
 fn create_test_rng() -> StdRng {
     StdRng::seed_from_u64(12345)
@@ -327,7 +328,8 @@ mod tests {
         // Create the node chain:
         // TeamMembersNode(Enemy) -> CharacterToHpMappingNode -> MinNode -> HpCharacterNode
         let team_members_node = TeamMembersNode::new(TeamSide::Enemy);
-        let character_to_hp_mapping = CharacterToHpMappingNode::new(Box::new(team_members_node));
+        let character_to_hp_transform = CharacterToHpNode::new(Box::new(ElementNode::new()));
+        let character_to_hp_mapping = CharacterToHpMappingNode::new(Box::new(team_members_node), Box::new(character_to_hp_transform));
         let min_hp_node = MinNode::<CharacterHP>::new(Box::new(character_to_hp_mapping));
         let hp_to_character_node = CharacterHpToCharacterNode::new(Box::new(min_hp_node));
         
@@ -1355,9 +1357,10 @@ mod tests {
         let target_lowest_hp_enemy_rule = StrikeActionNode::new(Box::new(
             CharacterHpToCharacterNode::new(Box::new(
                 MinNode::<CharacterHP>::new(Box::new(
-                    CharacterToHpMappingNode::new(Box::new(
-                        TeamMembersNode::new(TeamSide::Enemy)
-                    ))
+                    CharacterToHpMappingNode::new(
+                        Box::new(TeamMembersNode::new(TeamSide::Enemy)),
+                        Box::new(CharacterToHpNode::new(Box::new(ElementNode::new())))
+                    )
                 ))
             ))
         ));

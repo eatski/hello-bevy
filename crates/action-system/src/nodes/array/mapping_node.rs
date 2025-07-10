@@ -2,6 +2,7 @@
 // Similar to JavaScript's Array.map() function
 
 use crate::core::NodeResult;
+use crate::core::character_hp::CharacterHP;
 use crate::nodes::unified_node::Node;
 use crate::nodes::evaluation_context::{EvaluationContext, CurrentElement};
 use crate::Character;
@@ -37,6 +38,12 @@ pub type ValueToValueMappingNode = MappingNode<i32, i32>;
 
 /// Value to Character mapping
 pub type ValueToCharacterMappingNode = MappingNode<i32, Character>;
+
+/// CharacterHP to Character mapping  
+pub type CharacterHPToCharacterMappingNode = MappingNode<CharacterHP, Character>;
+
+/// Character to CharacterHP mapping
+pub type CharacterToHpMappingNode = MappingNode<Character, CharacterHP>;
 
 // Implementation for Character to Character mapping
 impl Node<Vec<Character>> for CharacterToCharacterMappingNode {
@@ -119,6 +126,52 @@ impl Node<Vec<Character>> for ValueToCharacterMappingNode {
         for element in input_array {
             // Create an evaluation context with the current element
             let element_eval_context = eval_context.with_new_current_element(CurrentElement::Value(element));
+            
+            // Apply the transformation function
+            let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
+            
+            output_array.push(transformed_element);
+        }
+        
+        Ok(output_array)
+    }
+}
+
+// Implementation for CharacterHP to Character mapping
+impl Node<Vec<Character>> for CharacterHPToCharacterMappingNode {
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
+        // Get the input array
+        let input_array = self.array_node.evaluate(eval_context, rng)?;
+        
+        let mut output_array = Vec::new();
+        
+        // Apply the transformation to each element
+        for element in input_array {
+            // Create an evaluation context with the current element
+            let element_eval_context = eval_context.with_new_current_element(CurrentElement::CharacterHP(element));
+            
+            // Apply the transformation function
+            let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
+            
+            output_array.push(transformed_element);
+        }
+        
+        Ok(output_array)
+    }
+}
+
+// Implementation for Character to CharacterHP mapping
+impl Node<Vec<CharacterHP>> for CharacterToHpMappingNode {
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<CharacterHP>> {
+        // Get the input array
+        let input_array = self.array_node.evaluate(eval_context, rng)?;
+        
+        let mut output_array = Vec::new();
+        
+        // Apply the transformation to each element
+        for element in input_array {
+            // Create an evaluation context with the current element
+            let element_eval_context = eval_context.with_new_current_element(CurrentElement::Character(element));
             
             // Apply the transformation function
             let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;

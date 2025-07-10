@@ -1,7 +1,7 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, CharacterToHpMappingNode, AllTeamSidesNode, MaxNode, MinNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, CharacterToHpMappingNode, CharacterHPToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
 
@@ -118,24 +118,13 @@ fn convert_map_token(array: &StructuredTokenInput, transform: &StructuredTokenIn
         array, transform;
         (require_character_array, require_character, CharacterToCharacterMappingNode, Vec<Character>, "CharacterArray"),
         (require_character_array, require_value, CharacterToValueMappingNode, Vec<i32>, "ValueArray"),
+        (require_character_array, require_character_hp, CharacterToHpMappingNode, Vec<action_system::CharacterHP>, "CharacterHPArray"),
+        (require_character_hp_array, require_character, CharacterHPToCharacterMappingNode, Vec<Character>, "CharacterArray"),
         (require_value_array, require_value, ValueToValueMappingNode, Vec<i32>, "ValueArray"),
         (require_value_array, require_character, ValueToCharacterMappingNode, Vec<Character>, "CharacterArray")
         // NEW TYPES GO HERE - no other changes needed anywhere else!
         // Example: (require_team_side_array, require_team_side, TeamSideToTeamSideMappingNode, Vec<TeamSide>, "TeamSideArray")
     );
-    
-    // Special case: Character array -> CharacterToHp -> CharacterHP array
-    let array_node = convert_structured_to_node(array)?;
-    if let (Ok(character_array_node), Ok(_)) = (
-        array_node.require_character_array(),
-        convert_structured_to_node(transform)?.require_character_hp()
-    ) {
-        // This is the case where we map characters to their HP values
-        return Ok(ParsedResolver::new(
-            Box::new(CharacterToHpMappingNode::new(character_array_node)) as Box<dyn Node<Vec<action_system::CharacterHP>>>,
-            "CharacterHPArray".to_string()
-        ));
-    }
     
     Err(format!("Cannot determine mapping type for Map - no compatible array→transform combination found"))
 }
