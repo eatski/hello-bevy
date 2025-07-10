@@ -1,7 +1,7 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterToHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode};
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
 
@@ -159,27 +159,27 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
                 "Condition".to_string()
             ))
         }
-        StructuredTokenInput::HP { character } => {
+        StructuredTokenInput::CharacterToHp { character } => {
             let character_node = convert_structured_to_node(character)?;
             let character_target_node = character_node.require_character()?;
             Ok(ParsedResolver::new(
-                Box::new(CharacterHpNode::new(character_target_node)) as Box<dyn Node<i32>>,
+                Box::new(CharacterToHpNode::new(character_target_node)) as Box<dyn Node<i32>>,
                 "Value".to_string()
             ))
         }
-        StructuredTokenInput::CharacterHPValue { character } => {
+        StructuredTokenInput::CharacterToCharacterHp { character } => {
             let character_node = convert_structured_to_node(character)?;
             let character_target_node = character_node.require_character()?;
             Ok(ParsedResolver::new(
-                Box::new(action_system::CharacterHpValueNode::new(character_target_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                Box::new(action_system::CharacterToCharacterHpNode::new(character_target_node)) as Box<dyn Node<action_system::CharacterHP>>,
                 "CharacterHP".to_string()
             ))
         }
-        StructuredTokenInput::HpCharacter { character_hp } => {
+        StructuredTokenInput::CharacterHpToCharacter { character_hp } => {
             let character_hp_node = convert_structured_to_node(character_hp)?;
             let character_hp_target_node = character_hp_node.require_character_hp()?;
             Ok(ParsedResolver::new(
-                Box::new(action_system::HpCharacterNode::new(character_hp_target_node)) as Box<dyn Node<Character>>,
+                Box::new(action_system::CharacterHpToCharacterNode::new(character_hp_target_node)) as Box<dyn Node<Character>>,
                 "Character".to_string()
             ))
         }
@@ -373,7 +373,7 @@ mod tests {
 
     #[test]
     fn test_character_hp_value_node_conversion() {
-        let structured = StructuredTokenInput::CharacterHPValue { 
+        let structured = StructuredTokenInput::CharacterToCharacterHp { 
             character: Box::new(StructuredTokenInput::ActingCharacter) 
         };
         let result = convert_structured_to_node(&structured).unwrap();
@@ -382,8 +382,8 @@ mod tests {
 
     #[test]
     fn test_hp_character_node_conversion() {
-        let structured = StructuredTokenInput::HpCharacter { 
-            character_hp: Box::new(StructuredTokenInput::CharacterHPValue { 
+        let structured = StructuredTokenInput::CharacterHpToCharacter { 
+            character_hp: Box::new(StructuredTokenInput::CharacterToCharacterHp { 
                 character: Box::new(StructuredTokenInput::ActingCharacter) 
             }) 
         };

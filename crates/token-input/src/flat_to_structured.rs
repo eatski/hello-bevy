@@ -60,26 +60,26 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
                 right: Box::new(right) 
             }, 1 + left_consumed + right_consumed))
         }
-        FlatTokenInput::HP => {
+        FlatTokenInput::CharacterToHp => {
             if index + 1 >= tokens.len() {
                 return Err("HP requires a character".to_string());
             }
             let (character, consumed) = parse_flat_token(tokens, index + 1)?;
-            Ok((StructuredTokenInput::HP { character: Box::new(character) }, 1 + consumed))
+            Ok((StructuredTokenInput::CharacterToHp { character: Box::new(character) }, 1 + consumed))
         }
-        FlatTokenInput::CharacterHPValue => {
+        FlatTokenInput::CharacterToCharacterHp => {
             if index + 1 >= tokens.len() {
                 return Err("CharacterHPValue requires a character".to_string());
             }
             let (character, consumed) = parse_flat_token(tokens, index + 1)?;
-            Ok((StructuredTokenInput::CharacterHPValue { character: Box::new(character) }, 1 + consumed))
+            Ok((StructuredTokenInput::CharacterToCharacterHp { character: Box::new(character) }, 1 + consumed))
         }
-        FlatTokenInput::HpCharacter => {
+        FlatTokenInput::CharacterHpToCharacter => {
             if index + 1 >= tokens.len() {
                 return Err("HpCharacter requires a character HP".to_string());
             }
             let (character_hp, consumed) = parse_flat_token(tokens, index + 1)?;
-            Ok((StructuredTokenInput::HpCharacter { character_hp: Box::new(character_hp) }, 1 + consumed))
+            Ok((StructuredTokenInput::CharacterHpToCharacter { character_hp: Box::new(character_hp) }, 1 + consumed))
         }
         FlatTokenInput::Number(n) => Ok((StructuredTokenInput::Number { value: *n as i32 }, 1)),
         FlatTokenInput::ActingCharacter => Ok((StructuredTokenInput::ActingCharacter, 1)),
@@ -255,40 +255,40 @@ mod tests {
 
     #[test]
     fn test_character_hp_value_flat_to_structured() {
-        let flat = vec![FlatTokenInput::CharacterHPValue, FlatTokenInput::ActingCharacter];
+        let flat = vec![FlatTokenInput::CharacterToCharacterHp, FlatTokenInput::ActingCharacter];
         let structured = convert_flat_to_structured(&flat).unwrap();
         
         assert_eq!(structured.len(), 1);
         match &structured[0] {
-            StructuredTokenInput::CharacterHPValue { character } => {
+            StructuredTokenInput::CharacterToCharacterHp { character } => {
                 match character.as_ref() {
                     StructuredTokenInput::ActingCharacter => (),
                     _ => panic!("Expected ActingCharacter target"),
                 }
             }
-            _ => panic!("Expected CharacterHPValue"),
+            _ => panic!("Expected CharacterToCharacterHp"),
         }
     }
 
     #[test]
     fn test_hp_character_flat_to_structured() {
-        let flat = vec![FlatTokenInput::HpCharacter, FlatTokenInput::CharacterHPValue, FlatTokenInput::ActingCharacter];
+        let flat = vec![FlatTokenInput::CharacterHpToCharacter, FlatTokenInput::CharacterToCharacterHp, FlatTokenInput::ActingCharacter];
         let structured = convert_flat_to_structured(&flat).unwrap();
         
         assert_eq!(structured.len(), 1);
         match &structured[0] {
-            StructuredTokenInput::HpCharacter { character_hp } => {
+            StructuredTokenInput::CharacterHpToCharacter { character_hp } => {
                 match character_hp.as_ref() {
-                    StructuredTokenInput::CharacterHPValue { character } => {
+                    StructuredTokenInput::CharacterToCharacterHp { character } => {
                         match character.as_ref() {
                             StructuredTokenInput::ActingCharacter => (),
                             _ => panic!("Expected ActingCharacter target"),
                         }
                     }
-                    _ => panic!("Expected CharacterHPValue"),
+                    _ => panic!("Expected CharacterToCharacterHp"),
                 }
             }
-            _ => panic!("Expected HpCharacter"),
+            _ => panic!("Expected CharacterHpToCharacter"),
         }
     }
 
@@ -409,7 +409,7 @@ mod tests {
     fn test_character_hp_integration() {
         // Test CharacterHPValue integration
         let flat_rules = vec![
-            vec![FlatTokenInput::Strike, FlatTokenInput::HpCharacter, FlatTokenInput::CharacterHPValue, FlatTokenInput::ActingCharacter],
+            vec![FlatTokenInput::Strike, FlatTokenInput::CharacterHpToCharacter, FlatTokenInput::CharacterToCharacterHp, FlatTokenInput::ActingCharacter],
         ];
         
         let nodes = convert_flat_rules_to_nodes(&flat_rules);

@@ -98,7 +98,7 @@ impl MenuState {
                 FlatTokenInput::TrueOrFalse,
                 FlatTokenInput::GreaterThan,
                 FlatTokenInput::Number(50),
-                FlatTokenInput::HP,
+                FlatTokenInput::CharacterToHp,
                 FlatTokenInput::ActingCharacter,
                 FlatTokenInput::AllCharacters,
                 FlatTokenInput::RandomPick,

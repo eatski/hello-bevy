@@ -3,17 +3,17 @@
 use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::Node;
 
-pub struct CharacterHpNode {
+pub struct CharacterToHpNode {
     pub character_node: Box<dyn Node<crate::Character>>,
 }
 
-impl CharacterHpNode {
+impl CharacterToHpNode {
     pub fn new(character_node: Box<dyn Node<crate::Character>>) -> Self {
         Self { character_node }
     }
 }
 
-impl Node<i32> for CharacterHpNode {
+impl Node<i32> for CharacterToHpNode {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
         let target_character = self.character_node.evaluate(eval_context, rng)?;
         Ok(target_character.hp)
@@ -39,8 +39,8 @@ mod tests {
         
         let mut rng = StdRng::from_entropy();
         
-        // Test CharacterHpNode with ActingCharacterNode
-        let char_hp_node = CharacterHpNode::new(Box::new(ActingCharacterNode));
+        // Test CharacterToHpNode with ActingCharacterNode
+        let char_hp_node = CharacterToHpNode::new(Box::new(ActingCharacterNode));
         let eval_context = EvaluationContext::new(&battle_context);
         assert_eq!(Node::<i32>::evaluate(&char_hp_node, &eval_context, &mut rng), Ok(100));
     }
@@ -57,8 +57,8 @@ mod tests {
         
         let mut rng = StdRng::from_entropy();
         
-        // Test CharacterHpNode with ActingCharacterNode using unified Node<Character>
-        let char_hp_node = CharacterHpNode::new(Box::new(ActingCharacterNode));
+        // Test CharacterToHpNode with ActingCharacterNode using unified Node<Character>
+        let char_hp_node = CharacterToHpNode::new(Box::new(ActingCharacterNode));
         let eval_context = EvaluationContext::new(&battle_context);
         assert_eq!(Node::<i32>::evaluate(&char_hp_node, &eval_context, &mut rng), Ok(100));
     }

@@ -52,7 +52,7 @@ mod tests {
     #[test]
     fn test_character_hp_type_integration() {
         // Test CharacterHP type with HpCharacterNode functionality
-        use action_system::{Character, CharacterHP, TeamSide, Team, BattleContext, CharacterHpValueNode, HpCharacterNode, ActingCharacterNode, EvaluationContext, Node};
+        use action_system::{Character, CharacterHP, TeamSide, Team, BattleContext, CharacterToCharacterHpNode, CharacterHpToCharacterNode, ActingCharacterNode, EvaluationContext, Node};
         use rand::rngs::StdRng;
         
         let mut rng = StdRng::seed_from_u64(12345);
@@ -88,7 +88,7 @@ mod tests {
         let battle_context = BattleContext::new(&character, TeamSide::Player, &player_team, &enemy_team);
         let eval_context = EvaluationContext::new(&battle_context);
         
-        let hp_value_node = CharacterHpValueNode::new(Box::new(ActingCharacterNode));
+        let hp_value_node = CharacterToCharacterHpNode::new(Box::new(ActingCharacterNode));
         let result_hp = Node::<CharacterHP>::evaluate(&hp_value_node, &eval_context, &mut rng).unwrap();
         assert_eq!(result_hp.get_hp(), 100);
         assert_eq!(result_hp.get_character().id, 1);
@@ -105,7 +105,7 @@ mod tests {
         }
         
         let mock_hp_node = MockCharacterHPNode { character_hp: character_hp.clone() };
-        let hp_char_node = HpCharacterNode::new(Box::new(mock_hp_node));
+        let hp_char_node = CharacterHpToCharacterNode::new(Box::new(mock_hp_node));
         let result_char = Node::<Character>::evaluate(&hp_char_node, &eval_context, &mut rng).unwrap();
         assert_eq!(result_char.id, 1);
         assert_eq!(result_char.name, "Test Hero");
@@ -117,8 +117,8 @@ mod tests {
         // Test CharacterHP with FlatTokenInput integration
         let flat_rule = vec![
             FlatTokenInput::Strike,
-            FlatTokenInput::HpCharacter,
-            FlatTokenInput::CharacterHPValue,
+            FlatTokenInput::CharacterHpToCharacter,
+            FlatTokenInput::CharacterToCharacterHp,
             FlatTokenInput::ActingCharacter
         ];
         
@@ -304,7 +304,7 @@ mod tests {
         // Test the core logic of finding minimum HP character using action-system components
         use action_system::{
             Character, Team, TeamSide, BattleContext, EvaluationContext,
-            CharacterToCharacterHPMappingNode, MinCharacterHPNode, HpCharacterNode,
+            CharacterToCharacterHPMappingNode, MinCharacterHPNode, CharacterHpToCharacterNode,
             TeamMembersNode, Node
         };
         use rand::rngs::StdRng;
@@ -329,7 +329,7 @@ mod tests {
         let team_members_node = TeamMembersNode::new(TeamSide::Enemy);
         let character_to_hp_mapping = CharacterToCharacterHPMappingNode::new(Box::new(team_members_node));
         let min_hp_node = MinCharacterHPNode::new(Box::new(character_to_hp_mapping));
-        let hp_to_character_node = HpCharacterNode::new(Box::new(min_hp_node));
+        let hp_to_character_node = CharacterHpToCharacterNode::new(Box::new(min_hp_node));
         
         // Execute the chain
         let result = Node::<Character>::evaluate(&hp_to_character_node, &eval_context, &mut rng).unwrap();
@@ -382,7 +382,7 @@ mod tests {
         let flat_rule = vec![
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Number(50),
             FlatTokenInput::Strike,
@@ -427,7 +427,7 @@ mod tests {
         let flat_rule = vec![
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Number(50),
             FlatTokenInput::Strike,
@@ -677,7 +677,7 @@ mod tests {
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
             FlatTokenInput::Number(30),
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Heal,
             FlatTokenInput::ActingCharacter,
@@ -795,7 +795,7 @@ mod tests {
             FlatTokenInput::Max,
             FlatTokenInput::Map,
             FlatTokenInput::AllCharacters,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::Element,
             FlatTokenInput::Number(60),
             FlatTokenInput::Strike,
@@ -851,7 +851,7 @@ mod tests {
         let low_threshold_rule = vec![
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Number(25),
             FlatTokenInput::Strike,
@@ -861,7 +861,7 @@ mod tests {
         let mid_threshold_rule = vec![
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Number(50),
             FlatTokenInput::Heal,
@@ -870,7 +870,7 @@ mod tests {
         let high_threshold_rule = vec![
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Number(75),
             FlatTokenInput::Strike,
@@ -1049,7 +1049,7 @@ mod tests {
         let exact_threshold_rule = vec![
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Number(50),
             FlatTokenInput::Strike,
@@ -1127,7 +1127,7 @@ mod tests {
             FlatTokenInput::Min,
             FlatTokenInput::Map,
             FlatTokenInput::AllCharacters,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::Element,
             FlatTokenInput::Number(20),
             FlatTokenInput::Heal,
@@ -1227,7 +1227,7 @@ mod tests {
         let high_priority_rule = vec![
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Number(90),
             FlatTokenInput::Strike,
@@ -1237,7 +1237,7 @@ mod tests {
         let medium_priority_rule = vec![
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Number(40),
             FlatTokenInput::Heal,
@@ -1292,7 +1292,7 @@ mod tests {
             FlatTokenInput::Check,
             FlatTokenInput::GreaterThan,
             FlatTokenInput::Number(50),
-            FlatTokenInput::HP,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter,
             FlatTokenInput::Heal,
             FlatTokenInput::ActingCharacter,

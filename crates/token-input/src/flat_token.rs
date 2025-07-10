@@ -10,9 +10,9 @@ pub enum FlatTokenInput {
     AllCharacters,    // 全キャラクター配列
     TeamMembers,      // チームメンバー配列
     RandomPick,       // ランダム選択
-    HP,               // HP値
-    CharacterHPValue, // CharacterHP型の値を取得
-    HpCharacter,      // CharacterHPからCharacterを取得
+    CharacterToHp,    // CharacterからHP値を取得
+    CharacterToCharacterHp, // CharacterからCharacterHP型の値を取得
+    CharacterHpToCharacter, // CharacterHPからCharacterを取得
     GreaterThan,
     TrueOrFalse,
     FilterList,       // リストフィルタリング
@@ -41,9 +41,9 @@ impl FlatTokenInput {
             FlatTokenInput::AllCharacters => "AllChars".to_string(),
             FlatTokenInput::TeamMembers => "TeamMembers".to_string(),
             FlatTokenInput::RandomPick => "RandomPick".to_string(),
-            FlatTokenInput::HP => "HP".to_string(),
-            FlatTokenInput::CharacterHPValue => "CharHP".to_string(),
-            FlatTokenInput::HpCharacter => "HpChar".to_string(),
+            FlatTokenInput::CharacterToHp => "CharToHp".to_string(),
+            FlatTokenInput::CharacterToCharacterHp => "CharToCharHp".to_string(),
+            FlatTokenInput::CharacterHpToCharacter => "CharHpToChar".to_string(),
             FlatTokenInput::GreaterThan => "L-gt-R".to_string(),
             FlatTokenInput::TrueOrFalse => "50/50".to_string(),
             FlatTokenInput::FilterList => "FilterList".to_string(),

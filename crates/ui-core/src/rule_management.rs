@@ -196,7 +196,7 @@ mod tests {
         rules.add_token_to_current_row(FlatTokenInput::Check);
         rules.add_token_to_current_row(FlatTokenInput::GreaterThan);
         rules.add_token_to_current_row(FlatTokenInput::Number(50));
-        rules.add_token_to_current_row(FlatTokenInput::HP);
+        rules.add_token_to_current_row(FlatTokenInput::CharacterToHp);
         rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);
         rules.add_token_to_current_row(FlatTokenInput::Heal);
         rules.add_token_to_current_row(FlatTokenInput::ActingCharacter);

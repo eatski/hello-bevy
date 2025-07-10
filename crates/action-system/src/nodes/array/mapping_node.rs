@@ -136,7 +136,7 @@ mod tests {
     use crate::nodes::array::team_members_node::TeamMembersNode;
     use crate::nodes::array::constant_array_node::ConstantArrayNode;
     use crate::nodes::character::element_node::ElementNode;
-    use crate::nodes::character::character_hp_node::CharacterHpNode;
+    use crate::nodes::character::character_to_hp_node::CharacterToHpNode;
     use crate::nodes::value::constant_value_node::ConstantValueNode;
     use crate::nodes::character::acting_character_node::ActingCharacterNode;
     use crate::{BattleContext, Team, TeamSide};
@@ -161,7 +161,7 @@ mod tests {
         
         // Create mapping that extracts HP from each character
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let hp_extractor = Box::new(CharacterHpNode::new(Box::new(ElementNode::new())));
+        let hp_extractor = Box::new(CharacterToHpNode::new(Box::new(ElementNode::new())));
         
         let mapping_node = CharacterToValueMappingNode::new(team_array, hp_extractor);
         

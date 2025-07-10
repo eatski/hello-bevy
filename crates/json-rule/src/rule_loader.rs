@@ -82,7 +82,7 @@ mod tests {
                 StructuredTokenInput::Check {
                     condition: Box::new(StructuredTokenInput::GreaterThan {
                         left: Box::new(StructuredTokenInput::Number { value: 50 }),
-                        right: Box::new(StructuredTokenInput::HP { character: Box::new(StructuredTokenInput::ActingCharacter) }),
+                        right: Box::new(StructuredTokenInput::CharacterToHp { character: Box::new(StructuredTokenInput::ActingCharacter) }),
                     }),
                     then_action: Box::new(StructuredTokenInput::Heal { target: Box::new(StructuredTokenInput::ActingCharacter) }),
                 },

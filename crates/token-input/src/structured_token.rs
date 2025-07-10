@@ -28,13 +28,13 @@ pub enum StructuredTokenInput {
     Number {
         value: i32,
     },
-    HP {
+    CharacterToHp {
         character: Box<StructuredTokenInput>,
     },
-    CharacterHPValue {
+    CharacterToCharacterHp {
         character: Box<StructuredTokenInput>,
     },
-    HpCharacter {
+    CharacterHpToCharacter {
         character_hp: Box<StructuredTokenInput>,
     },
     // Character types

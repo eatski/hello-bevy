@@ -4,17 +4,17 @@ use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::Node;
 use crate::core::character_hp::CharacterHP;
 
-pub struct HpCharacterNode {
+pub struct CharacterHpToCharacterNode {
     pub character_hp_node: Box<dyn Node<CharacterHP>>,
 }
 
-impl HpCharacterNode {
+impl CharacterHpToCharacterNode {
     pub fn new(character_hp_node: Box<dyn Node<CharacterHP>>) -> Self {
         Self { character_hp_node }
     }
 }
 
-impl Node<crate::Character> for HpCharacterNode {
+impl Node<crate::Character> for CharacterHpToCharacterNode {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<crate::Character> {
         let character_hp = self.character_hp_node.evaluate(eval_context, rng)?;
         Ok(character_hp.get_character().clone())
@@ -56,8 +56,8 @@ mod tests {
         
         let mut rng = StdRng::from_entropy();
         
-        // Test HpCharacterNode with TestCharacterHPNode
-        let hp_char_node = HpCharacterNode::new(Box::new(TestCharacterHPNode::new(character_hp)));
+        // Test CharacterHpToCharacterNode with TestCharacterHPNode
+        let hp_char_node = CharacterHpToCharacterNode::new(Box::new(TestCharacterHPNode::new(character_hp)));
         let eval_context = EvaluationContext::new(&battle_context);
         let result = Node::<Character>::evaluate(&hp_char_node, &eval_context, &mut rng).unwrap();
         
@@ -79,7 +79,7 @@ mod tests {
         
         let mut rng = StdRng::from_entropy();
         
-        let hp_char_node = HpCharacterNode::new(Box::new(TestCharacterHPNode::new(character_hp)));
+        let hp_char_node = CharacterHpToCharacterNode::new(Box::new(TestCharacterHPNode::new(character_hp)));
         let eval_context = EvaluationContext::new(&battle_context);
         let result = Node::<Character>::evaluate(&hp_char_node, &eval_context, &mut rng).unwrap();
         
