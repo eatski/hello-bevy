@@ -27,26 +27,9 @@ impl<TInput, TOutput> MappingNode<TInput, TOutput> {
     }
 }
 
-/// Character to Character mapping
-pub type CharacterToCharacterMappingNode = MappingNode<Character, Character>;
-
-/// Character to Value mapping
-pub type CharacterToValueMappingNode = MappingNode<Character, i32>;
-
-/// Value to Value mapping
-pub type ValueToValueMappingNode = MappingNode<i32, i32>;
-
-/// Value to Character mapping
-pub type ValueToCharacterMappingNode = MappingNode<i32, Character>;
-
-/// CharacterHP to Character mapping  
-pub type CharacterHPToCharacterMappingNode = MappingNode<CharacterHP, Character>;
-
-/// Character to CharacterHP mapping
-pub type CharacterToHpMappingNode = MappingNode<Character, CharacterHP>;
 
 // Implementation for Character to Character mapping
-impl Node<Vec<Character>> for CharacterToCharacterMappingNode {
+impl Node<Vec<Character>> for MappingNode<Character, Character> {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
         // Get the input array
         let input_array = self.array_node.evaluate(eval_context, rng)?;
@@ -69,7 +52,7 @@ impl Node<Vec<Character>> for CharacterToCharacterMappingNode {
 }
 
 // Implementation for Character to Value mapping
-impl Node<Vec<i32>> for CharacterToValueMappingNode {
+impl Node<Vec<i32>> for MappingNode<Character, i32> {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<i32>> {
         // Get the input array
         let input_array = self.array_node.evaluate(eval_context, rng)?;
@@ -92,7 +75,7 @@ impl Node<Vec<i32>> for CharacterToValueMappingNode {
 }
 
 // Implementation for Value to Value mapping
-impl Node<Vec<i32>> for ValueToValueMappingNode {
+impl Node<Vec<i32>> for MappingNode<i32, i32> {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<i32>> {
         // Get the input array
         let input_array = self.array_node.evaluate(eval_context, rng)?;
@@ -115,7 +98,7 @@ impl Node<Vec<i32>> for ValueToValueMappingNode {
 }
 
 // Implementation for Value to Character mapping
-impl Node<Vec<Character>> for ValueToCharacterMappingNode {
+impl Node<Vec<Character>> for MappingNode<i32, Character> {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
         // Get the input array
         let input_array = self.array_node.evaluate(eval_context, rng)?;
@@ -138,7 +121,7 @@ impl Node<Vec<Character>> for ValueToCharacterMappingNode {
 }
 
 // Implementation for CharacterHP to Character mapping
-impl Node<Vec<Character>> for CharacterHPToCharacterMappingNode {
+impl Node<Vec<Character>> for MappingNode<CharacterHP, Character> {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
         // Get the input array
         let input_array = self.array_node.evaluate(eval_context, rng)?;
@@ -161,7 +144,7 @@ impl Node<Vec<Character>> for CharacterHPToCharacterMappingNode {
 }
 
 // Implementation for Character to CharacterHP mapping
-impl Node<Vec<CharacterHP>> for CharacterToHpMappingNode {
+impl Node<Vec<CharacterHP>> for MappingNode<Character, CharacterHP> {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<CharacterHP>> {
         // Get the input array
         let input_array = self.array_node.evaluate(eval_context, rng)?;
@@ -216,7 +199,7 @@ mod tests {
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
         let hp_extractor = Box::new(CharacterHpValueNode::new(Box::new(ElementNode::new())));
         
-        let mapping_node = CharacterToValueMappingNode::new(team_array, hp_extractor);
+        let mapping_node = MappingNode::new(team_array, hp_extractor);
         
         let eval_context = EvaluationContext::new(&battle_context);
         let result = Node::<Vec<i32>>::evaluate(&mapping_node, &eval_context, &mut rng).unwrap();
@@ -245,7 +228,7 @@ mod tests {
         // Create a node that returns Element * 2 (we'll use a simple constant for testing)
         let double_transform = Box::new(ConstantValueNode::new(42)); // For simplicity
         
-        let mapping_node = ValueToValueMappingNode::new(value_array, double_transform);
+        let mapping_node = MappingNode::new(value_array, double_transform);
         
         let eval_context = EvaluationContext::new(&battle_context);
         let result = Node::<Vec<i32>>::evaluate(&mapping_node, &eval_context, &mut rng).unwrap();
@@ -274,7 +257,7 @@ mod tests {
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
         let acting_char_transform = Box::new(ActingCharacterNode);
         
-        let mapping_node = CharacterToCharacterMappingNode::new(team_array, acting_char_transform);
+        let mapping_node = MappingNode::new(team_array, acting_char_transform);
         
         let eval_context = EvaluationContext::new(&battle_context);
         let result = Node::<Vec<Character>>::evaluate(&mapping_node, &eval_context, &mut rng).unwrap();
@@ -299,7 +282,7 @@ mod tests {
         let empty_array = Box::new(ConstantArrayNode::new(vec![]));
         let transform = Box::new(ConstantValueNode::new(42));
         
-        let mapping_node = ValueToValueMappingNode::new(empty_array, transform);
+        let mapping_node = MappingNode::new(empty_array, transform);
         
         let eval_context = EvaluationContext::new(&battle_context);
         let result = Node::<Vec<i32>>::evaluate(&mapping_node, &eval_context, &mut rng).unwrap();
@@ -323,7 +306,7 @@ mod tests {
         let value_array = Box::new(ConstantArrayNode::new(values));
         let transform = Box::new(ConstantValueNode::new(99));
         
-        let mapping_node: Box<dyn Node<Vec<i32>>> = Box::new(ValueToValueMappingNode::new(value_array, transform));
+        let mapping_node: Box<dyn Node<Vec<i32>>> = Box::new(MappingNode::new(value_array, transform));
         
         let eval_context = EvaluationContext::new(&battle_context);
         let result = mapping_node.evaluate(&eval_context, &mut rng).unwrap();

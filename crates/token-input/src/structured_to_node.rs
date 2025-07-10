@@ -1,9 +1,18 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, CharacterToHpMappingNode, CharacterHPToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, AllTeamSidesNode, MaxNode, MinNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode, CharacterHP};
+use action_system::nodes::array::MappingNode;
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
+
+// Type aliases for mapping nodes - defined here where they're used
+type CharacterToCharacterMappingNode = MappingNode<Character, Character>;
+type CharacterToValueMappingNode = MappingNode<Character, i32>;
+type ValueToValueMappingNode = MappingNode<i32, i32>;
+type ValueToCharacterMappingNode = MappingNode<i32, Character>;
+type CharacterHPToCharacterMappingNode = MappingNode<CharacterHP, Character>;
+type CharacterToHpMappingNode = MappingNode<Character, CharacterHP>;
 
 // パース結果を表すAnyベースのResolver
 pub struct ParsedResolver {

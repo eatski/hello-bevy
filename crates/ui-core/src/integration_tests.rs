@@ -212,7 +212,7 @@ mod tests {
         // This test uses a more complex token chain to specifically target the lowest HP enemy
         
         // Setup battle with player and multiple enemies with different HP
-        let player_team = Team::new("Heroes".to_string(), vec![
+        let _player_team = Team::new("Heroes".to_string(), vec![
             GameCharacter::new(1, "Fighter".to_string(), 100, 50, 25),
         ]);
         
@@ -220,7 +220,7 @@ mod tests {
         let medium_hp_enemy = GameCharacter::new(3, "Goblin".to_string(), 60, 20, 15); // Medium HP
         let low_hp_enemy = GameCharacter::new(4, "Weak Slime".to_string(), 25, 10, 10); // Lowest HP - should be targeted
         
-        let enemy_team = Team::new("Enemies".to_string(), vec![
+        let _enemy_team = Team::new("Enemies".to_string(), vec![
             high_hp_enemy.clone(),
             medium_hp_enemy.clone(),
             low_hp_enemy.clone(),
@@ -239,8 +239,8 @@ mod tests {
         let rule_nodes = convert_flat_rules_to_nodes(&[flat_rule]);
         assert_eq!(rule_nodes.len(), 1, "Should convert rule");
         
-        let player_rules = vec![rule_nodes];
-        let enemy_rules: Vec<Vec<action_system::RuleNode>> = vec![vec![]];
+        let _player_rules = vec![rule_nodes];
+        let _enemy_rules: Vec<Vec<action_system::RuleNode>> = vec![vec![]];
         
         // Run the battle multiple times to verify statistical targeting
         let mut lowest_hp_targeted = 0;
@@ -305,9 +305,12 @@ mod tests {
         // Test the core logic of finding minimum HP character using action-system components
         use action_system::{
             Character, Team, TeamSide, BattleContext, EvaluationContext,
-            CharacterToHpMappingNode, MinNode, CharacterHpToCharacterNode,
+            MinNode, CharacterHpToCharacterNode,
             TeamMembersNode, Node, CharacterHP
         };
+        use action_system::nodes::array::MappingNode;
+        // Type alias for mapping node - defined here where it's used
+        type CharacterToHpMappingNode = MappingNode<Character, CharacterHP>;
         use rand::rngs::StdRng;
         
         let mut rng = StdRng::seed_from_u64(12345);
@@ -1349,9 +1352,12 @@ mod tests {
         // and verify through actual battle execution that the lowest HP enemy takes damage
         use action_system::{
             Character as GameCharacter, Team, TeamSide,
-            CharacterToHpMappingNode, MinNode, CharacterHpToCharacterNode,
+            MinNode, CharacterHpToCharacterNode,
             TeamMembersNode, StrikeActionNode, CharacterHP
         };
+        use action_system::nodes::array::MappingNode;
+        // Type alias for mapping node - defined here where it's used
+        type CharacterToHpMappingNode = MappingNode<GameCharacter, CharacterHP>;
         
         // Build custom rule node: Strike(CharacterHpToCharacter(Min(Map(TeamMembers(Enemy), CharacterToHp))))
         let target_lowest_hp_enemy_rule = StrikeActionNode::new(Box::new(
