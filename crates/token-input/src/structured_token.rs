@@ -31,9 +31,6 @@ pub enum StructuredTokenInput {
     CharacterToHp {
         character: Box<StructuredTokenInput>,
     },
-    CharacterToCharacterHp {
-        character: Box<StructuredTokenInput>,
-    },
     CharacterHpToCharacter {
         character_hp: Box<StructuredTokenInput>,
     },
@@ -70,6 +67,13 @@ pub enum StructuredTokenInput {
         array: Box<StructuredTokenInput>,
     },
     Min {
+        array: Box<StructuredTokenInput>,
+    },
+    // Unified GameNumeric operations
+    GameNumericMax {
+        array: Box<StructuredTokenInput>,
+    },
+    GameNumericMin {
         array: Box<StructuredTokenInput>,
     },
 }

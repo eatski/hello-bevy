@@ -10,8 +10,7 @@ pub enum FlatTokenInput {
     AllCharacters,    // 全キャラクター配列
     TeamMembers,      // チームメンバー配列
     RandomPick,       // ランダム選択
-    CharacterToHp,    // CharacterからHP値を取得
-    CharacterToCharacterHp, // CharacterからCharacterHP型の値を取得
+    CharacterToHp, // CharacterからCharacterHP型の値を取得
     CharacterHpToCharacter, // CharacterHPからCharacterを取得
     GreaterThan,
     TrueOrFalse,
@@ -24,6 +23,8 @@ pub enum FlatTokenInput {
     Hero,             // 味方チーム定数
     Max,              // 配列の最大値
     Min,              // 配列の最小値
+    GameNumericMax,   // GameNumeric統一最大値
+    GameNumericMin,   // GameNumeric統一最小値
 }
 
 // 表示テキストは元のUITokenTypeと同じ
@@ -42,7 +43,6 @@ impl FlatTokenInput {
             FlatTokenInput::TeamMembers => "TeamMembers".to_string(),
             FlatTokenInput::RandomPick => "RandomPick".to_string(),
             FlatTokenInput::CharacterToHp => "CharToHp".to_string(),
-            FlatTokenInput::CharacterToCharacterHp => "CharToCharHp".to_string(),
             FlatTokenInput::CharacterHpToCharacter => "CharHpToChar".to_string(),
             FlatTokenInput::GreaterThan => "L-gt-R".to_string(),
             FlatTokenInput::TrueOrFalse => "50/50".to_string(),
@@ -55,6 +55,8 @@ impl FlatTokenInput {
             FlatTokenInput::Hero => "Hero".to_string(),
             FlatTokenInput::Max => "Max".to_string(),
             FlatTokenInput::Min => "Min".to_string(),
+            FlatTokenInput::GameNumericMax => "GameMax".to_string(),
+            FlatTokenInput::GameNumericMin => "GameMin".to_string(),
         }
     }
 }

@@ -52,7 +52,7 @@ mod tests {
     #[test]
     fn test_character_hp_type_integration() {
         // Test CharacterHP type with HpCharacterNode functionality
-        use action_system::{Character, CharacterHP, TeamSide, Team, BattleContext, CharacterToCharacterHpNode, CharacterHpToCharacterNode, ActingCharacterNode, EvaluationContext, Node};
+        use action_system::{Character, CharacterHP, TeamSide, Team, BattleContext, CharacterToHpNode, CharacterHpToCharacterNode, ActingCharacterNode, EvaluationContext, Node};
         use rand::rngs::StdRng;
         
         let mut rng = StdRng::seed_from_u64(12345);
@@ -88,7 +88,7 @@ mod tests {
         let battle_context = BattleContext::new(&character, TeamSide::Player, &player_team, &enemy_team);
         let eval_context = EvaluationContext::new(&battle_context);
         
-        let hp_value_node = CharacterToCharacterHpNode::new(Box::new(ActingCharacterNode));
+        let hp_value_node = CharacterToHpNode::new(Box::new(ActingCharacterNode));
         let result_hp = Node::<CharacterHP>::evaluate(&hp_value_node, &eval_context, &mut rng).unwrap();
         assert_eq!(result_hp.get_hp(), 100);
         assert_eq!(result_hp.get_character().id, 1);
@@ -118,7 +118,7 @@ mod tests {
         let flat_rule = vec![
             FlatTokenInput::Strike,
             FlatTokenInput::CharacterHpToCharacter,
-            FlatTokenInput::CharacterToCharacterHp,
+            FlatTokenInput::CharacterToHp,
             FlatTokenInput::ActingCharacter
         ];
         
@@ -304,7 +304,7 @@ mod tests {
         // Test the core logic of finding minimum HP character using action-system components
         use action_system::{
             Character, Team, TeamSide, BattleContext, EvaluationContext,
-            CharacterToCharacterHPMappingNode, MinCharacterHPNode, CharacterHpToCharacterNode,
+            CharacterToHpMappingNode, MinCharacterHPNode, CharacterHpToCharacterNode,
             TeamMembersNode, Node
         };
         use rand::rngs::StdRng;
@@ -325,9 +325,9 @@ mod tests {
         let eval_context = EvaluationContext::new(&battle_context);
         
         // Create the node chain:
-        // TeamMembersNode(Enemy) -> CharacterToCharacterHPMappingNode -> MinCharacterHPNode -> HpCharacterNode
+        // TeamMembersNode(Enemy) -> CharacterToHpMappingNode -> MinCharacterHPNode -> HpCharacterNode
         let team_members_node = TeamMembersNode::new(TeamSide::Enemy);
-        let character_to_hp_mapping = CharacterToCharacterHPMappingNode::new(Box::new(team_members_node));
+        let character_to_hp_mapping = CharacterToHpMappingNode::new(Box::new(team_members_node));
         let min_hp_node = MinCharacterHPNode::new(Box::new(character_to_hp_mapping));
         let hp_to_character_node = CharacterHpToCharacterNode::new(Box::new(min_hp_node));
         

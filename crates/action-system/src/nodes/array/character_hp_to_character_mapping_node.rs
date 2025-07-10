@@ -28,17 +28,17 @@ impl Node<Vec<crate::Character>> for CharacterHPToCharacterMappingNode {
 }
 
 /// Character配列からCharacterHP配列への変換ノード
-pub struct CharacterToCharacterHPMappingNode {
+pub struct CharacterToHpMappingNode {
     character_array_node: Box<dyn Node<Vec<crate::Character>>>,
 }
 
-impl CharacterToCharacterHPMappingNode {
+impl CharacterToHpMappingNode {
     pub fn new(character_array_node: Box<dyn Node<Vec<crate::Character>>>) -> Self {
         Self { character_array_node }
     }
 }
 
-impl Node<Vec<CharacterHP>> for CharacterToCharacterHPMappingNode {
+impl Node<Vec<CharacterHP>> for CharacterToHpMappingNode {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<CharacterHP>> {
         let character_array = self.character_array_node.evaluate(eval_context, rng)?;
         
@@ -135,7 +135,7 @@ mod tests {
         char2.hp = 60;
         
         let array_node = Box::new(ConstantCharacterArrayNode::new(vec![char1, char2]));
-        let mapping_node = CharacterToCharacterHPMappingNode::new(array_node);
+        let mapping_node = CharacterToHpMappingNode::new(array_node);
         
         let result = mapping_node.evaluate(&eval_context, &mut rng).unwrap();
         assert_eq!(result.len(), 2);

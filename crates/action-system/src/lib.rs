@@ -5,13 +5,13 @@ pub mod nodes;
 pub mod system;
 
 // Re-export essential types only
-pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, RuleNode, NodeError, NodeResult};
-pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode, TeamSideEqNode, CharacterTeamNode};
+pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, RuleNode, NodeError, NodeResult, GameNumeric};
+pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode, TeamSideEqNode, CharacterTeamNode, CharacterHpVsValueConditionNode, ValueVsCharacterHpConditionNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
 pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
-pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterToCharacterHpNode, CharacterHpToCharacterNode, ElementNode, RandomCharacterPickNode};
+pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode, RandomCharacterPickNode};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
-pub use nodes::array::{AllCharactersNode, TeamMembersNode, TeamMembersNodeWithNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode, MinCharacterHPNode, CharacterHPToCharacterMappingNode, CharacterToCharacterHPMappingNode};
+pub use nodes::array::{AllCharactersNode, TeamMembersNode, TeamMembersNodeWithNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode, MinCharacterHPNode, MaxCharacterHPNode, CharacterHPToCharacterMappingNode, CharacterToHpMappingNode, GameNumericMaxNode, GameNumericMinNode};
 pub use nodes::unified_node::Node;
 pub use system::ActionCalculationSystem;
 
@@ -162,7 +162,7 @@ mod tests {
     fn test_filter_list_node_integration() {
         use crate::nodes::array::FilterListNode;
         use crate::nodes::character::ElementNode;
-        use crate::nodes::character::character_to_hp_node::CharacterToHpNode;
+        use crate::nodes::character::character_hp_value_node::CharacterHpValueNode;
         use crate::nodes::condition::GreaterThanConditionNode;
         use crate::nodes::value::ConstantValueNode;
         
@@ -188,7 +188,7 @@ mod tests {
         // Create FilterList that filters characters with HP > 50
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
         let hp_condition = Box::new(GreaterThanConditionNode::new(
-            Box::new(CharacterToHpNode::new(Box::new(ElementNode::new()))), // Use Element to reference current character
+            Box::new(CharacterHpValueNode::new(Box::new(ElementNode::new()))), // Use Element to reference current character
             Box::new(ConstantValueNode::new(50)),
         ));
         
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn test_max_node_with_character_hp_integration() {
         use crate::nodes::array::{MaxNode, MappingNode, TeamMembersNode};
-        use crate::nodes::character::{CharacterToHpNode, ElementNode};
+        use crate::nodes::character::{CharacterHpValueNode, ElementNode};
         
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
@@ -269,7 +269,7 @@ mod tests {
         
         // Create a mapping from team members to their HP values
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let hp_mapping = Box::new(CharacterToHpNode::new(Box::new(ElementNode::new())));
+        let hp_mapping = Box::new(CharacterHpValueNode::new(Box::new(ElementNode::new())));
         let mapping_node = MappingNode::new(team_array, hp_mapping);
         
         // Find the maximum HP using MaxNode

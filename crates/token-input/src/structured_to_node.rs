@@ -1,7 +1,7 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, CharacterToHpNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, AllTeamSidesNode, MaxNode, MinNode};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, CharacterToCharacterMappingNode, CharacterToValueMappingNode, ValueToValueMappingNode, ValueToCharacterMappingNode, CharacterToHpMappingNode, AllTeamSidesNode, MaxNode, MinNode, MaxCharacterHPNode, MinCharacterHPNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
 
@@ -81,6 +81,13 @@ impl ParsedResolver {
             Err(_) => Err(format!("Expected CharacterHP, got {}", self.type_name)),
         }
     }
+    
+    pub fn require_character_hp_array(self) -> Result<Box<dyn Node<Vec<action_system::CharacterHP>>>, String> {
+        match self.node.downcast::<Box<dyn Node<Vec<action_system::CharacterHP>>>>() {
+            Ok(character_hp_array_node) => Ok(*character_hp_array_node),
+            Err(_) => Err(format!("Expected CharacterHPArray, got {}", self.type_name)),
+        }
+    }
 }
 
 // Simple macro that auto-generates type combination tests
@@ -117,6 +124,19 @@ fn convert_map_token(array: &StructuredTokenInput, transform: &StructuredTokenIn
         // Example: (require_team_side_array, require_team_side, TeamSideToTeamSideMappingNode, Vec<TeamSide>, "TeamSideArray")
     );
     
+    // Special case: Character array -> CharacterToHp -> CharacterHP array
+    let array_node = convert_structured_to_node(array)?;
+    if let (Ok(character_array_node), Ok(_)) = (
+        array_node.require_character_array(),
+        convert_structured_to_node(transform)?.require_character_hp()
+    ) {
+        // This is the case where we map characters to their HP values
+        return Ok(ParsedResolver::new(
+            Box::new(CharacterToHpMappingNode::new(character_array_node)) as Box<dyn Node<Vec<action_system::CharacterHP>>>,
+            "CharacterHPArray".to_string()
+        ));
+    }
+    
     Err(format!("Cannot determine mapping type for Map - no compatible array→transform combination found"))
 }
 
@@ -152,26 +172,53 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::GreaterThan { left, right } => {
             let left_node = convert_structured_to_node(left)?;
             let right_node = convert_structured_to_node(right)?;
-            let left_val = left_node.require_value()?;
-            let right_val = right_node.require_value()?;
-            Ok(ParsedResolver::new(
-                Box::new(GreaterThanConditionNode::new(left_val, right_val)) as Box<dyn Node<bool>>,
-                "Condition".to_string()
-            ))
+            
+            // Try i32 vs i32 comparison first
+            if let (Ok(left_val), Ok(right_val)) = (left_node.require_value(), right_node.require_value()) {
+                Ok(ParsedResolver::new(
+                    Box::new(GreaterThanConditionNode::new(left_val, right_val)) as Box<dyn Node<bool>>,
+                    "Condition".to_string()
+                ))
+            }
+            // Try CharacterHP vs i32 comparison
+            else if let (Ok(left_hp), Ok(right_val)) = (
+                convert_structured_to_node(left)?.require_character_hp(),
+                convert_structured_to_node(right)?.require_value()
+            ) {
+                Ok(ParsedResolver::new(
+                    Box::new(CharacterHpVsValueGreaterThanNode::new(left_hp, right_val)) as Box<dyn Node<bool>>,
+                    "Condition".to_string()
+                ))
+            }
+            // Try i32 vs CharacterHP comparison  
+            else if let (Ok(left_val), Ok(right_hp)) = (
+                convert_structured_to_node(left)?.require_value(),
+                convert_structured_to_node(right)?.require_character_hp()
+            ) {
+                Ok(ParsedResolver::new(
+                    Box::new(ValueVsCharacterHpGreaterThanNode::new(left_val, right_hp)) as Box<dyn Node<bool>>,
+                    "Condition".to_string()
+                ))
+            }
+            // Try CharacterHP vs CharacterHP comparison using GameNumeric
+            else if let (Ok(left_hp), Ok(right_hp)) = (
+                convert_structured_to_node(left)?.require_character_hp(),
+                convert_structured_to_node(right)?.require_character_hp()
+            ) {
+                Ok(ParsedResolver::new(
+                    Box::new(GameNumericGreaterThanNode::<action_system::CharacterHP>::new(left_hp, right_hp)) as Box<dyn Node<bool>>,
+                    "Condition".to_string()
+                ))
+            }
+            else {
+                Err("Cannot convert GreaterThan: unsupported operand types".to_string())
+            }
         }
         StructuredTokenInput::CharacterToHp { character } => {
             let character_node = convert_structured_to_node(character)?;
             let character_target_node = character_node.require_character()?;
             Ok(ParsedResolver::new(
-                Box::new(CharacterToHpNode::new(character_target_node)) as Box<dyn Node<i32>>,
-                "Value".to_string()
-            ))
-        }
-        StructuredTokenInput::CharacterToCharacterHp { character } => {
-            let character_node = convert_structured_to_node(character)?;
-            let character_target_node = character_node.require_character()?;
-            Ok(ParsedResolver::new(
-                Box::new(action_system::CharacterToCharacterHpNode::new(character_target_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                Box::new(action_system::CharacterToHpNode::new(character_target_node)) as Box<dyn Node<action_system::CharacterHP>>,
                 "CharacterHP".to_string()
             ))
         }
@@ -305,19 +352,87 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         }
         StructuredTokenInput::Max { array } => {
             let array_node = convert_structured_to_node(array)?;
-            let value_array_node = array_node.require_value_array()?;
-            Ok(ParsedResolver::new(
-                Box::new(MaxNode::new(value_array_node)) as Box<dyn Node<i32>>,
-                "Value".to_string()
-            ))
+            
+            // Try Vec<i32> first
+            if let Ok(value_array_node) = array_node.require_value_array() {
+                Ok(ParsedResolver::new(
+                    Box::new(MaxNode::new(value_array_node)) as Box<dyn Node<i32>>,
+                    "Value".to_string()
+                ))
+            }
+            // Try Vec<CharacterHP>
+            else if let Ok(character_hp_array_node) = convert_structured_to_node(array)?.require_character_hp_array() {
+                Ok(ParsedResolver::new(
+                    Box::new(MaxCharacterHPNode::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                    "CharacterHP".to_string()
+                ))
+            }
+            else {
+                Err("Cannot convert Max: unsupported array type".to_string())
+            }
+        }
+        StructuredTokenInput::GameNumericMax { array } => {
+            let array_node = convert_structured_to_node(array)?;
+            
+            // Try Vec<i32> first
+            if let Ok(value_array_node) = array_node.require_value_array() {
+                Ok(ParsedResolver::new(
+                    Box::new(action_system::GameNumericMaxNode::<i32>::new(value_array_node)) as Box<dyn Node<i32>>,
+                    "Value".to_string()
+                ))
+            }
+            // Try Vec<CharacterHP>
+            else if let Ok(character_hp_array_node) = convert_structured_to_node(array)?.require_character_hp_array() {
+                Ok(ParsedResolver::new(
+                    Box::new(action_system::GameNumericMaxNode::<action_system::CharacterHP>::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                    "CharacterHP".to_string()
+                ))
+            }
+            else {
+                Err("Cannot convert GameNumericMax: unsupported array type".to_string())
+            }
         }
         StructuredTokenInput::Min { array } => {
             let array_node = convert_structured_to_node(array)?;
-            let value_array_node = array_node.require_value_array()?;
-            Ok(ParsedResolver::new(
-                Box::new(MinNode::new(value_array_node)) as Box<dyn Node<i32>>,
-                "Value".to_string()
-            ))
+            
+            // Try Vec<i32> first
+            if let Ok(value_array_node) = array_node.require_value_array() {
+                Ok(ParsedResolver::new(
+                    Box::new(MinNode::new(value_array_node)) as Box<dyn Node<i32>>,
+                    "Value".to_string()
+                ))
+            }
+            // Try Vec<CharacterHP>
+            else if let Ok(character_hp_array_node) = convert_structured_to_node(array)?.require_character_hp_array() {
+                Ok(ParsedResolver::new(
+                    Box::new(MinCharacterHPNode::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                    "CharacterHP".to_string()
+                ))
+            }
+            else {
+                Err("Cannot convert Min: unsupported array type".to_string())
+            }
+        }
+        StructuredTokenInput::GameNumericMin { array } => {
+            let array_node = convert_structured_to_node(array)?;
+            
+            // Try Vec<i32> first
+            if let Ok(value_array_node) = array_node.require_value_array() {
+                Ok(ParsedResolver::new(
+                    Box::new(action_system::GameNumericMinNode::<i32>::new(value_array_node)) as Box<dyn Node<i32>>,
+                    "Value".to_string()
+                ))
+            }
+            // Try Vec<CharacterHP>
+            else if let Ok(character_hp_array_node) = convert_structured_to_node(array)?.require_character_hp_array() {
+                Ok(ParsedResolver::new(
+                    Box::new(action_system::GameNumericMinNode::<action_system::CharacterHP>::new(character_hp_array_node)) as Box<dyn Node<action_system::CharacterHP>>,
+                    "CharacterHP".to_string()
+                ))
+            }
+            else {
+                Err("Cannot convert GameNumericMin: unsupported array type".to_string())
+            }
         }
     }
 }
@@ -373,7 +488,7 @@ mod tests {
 
     #[test]
     fn test_character_hp_value_node_conversion() {
-        let structured = StructuredTokenInput::CharacterToCharacterHp { 
+        let structured = StructuredTokenInput::CharacterToHp { 
             character: Box::new(StructuredTokenInput::ActingCharacter) 
         };
         let result = convert_structured_to_node(&structured).unwrap();
@@ -383,7 +498,7 @@ mod tests {
     #[test]
     fn test_hp_character_node_conversion() {
         let structured = StructuredTokenInput::CharacterHpToCharacter { 
-            character_hp: Box::new(StructuredTokenInput::CharacterToCharacterHp { 
+            character_hp: Box::new(StructuredTokenInput::CharacterToHp { 
                 character: Box::new(StructuredTokenInput::ActingCharacter) 
             }) 
         };

@@ -67,13 +67,6 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
             let (character, consumed) = parse_flat_token(tokens, index + 1)?;
             Ok((StructuredTokenInput::CharacterToHp { character: Box::new(character) }, 1 + consumed))
         }
-        FlatTokenInput::CharacterToCharacterHp => {
-            if index + 1 >= tokens.len() {
-                return Err("CharacterHPValue requires a character".to_string());
-            }
-            let (character, consumed) = parse_flat_token(tokens, index + 1)?;
-            Ok((StructuredTokenInput::CharacterToCharacterHp { character: Box::new(character) }, 1 + consumed))
-        }
         FlatTokenInput::CharacterHpToCharacter => {
             if index + 1 >= tokens.len() {
                 return Err("HpCharacter requires a character HP".to_string());
@@ -157,6 +150,20 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
             }
             let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
             Ok((StructuredTokenInput::Min { array: Box::new(array_token) }, 1 + array_consumed))
+        }
+        FlatTokenInput::GameNumericMax => {
+            if index + 1 >= tokens.len() {
+                return Err("GameNumericMax requires an array argument".to_string());
+            }
+            let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
+            Ok((StructuredTokenInput::GameNumericMax { array: Box::new(array_token) }, 1 + array_consumed))
+        }
+        FlatTokenInput::GameNumericMin => {
+            if index + 1 >= tokens.len() {
+                return Err("GameNumericMin requires an array argument".to_string());
+            }
+            let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
+            Ok((StructuredTokenInput::GameNumericMin { array: Box::new(array_token) }, 1 + array_consumed))
         }
     }
 }
@@ -253,39 +260,23 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_character_hp_value_flat_to_structured() {
-        let flat = vec![FlatTokenInput::CharacterToCharacterHp, FlatTokenInput::ActingCharacter];
-        let structured = convert_flat_to_structured(&flat).unwrap();
-        
-        assert_eq!(structured.len(), 1);
-        match &structured[0] {
-            StructuredTokenInput::CharacterToCharacterHp { character } => {
-                match character.as_ref() {
-                    StructuredTokenInput::ActingCharacter => (),
-                    _ => panic!("Expected ActingCharacter target"),
-                }
-            }
-            _ => panic!("Expected CharacterToCharacterHp"),
-        }
-    }
 
     #[test]
     fn test_hp_character_flat_to_structured() {
-        let flat = vec![FlatTokenInput::CharacterHpToCharacter, FlatTokenInput::CharacterToCharacterHp, FlatTokenInput::ActingCharacter];
+        let flat = vec![FlatTokenInput::CharacterHpToCharacter, FlatTokenInput::CharacterToHp, FlatTokenInput::ActingCharacter];
         let structured = convert_flat_to_structured(&flat).unwrap();
         
         assert_eq!(structured.len(), 1);
         match &structured[0] {
             StructuredTokenInput::CharacterHpToCharacter { character_hp } => {
                 match character_hp.as_ref() {
-                    StructuredTokenInput::CharacterToCharacterHp { character } => {
+                    StructuredTokenInput::CharacterToHp { character } => {
                         match character.as_ref() {
                             StructuredTokenInput::ActingCharacter => (),
                             _ => panic!("Expected ActingCharacter target"),
                         }
                     }
-                    _ => panic!("Expected CharacterToCharacterHp"),
+                    _ => panic!("Expected CharacterToHp"),
                 }
             }
             _ => panic!("Expected CharacterHpToCharacter"),
@@ -409,7 +400,7 @@ mod tests {
     fn test_character_hp_integration() {
         // Test CharacterHPValue integration
         let flat_rules = vec![
-            vec![FlatTokenInput::Strike, FlatTokenInput::CharacterHpToCharacter, FlatTokenInput::CharacterToCharacterHp, FlatTokenInput::ActingCharacter],
+            vec![FlatTokenInput::Strike, FlatTokenInput::CharacterHpToCharacter, FlatTokenInput::CharacterToHp, FlatTokenInput::ActingCharacter],
         ];
         
         let nodes = convert_flat_rules_to_nodes(&flat_rules);

@@ -1,7 +1,8 @@
-// Character HP node - returns HP from a character node
+// Character HP Value node - returns CharacterHP from a character node
 
 use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::Node;
+use crate::core::character_hp::CharacterHP;
 
 pub struct CharacterToHpNode {
     pub character_node: Box<dyn Node<crate::Character>>,
@@ -13,10 +14,10 @@ impl CharacterToHpNode {
     }
 }
 
-impl Node<i32> for CharacterToHpNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
-        let target_character = self.character_node.evaluate(eval_context, rng)?;
-        Ok(target_character.hp)
+impl Node<CharacterHP> for CharacterToHpNode {
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<CharacterHP> {
+        let character = self.character_node.evaluate(eval_context, rng)?;
+        Ok(CharacterHP::new(character))
     }
 }
 
@@ -28,7 +29,7 @@ mod tests {
     use rand::SeedableRng;
 
     #[test]
-    fn test_character_hp_node() {
+    fn test_character_hp_value_node() {
         let player = Character::new(1, "Player".to_string(), 100, 50, 25);
         let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
         let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
@@ -40,26 +41,32 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         // Test CharacterToHpNode with ActingCharacterNode
-        let char_hp_node = CharacterToHpNode::new(Box::new(ActingCharacterNode));
+        let char_hp_value_node = CharacterToHpNode::new(Box::new(ActingCharacterNode));
         let eval_context = EvaluationContext::new(&battle_context);
-        assert_eq!(Node::<i32>::evaluate(&char_hp_node, &eval_context, &mut rng), Ok(100));
+        let result = Node::<CharacterHP>::evaluate(&char_hp_value_node, &eval_context, &mut rng).unwrap();
+        
+        assert_eq!(result.get_hp(), 100);
+        assert_eq!(result.get_character().id, 3);
+        assert_eq!(result.get_character().name, "Test");
     }
 
     #[test]
-    fn test_character_hp_node_boxed() {
-        let player = Character::new(1, "Player".to_string(), 100, 50, 25);
-        let enemy = Character::new(2, "Enemy".to_string(), 80, 30, 20);
-        let acting_character = Character::new(3, "Test".to_string(), 100, 50, 25);
+    fn test_character_hp_value_node_with_damaged_character() {
+        let mut acting_character = Character::new(4, "Damaged".to_string(), 100, 50, 25);
+        acting_character.hp = 60; // ダメージを受けている
         
-        let player_team = Team::new("Player Team".to_string(), vec![player.clone(), acting_character.clone()]);
-        let enemy_team = Team::new("Enemy Team".to_string(), vec![enemy.clone()]);
+        let player_team = Team::new("Player Team".to_string(), vec![acting_character.clone()]);
+        let enemy_team = Team::new("Enemy Team".to_string(), vec![]);
         let battle_context = crate::BattleContext::new(&acting_character, TeamSide::Player, &player_team, &enemy_team);
         
         let mut rng = StdRng::from_entropy();
         
-        // Test CharacterToHpNode with ActingCharacterNode using unified Node<Character>
-        let char_hp_node = CharacterToHpNode::new(Box::new(ActingCharacterNode));
+        let char_hp_value_node = CharacterToHpNode::new(Box::new(ActingCharacterNode));
         let eval_context = EvaluationContext::new(&battle_context);
-        assert_eq!(Node::<i32>::evaluate(&char_hp_node, &eval_context, &mut rng), Ok(100));
+        let result = Node::<CharacterHP>::evaluate(&char_hp_value_node, &eval_context, &mut rng).unwrap();
+        
+        assert_eq!(result.get_hp(), 60);
+        assert_eq!(result.get_character().id, 4);
+        assert_eq!(result.get_character().name, "Damaged");
     }
 }

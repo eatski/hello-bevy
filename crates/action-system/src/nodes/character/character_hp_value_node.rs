@@ -1,23 +1,23 @@
-// Character HP Value node - returns CharacterHP from a character node
+// Character HP Value node - returns i32 HP value from a character node
 
 use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::Node;
-use crate::core::character_hp::CharacterHP;
+use crate::core::NodeResult;
 
-pub struct CharacterToCharacterHpNode {
+pub struct CharacterHpValueNode {
     pub character_node: Box<dyn Node<crate::Character>>,
 }
 
-impl CharacterToCharacterHpNode {
+impl CharacterHpValueNode {
     pub fn new(character_node: Box<dyn Node<crate::Character>>) -> Self {
         Self { character_node }
     }
 }
 
-impl Node<CharacterHP> for CharacterToCharacterHpNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<CharacterHP> {
+impl Node<i32> for CharacterHpValueNode {
+    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
         let character = self.character_node.evaluate(eval_context, rng)?;
-        Ok(CharacterHP::new(character))
+        Ok(character.hp)
     }
 }
 
@@ -40,14 +40,12 @@ mod tests {
         
         let mut rng = StdRng::from_entropy();
         
-        // Test CharacterToCharacterHpNode with ActingCharacterNode
-        let char_hp_value_node = CharacterToCharacterHpNode::new(Box::new(ActingCharacterNode));
+        // Test CharacterHpValueNode with ActingCharacterNode
+        let char_hp_value_node = CharacterHpValueNode::new(Box::new(ActingCharacterNode));
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<CharacterHP>::evaluate(&char_hp_value_node, &eval_context, &mut rng).unwrap();
+        let result = Node::<i32>::evaluate(&char_hp_value_node, &eval_context, &mut rng).unwrap();
         
-        assert_eq!(result.get_hp(), 100);
-        assert_eq!(result.get_character().id, 3);
-        assert_eq!(result.get_character().name, "Test");
+        assert_eq!(result, 100);
     }
 
     #[test]
@@ -61,12 +59,10 @@ mod tests {
         
         let mut rng = StdRng::from_entropy();
         
-        let char_hp_value_node = CharacterToCharacterHpNode::new(Box::new(ActingCharacterNode));
+        let char_hp_value_node = CharacterHpValueNode::new(Box::new(ActingCharacterNode));
         let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<CharacterHP>::evaluate(&char_hp_value_node, &eval_context, &mut rng).unwrap();
+        let result = Node::<i32>::evaluate(&char_hp_value_node, &eval_context, &mut rng).unwrap();
         
-        assert_eq!(result.get_hp(), 60);
-        assert_eq!(result.get_character().id, 4);
-        assert_eq!(result.get_character().name, "Damaged");
+        assert_eq!(result, 60);
     }
 }

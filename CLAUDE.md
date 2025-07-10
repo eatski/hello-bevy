@@ -1,5 +1,28 @@
 # hello-bevy 設計サマリ
 
+## 🚀 最新アップデート (GameNumeric trait統一化)
+### 設計変更サマリ
+- **GameNumeric trait**: CharacterHPとi32値を統一的に扱うtraitを新規追加
+  - Max, Min, GreaterThan等の数値演算で型混在をサポート
+  - `crates/action-system/src/core/game_numeric.rs` に実装
+  - **YAGNI原則適用**: 未使用の`from_i32()`メソッドを削除し、シンプルな設計に変更
+- **統一化ノード**: GameNumericMaxNode, GameNumericMinNode, GameNumericGreaterThanNodeを追加
+  - 既存のMax/MinノードはAPI後方互換性を維持
+  - CharacterHPとi32の両方を同じインターフェースで処理可能
+- **トークン拡張**: GameNumericMax, GameNumericMin トークンをUI入力システムに追加
+  - FlatTokenInput, StructuredTokenInputの両方をサポート
+- **型安全性**: CharacterHP vs i32 の比較演算も統一的に処理
+- **テスト追加**: GameNumeric trait の機能テスト (crates/action-system/src/core/game_numeric.rs:43-79)
+
+### ファイル変更箇所
+- 新規: `crates/action-system/src/core/game_numeric.rs` - GameNumeric trait定義
+- 新規: `crates/action-system/src/nodes/array/game_numeric_max_min_node.rs` - 統一Max/Minノード
+- 新規: `crates/action-system/src/nodes/condition/game_numeric_greater_than_node.rs` - 統一GreaterThanノード
+- 更新: `crates/token-input/src/flat_token.rs` - GameNumericMax/Min トークン追加
+- 更新: `crates/token-input/src/structured_token.rs` - 構造化トークン拡張
+- 更新: `crates/token-input/src/structured_to_node.rs` - 変換ロジック拡張
+- 更新: 各種mod.rs, lib.rs - エクスポート追加
+
 ## 📝　重要
 タスク完了時に必ず以下を実施するように事前にタスク化すること
 - crates/ui-core/src/integration_tests.rs にテストケースの追加（必要に応じて）
