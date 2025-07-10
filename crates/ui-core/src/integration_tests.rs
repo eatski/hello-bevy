@@ -1340,4 +1340,111 @@ mod tests {
             turns_executed
         );
     }
+
+    #[test]
+    fn test_attack_lowest_hp_enemy_using_min_and_character_hp_to_character_integration() {
+        // End-to-end test: Create a custom action system rule that targets the lowest HP enemy
+        // and verify through actual battle execution that the lowest HP enemy takes damage
+        use action_system::{
+            Character as GameCharacter, Team, TeamSide,
+            CharacterToHpMappingNode, MinCharacterHPNode, CharacterHpToCharacterNode,
+            TeamMembersNode, StrikeActionNode
+        };
+        
+        // Build custom rule node: Strike(CharacterHpToCharacter(Min(Map(TeamMembers(Enemy), CharacterToHp))))
+        let target_lowest_hp_enemy_rule = StrikeActionNode::new(Box::new(
+            CharacterHpToCharacterNode::new(Box::new(
+                MinCharacterHPNode::new(Box::new(
+                    CharacterToHpMappingNode::new(Box::new(
+                        TeamMembersNode::new(TeamSide::Enemy)
+                    ))
+                ))
+            ))
+        ));
+        
+        // Convert to RuleNode format for TeamBattle
+        let rule_node: action_system::RuleNode = Box::new(target_lowest_hp_enemy_rule);
+        let player_rules = vec![rule_node];
+        
+        // Create teams with enemies having different HP values
+        let mut high_hp_enemy = GameCharacter::new(2, "High HP Enemy".to_string(), 120, 50, 20);
+        high_hp_enemy.hp = 95; // High HP
+        
+        let mut medium_hp_enemy = GameCharacter::new(3, "Medium HP Enemy".to_string(), 100, 50, 20);
+        medium_hp_enemy.hp = 65; // Medium HP
+        
+        let mut low_hp_enemy = GameCharacter::new(4, "Low HP Enemy".to_string(), 80, 50, 20);
+        low_hp_enemy.hp = 35; // Lowest HP - should be targeted
+        
+        let player_team = Team::new("Heroes".to_string(), vec![
+            GameCharacter::new(1, "Attacker".to_string(), 100, 50, 25),
+        ]);
+        
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            high_hp_enemy.clone(),
+            medium_hp_enemy.clone(),
+            low_hp_enemy.clone(),
+        ]);
+        
+        let rng = create_test_rng();
+        let mut battle = TeamBattle::new(player_team, enemy_team, vec![player_rules], vec![vec![]], rng);
+        
+        // Record initial HP values
+        let initial_high_hp = battle.enemy_team.members[0].hp;
+        let initial_medium_hp = battle.enemy_team.members[1].hp;
+        let initial_low_hp = battle.enemy_team.members[2].hp;
+        
+        // Verify initial HP ordering (lowest should be targeted)
+        assert!(initial_low_hp < initial_medium_hp, "Low HP enemy should have less HP than medium HP enemy");
+        assert!(initial_medium_hp < initial_high_hp, "Medium HP enemy should have less HP than high HP enemy");
+        assert_eq!(initial_low_hp, 35, "Low HP enemy should start with 35 HP");
+        assert_eq!(initial_medium_hp, 65, "Medium HP enemy should start with 65 HP");
+        assert_eq!(initial_high_hp, 95, "High HP enemy should start with 95 HP");
+        
+        // Execute turn - should target the lowest HP enemy
+        battle.execute_turn();
+        
+        // Verify that the lowest HP enemy was targeted
+        let final_high_hp = battle.enemy_team.members[0].hp;
+        let final_medium_hp = battle.enemy_team.members[1].hp;
+        let final_low_hp = battle.enemy_team.members[2].hp;
+        
+        // The low HP enemy should have taken damage
+        assert!(
+            final_low_hp < initial_low_hp,
+            "Low HP enemy should have taken damage. HP: {} -> {}",
+            initial_low_hp,
+            final_low_hp
+        );
+        
+        // Other enemies should be unharmed
+        assert_eq!(
+            final_high_hp, initial_high_hp,
+            "High HP enemy should not have been targeted. HP: {} -> {}",
+            initial_high_hp,
+            final_high_hp
+        );
+        assert_eq!(
+            final_medium_hp, initial_medium_hp,
+            "Medium HP enemy should not have been targeted. HP: {} -> {}",
+            initial_medium_hp,
+            final_medium_hp
+        );
+        
+        // Verify battle log contains the attack
+        assert!(!battle.battle_log.is_empty(), "Battle log should contain attack action");
+        
+        // Calculate damage dealt
+        let damage_dealt = initial_low_hp - final_low_hp;
+        assert!(
+            damage_dealt > 0,
+            "Should have dealt damage to the lowest HP enemy (ID: 4). Damage: {}",
+            damage_dealt
+        );
+        
+        println!("✅ End-to-end test successful: Lowest HP enemy (ID: 4, HP: {} -> {}) took {} damage", 
+                 initial_low_hp, final_low_hp, damage_dealt);
+        println!("   Other enemies remained unharmed: High HP ({} HP), Medium HP ({} HP)", 
+                 final_high_hp, final_medium_hp);
+    }
 }

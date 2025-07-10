@@ -13,6 +13,7 @@
   - FlatTokenInput, StructuredTokenInputの両方をサポート
 - **型安全性**: CharacterHP vs i32 の比較演算も統一的に処理
 - **テスト追加**: GameNumeric trait の機能テスト (crates/action-system/src/core/game_numeric.rs:43-79)
+- **統合テスト追加**: 最低HP敵攻撃テスト (crates/ui-core/src/integration_tests.rs:1345-1417)
 
 ### ファイル変更箇所
 - 新規: `crates/action-system/src/core/game_numeric.rs` - GameNumeric trait定義
@@ -382,4 +383,5 @@ cargo test -p token-input -- converter  # 変換テスト
 cargo test -p battle -- integration_tests
 cargo test -p battle -- team_battle  # チーム戦闘テスト
 cargo test -p json-rule -- loader
+cargo test -p ui-core -- attack_lowest_hp_enemy  # 最低HP攻撃テスト
 ```
