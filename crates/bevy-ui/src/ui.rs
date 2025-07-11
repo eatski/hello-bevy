@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use battle::TeamBattle;
 use ui_core::{GameState, GameMode, CurrentRules, FlatTokenInput};
 use crate::display_text::format_rule_tokens;
@@ -326,6 +327,25 @@ pub fn handle_battle_reset(
     }
 }
 
+// スクリーンショット機能
+pub fn handle_screenshot(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyS) {
+        let path = format!(".temp/screenshots/screenshot_{}.png", 
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs());
+        
+        commands
+            .spawn(Screenshot::primary_window())
+            .observe(save_to_disk(path));
+    }
+}
+
+
 // 矢印キーとEnterでのメニュー操作システム
 pub fn handle_rule_editing(
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -576,10 +596,10 @@ pub fn update_instruction_display(
     for mut text in instruction_query.iter_mut() {
         match game_state.0.mode {
             GameMode::RuleCreation => {
-                text.0 = "【ルール作成モード】 ↑↓: 選択  Enter: 決定  Backspace: 削除  スペース: 戦闘開始".to_string();
+                text.0 = "【ルール作成モード】 ↑↓: 選択  Enter: 決定  Backspace: 削除  スペース: 戦闘開始  S: スクリーンショット".to_string();
             }
             GameMode::Battle => {
-                text.0 = "【戦闘モード】 スペース: 行動実行  Shift: 戦闘リセット（ルール作成に戻る）".to_string();
+                text.0 = "【戦闘モード】 スペース: 行動実行  Shift: 戦闘リセット（ルール作成に戻る）  S: スクリーンショット".to_string();
             }
         }
     }

@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use crate::{
     load_font, setup_ui, setup_team_battle,
     handle_rule_editing, handle_battle_reset, handle_team_restart, handle_team_battle_input,
+    handle_screenshot,
     apply_rules_to_battle, update_rule_display, update_token_inventory_display, 
     update_instruction_display, update_right_panel_visibility, update_battle_info_display,
     update_team_battle_ui, update_team_latest_log_ui
@@ -28,6 +29,7 @@ impl Plugin for GamePlugin {
                 handle_team_restart,
                 handle_rule_editing,
                 handle_battle_reset,
+                handle_screenshot,
                 
                 // Game logic
                 apply_rules_to_battle,
