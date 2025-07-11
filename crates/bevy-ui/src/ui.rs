@@ -38,8 +38,6 @@ pub struct InstructionUI;
 #[derive(Component)]
 pub struct TokenSelectionHeader;
 
-#[derive(Component)]
-pub struct BattleInfo;
 
 #[derive(Component)]
 pub struct TeamBattleUI;
@@ -281,27 +279,6 @@ fn setup_inventory(commands: &mut Commands, game_font: &GameFont) {
         TokenInventory,
     ));
     
-    // 戦闘情報表示エリア（戦闘モード時のみ表示）
-    commands.spawn((
-        Text::new(""),
-        TextFont {
-            font: game_font.font.clone(),
-            font_size: 16.0,
-            ..default()
-        },
-        TextColor(Color::WHITE),
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(110.0),
-            right: Val::Px(20.0),
-            width: Val::Px(250.0),
-            height: Val::Px(400.0),
-            padding: UiRect::all(Val::Px(10.0)),
-            ..default()
-        },
-        BackgroundColor(Color::srgb(0.2, 0.3, 0.4)),
-        BattleInfo,
-    ));
 }
 
 
@@ -504,89 +481,34 @@ pub fn update_token_inventory_display(
     }
 }
 
-// Token Selection ヘッダーとBattle Infoの表示を切り替える
+// Token Selection ヘッダーの表示を切り替える
 pub fn update_right_panel_visibility(
     game_state: Res<BevyGameState>,
-    mut header_query: Query<&mut Node, (With<TokenSelectionHeader>, Without<TokenInventory>, Without<BattleInfo>)>,
-    mut inventory_query: Query<&mut Node, (With<TokenInventory>, Without<TokenSelectionHeader>, Without<BattleInfo>)>,
-    mut battle_info_query: Query<&mut Node, (With<BattleInfo>, Without<TokenSelectionHeader>, Without<TokenInventory>)>,
+    mut header_query: Query<&mut Node, (With<TokenSelectionHeader>, Without<TokenInventory>)>,
+    mut inventory_query: Query<&mut Node, (With<TokenInventory>, Without<TokenSelectionHeader>)>,
 ) {
     match game_state.0.mode {
         GameMode::RuleCreation => {
-            // ルール作成モード：Token Selectionを表示、Battle Infoを非表示
+            // ルール作成モード：Token Selectionを表示
             for mut node in header_query.iter_mut() {
                 node.display = Display::Flex;
             }
             for mut node in inventory_query.iter_mut() {
                 node.display = Display::Flex;
-            }
-            for mut node in battle_info_query.iter_mut() {
-                node.display = Display::None;
             }
         }
         GameMode::Battle => {
-            // 戦闘モード：Token Selectionを非表示、Battle Infoを表示
+            // 戦闘モード：Token Selectionを非表示
             for mut node in header_query.iter_mut() {
                 node.display = Display::None;
             }
             for mut node in inventory_query.iter_mut() {
                 node.display = Display::None;
-            }
-            for mut node in battle_info_query.iter_mut() {
-                node.display = Display::Flex;
             }
         }
     }
 }
 
-// チーム戦闘情報表示の更新
-pub fn update_battle_info_display(
-    game_state: Res<BevyGameState>,
-    game_team_battle: Res<GameTeamBattle>,
-    current_rules: Res<BevyCurrentRules>,
-    mut battle_info_query: Query<&mut Text, With<BattleInfo>>,
-) {
-    if game_state.0.mode != GameMode::Battle {
-        return;
-    }
-    
-    for mut text in battle_info_query.iter_mut() {
-        let battle = &game_team_battle.0;
-        let mut display_text = String::new();
-        
-        display_text.push_str("=== チーム戦闘情報 ===\n\n");
-        
-        // プレイヤーチーム情報
-        display_text.push_str(&format!("【{}】\n", battle.player_team.name));
-        for member in &battle.player_team.members {
-            let status = if member.is_alive() { "生存" } else { "戦闘不能" };
-            display_text.push_str(&format!("  {} - HP:{}/{} MP:{}/{} ({})\n", 
-                member.name, member.hp, member.max_hp, member.mp, member.max_mp, status));
-        }
-        
-        display_text.push_str("\n");
-        
-        // 敵チーム情報
-        display_text.push_str(&format!("【{}】\n", battle.enemy_team.name));
-        for member in &battle.enemy_team.members {
-            let status = if member.is_alive() { "生存" } else { "戦闘不能" };
-            display_text.push_str(&format!("  {} - HP:{}/{} MP:{}/{} ({})\n", 
-                member.name, member.hp, member.max_hp, member.mp, member.max_mp, status));
-        }
-        
-        display_text.push_str("\n");
-        
-        // 設定ルール
-        display_text.push_str("設定ルール:\n");
-        for (i, rule_row) in current_rules.0.rules.iter().enumerate() {
-            if !rule_row.is_empty() {
-                display_text.push_str(&format!("{}. {}\n", i + 1, format_rule_tokens(rule_row)));
-            }
-        }
-        
-        text.0 = display_text;
-    }
-}
 
 // UI表示を更新（モードに応じて）
 pub fn update_instruction_display(
