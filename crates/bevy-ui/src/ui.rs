@@ -230,7 +230,7 @@ fn setup_rule_editor(commands: &mut Commands, game_font: &GameFont) {
             position_type: PositionType::Absolute,
             top: Val::Px(110.0),
             left: Val::Px(20.0),
-            width: Val::Px(500.0),
+            width: Val::Px(700.0),
             height: Val::Px(180.0),
             padding: UiRect::all(Val::Px(10.0)),
             ..default()
@@ -272,7 +272,7 @@ fn setup_inventory(commands: &mut Commands, game_font: &GameFont) {
             position_type: PositionType::Absolute,
             top: Val::Px(110.0),
             right: Val::Px(20.0),
-            width: Val::Px(300.0),
+            width: Val::Px(250.0),
             height: Val::Px(400.0),
             padding: UiRect::all(Val::Px(10.0)),
             ..default()
@@ -294,7 +294,7 @@ fn setup_inventory(commands: &mut Commands, game_font: &GameFont) {
             position_type: PositionType::Absolute,
             top: Val::Px(110.0),
             right: Val::Px(20.0),
-            width: Val::Px(300.0),
+            width: Val::Px(250.0),
             height: Val::Px(400.0),
             padding: UiRect::all(Val::Px(10.0)),
             ..default()
