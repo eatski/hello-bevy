@@ -333,7 +333,7 @@ pub fn handle_screenshot(
     mut commands: Commands,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyS) {
-        let path = format!(".temp/screenshots/screenshot_{}.png", 
+        let path = format!("screenshots/screenshot_{}.png", 
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
