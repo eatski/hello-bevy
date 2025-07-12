@@ -30,6 +30,18 @@ pub struct MPBar;
 pub struct RuleEditor;
 
 #[derive(Component)]
+pub struct RuleDisplay;
+
+#[derive(Component)]
+pub struct BattleRuleDisplay;
+
+#[derive(Component)]
+pub struct BattleRuleText;
+
+#[derive(Component)]
+pub struct MainContentArea;
+
+#[derive(Component)]
 pub struct TokenInventory;
 
 #[derive(Component)]
@@ -133,153 +145,258 @@ pub fn setup_ui(
     commands.insert_resource(BevyCurrentRules::default());
     commands.insert_resource(MenuState::new());
     
-    // ルール編集エリア（左側）
-    setup_rule_editor(&mut commands, &game_font);
-    
-    // インベントリエリア（右側）
-    setup_inventory(&mut commands, &game_font);
-    
-    // 操作説明表示（上部）
+    // メインコンテナ
     commands.spawn((
-        Text::new(""),
-        TextFont {
-            font: game_font.font.clone(),
-            font_size: 16.0,
-            ..default()
-        },
-        TextColor(Color::WHITE),
         Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(10.0),
-            left: Val::Px(20.0),
+            width: Val::Vw(100.0),
+            height: Val::Vh(100.0),
+            padding: UiRect::all(Val::Px(20.0)),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(20.0),
             ..default()
         },
-        InstructionUI,
-    ));
-    
-    // バトル情報表示（下部）
-    commands.spawn((
-        Text::new(""),
-        TextFont {
-            font: game_font.font.clone(),
-            font_size: 18.0,
-            ..default()
-        },
-        TextColor(Color::WHITE),
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: Val::Px(20.0),
-            left: Val::Px(20.0),
-            ..default()
-        },
-        BattleUI,
-    ));
-    
-    
-    // 最新ログ表示（中央上部）
-    commands.spawn((
-        Text::new(""),
-        TextFont {
-            font: game_font.font.clone(),
-            font_size: 20.0,
-            ..default()
-        },
-        TextColor(Color::srgb(1.0, 1.0, 0.0)),
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(40.0),
-            left: Val::Px(50.0),
-            right: Val::Px(50.0),
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        LatestLogUI,
-    ));
+        BackgroundColor(Color::srgb(0.05, 0.05, 0.05)),
+    )).with_children(|parent| {
+        // ヘッダー（操作説明表示）
+        parent.spawn((
+            Node {
+                width: Val::Percent(100.0),
+                padding: UiRect::all(Val::Px(10.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
+            BorderColor(Color::srgb(0.3, 0.3, 0.3)),
+            BorderRadius::all(Val::Px(4.0)),
+        )).with_children(|header| {
+            header.spawn((
+                Text::new(""),
+                TextFont {
+                    font: game_font.font.clone(),
+                    font_size: 16.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+                InstructionUI,
+            ));
+        });
+        
+        // 最新ログ表示
+        parent.spawn((
+            Node {
+                width: Val::Percent(100.0),
+                padding: UiRect::all(Val::Px(10.0)),
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.2, 0.2, 0.0)),
+            BorderColor(Color::srgb(0.8, 0.8, 0.0)),
+            BorderRadius::all(Val::Px(4.0)),
+        )).with_children(|log| {
+            log.spawn((
+                Text::new(""),
+                TextFont {
+                    font: game_font.font.clone(),
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(1.0, 1.0, 0.0)),
+                LatestLogUI,
+            ));
+        });
+        
+        // メインコンテンツエリア
+        parent.spawn((
+            Node {
+                width: Val::Percent(100.0),
+                min_height: Val::Px(200.0), // 最小高さを設定
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(20.0),
+                ..default()
+            },
+            MainContentArea, // 戦闘モード時の表示制御用コンポーネント
+        )).with_children(|main| {
+            // 左側：ルールエディタ（戦闘モード時は右側に移動）
+            main.spawn((
+                Node {
+                    width: Val::Percent(70.0),
+                    height: Val::Percent(100.0),
+                    padding: UiRect::all(Val::Px(0.0)),
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+                BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
+                BorderColor(Color::srgb(0.4, 0.4, 0.4)),
+                BorderRadius::all(Val::Px(8.0)),
+                RuleEditor, // コンテナ全体にRuleEditorコンポーネントを付与
+            )).with_children(|parent| {
+                // Rule ヘッダー
+                parent.spawn((
+                    Text::new("ルール"),
+                    TextFont {
+                        font: game_font.font.clone(),
+                        font_size: 20.0,
+                        ..default()
+                    },
+                    TextColor(Color::WHITE),
+                    Node {
+                        padding: UiRect::all(Val::Px(15.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.25, 0.25, 0.25)),
+                ));
+                
+                // ルール表示エリア
+                parent.spawn((
+                    Text::new(""),
+                    TextFont {
+                        font: game_font.font.clone(),
+                        font_size: 16.0,
+                        ..default()
+                    },
+                    TextColor(Color::WHITE),
+                    Node {
+                        padding: UiRect::all(Val::Px(15.0)),
+                        flex_grow: 1.0,
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.18, 0.18, 0.18)),
+                    RuleDisplay, // 実際のルール表示エリア用の新しいコンポーネント
+                ));
+            });
+            
+            // 右側：トークンインベントリ（選択中のみ表示）
+            main.spawn((
+                Node {
+                    width: Val::Percent(30.0),
+                    height: Val::Percent(100.0),
+                    padding: UiRect::all(Val::Px(0.0)),
+                    flex_direction: FlexDirection::Column,
+                    display: Display::None, // 初期状態では非表示
+                    ..default()
+                },
+                BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
+                BorderColor(Color::srgb(0.4, 0.4, 0.4)),
+                BorderRadius::all(Val::Px(8.0)),
+                TokenSelectionHeader, // コンテナ全体にヘッダーコンポーネントを付与
+            )).with_children(|parent| {
+                // Token Selection ヘッダー
+                parent.spawn((
+                    Text::new("トークン選択"),
+                    TextFont {
+                        font: game_font.font.clone(),
+                        font_size: 20.0,
+                        ..default()
+                    },
+                    TextColor(Color::WHITE),
+                    Node {
+                        padding: UiRect::all(Val::Px(15.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.25, 0.25, 0.25)),
+                ));
+                
+                // トークン選択メニューエリア
+                parent.spawn((
+                    Text::new(""),
+                    TextFont {
+                        font: game_font.font.clone(),
+                        font_size: 16.0,
+                        ..default()
+                    },
+                    TextColor(Color::WHITE),
+                    Node {
+                        padding: UiRect::all(Val::Px(15.0)),
+                        flex_grow: 1.0,
+                        overflow: Overflow::clip(),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.18, 0.18, 0.18)),
+                    TokenInventory,
+                ));
+            });
+        });
+        
+        // フッター（バトル情報表示 + 戦闘モード時のルール表示）
+        parent.spawn((
+            Node {
+                width: Val::Percent(100.0),
+                padding: UiRect::all(Val::Px(15.0)),
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(20.0),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
+            BorderColor(Color::srgb(0.3, 0.3, 0.3)),
+            BorderRadius::all(Val::Px(4.0)),
+        )).with_children(|footer| {
+            // バトル情報表示
+            footer.spawn((
+                Text::new(""),
+                TextFont {
+                    font: game_font.font.clone(),
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+                Node {
+                    flex_grow: 1.0,
+                    ..default()
+                },
+                BattleUI,
+            ));
+            
+            // 戦闘モード時のルール表示
+            footer.spawn((
+                Node {
+                    width: Val::Percent(40.0),
+                    padding: UiRect::all(Val::Px(0.0)),
+                    flex_direction: FlexDirection::Column,
+                    display: Display::None, // 初期状態では非表示
+                    ..default()
+                },
+                BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
+                BorderColor(Color::srgb(0.4, 0.4, 0.4)),
+                BorderRadius::all(Val::Px(8.0)),
+                BattleRuleDisplay, // 戦闘モード用のルール表示コンポーネント
+            )).with_children(|rule_parent| {
+                // ルールヘッダー
+                rule_parent.spawn((
+                    Text::new("設定済みルール"),
+                    TextFont {
+                        font: game_font.font.clone(),
+                        font_size: 16.0,
+                        ..default()
+                    },
+                    TextColor(Color::WHITE),
+                    Node {
+                        padding: UiRect::all(Val::Px(10.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.25, 0.25, 0.25)),
+                ));
+                
+                // ルール内容
+                rule_parent.spawn((
+                    Text::new(""),
+                    TextFont {
+                        font: game_font.font.clone(),
+                        font_size: 14.0,
+                        ..default()
+                    },
+                    TextColor(Color::WHITE),
+                    Node {
+                        padding: UiRect::all(Val::Px(10.0)),
+                        flex_grow: 1.0,
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.18, 0.18, 0.18)),
+                    BattleRuleText, // 戦闘モード用のルールテキスト
+                ));
+            });
+        });
+    });
 }
 
-fn setup_rule_editor(commands: &mut Commands, game_font: &GameFont) {
-    // Rule ヘッダー
-    commands.spawn((
-        Text::new("Rule"),
-        TextFont {
-            font: game_font.font.clone(),
-            font_size: 20.0,
-            ..default()
-        },
-        TextColor(Color::WHITE),
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(80.0),
-            left: Val::Px(20.0),
-            ..default()
-        },
-    ));
-    
-    // ルール表示エリア
-    commands.spawn((
-        Text::new(""),
-        TextFont {
-            font: game_font.font.clone(),
-            font_size: 16.0,
-            ..default()
-        },
-        TextColor(Color::WHITE),
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(110.0),
-            left: Val::Px(20.0),
-            width: Val::Px(700.0),
-            height: Val::Px(180.0),
-            padding: UiRect::all(Val::Px(10.0)),
-            ..default()
-        },
-        BackgroundColor(Color::srgb(0.2, 0.2, 0.2)),
-        RuleEditor,
-    ));
-}
-
-fn setup_inventory(commands: &mut Commands, game_font: &GameFont) {
-    // Token Selection ヘッダー
-    commands.spawn((
-        Text::new("Token Selection"),
-        TextFont {
-            font: game_font.font.clone(),
-            font_size: 20.0,
-            ..default()
-        },
-        TextColor(Color::WHITE),
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(80.0),
-            right: Val::Px(20.0),
-            ..default()
-        },
-        TokenSelectionHeader,
-    ));
-    
-    // トークン選択メニューエリア
-    commands.spawn((
-        Text::new(""),
-        TextFont {
-            font: game_font.font.clone(),
-            font_size: 16.0,
-            ..default()
-        },
-        TextColor(Color::WHITE),
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(110.0),
-            right: Val::Px(20.0),
-            width: Val::Px(250.0),
-            height: Val::Px(400.0),
-            padding: UiRect::all(Val::Px(10.0)),
-            ..default()
-        },
-        BackgroundColor(Color::srgb(0.3, 0.3, 0.3)),
-        TokenInventory,
-    ));
-    
-}
 
 
 
@@ -393,7 +510,7 @@ pub fn update_rule_display(
     game_state: Res<BevyGameState>,
     menu_state: Res<MenuState>,
     current_rules: Res<BevyCurrentRules>,
-    mut rule_query: Query<&mut Text, With<RuleEditor>>,
+    mut rule_query: Query<&mut Text, With<RuleDisplay>>,
 ) {
     for mut text in rule_query.iter_mut() {
         let mut display_text = String::new();
@@ -427,14 +544,25 @@ pub fn update_rule_display(
                 }
             }
             GameMode::Battle => {
-                // 戦闘モード表示
-                display_text.push_str("【戦闘モード】\n");
-                display_text.push_str("設定されたルール:\n\n");
-                
-                for (i, rule_row) in current_rules.0.rules.iter().enumerate() {
-                    display_text.push_str(&format!("行{}: {}\n", i + 1, format_rule_tokens(rule_row)));
-                }
+                // 戦闘モードでは表示しない（BattleRuleTextで表示）
+                display_text = String::new();
             }
+        }
+        
+        text.0 = display_text;
+    }
+}
+
+// 戦闘モードでのルール表示
+pub fn update_battle_rule_display(
+    current_rules: Res<BevyCurrentRules>,
+    mut battle_rule_query: Query<&mut Text, With<BattleRuleText>>,
+) {
+    for mut text in battle_rule_query.iter_mut() {
+        let mut display_text = String::new();
+        
+        for (i, rule_row) in current_rules.0.rules.iter().enumerate() {
+            display_text.push_str(&format!("行{}: {}\n", i + 1, format_rule_tokens(rule_row)));
         }
         
         text.0 = display_text;
@@ -481,20 +609,20 @@ pub fn update_token_inventory_display(
     }
 }
 
-// Token Selection ヘッダーの表示を切り替える
+// Token Selection パネルの表示を切り替える（選択中のみ表示）
 pub fn update_right_panel_visibility(
     game_state: Res<BevyGameState>,
-    mut header_query: Query<&mut Node, (With<TokenSelectionHeader>, Without<TokenInventory>)>,
-    mut inventory_query: Query<&mut Node, (With<TokenInventory>, Without<TokenSelectionHeader>)>,
+    menu_state: Res<MenuState>,
+    mut header_query: Query<&mut Node, With<TokenSelectionHeader>>,
 ) {
     match game_state.0.mode {
         GameMode::RuleCreation => {
-            // ルール作成モード：Token Selectionを表示
+            // ルール作成モード：トークン選択モードの時のみ表示
             for mut node in header_query.iter_mut() {
-                node.display = Display::Flex;
-            }
-            for mut node in inventory_query.iter_mut() {
-                node.display = Display::Flex;
+                node.display = match menu_state.mode {
+                    MenuMode::TokenSelection => Display::Flex,
+                    MenuMode::RowSelection => Display::None,
+                };
             }
         }
         GameMode::Battle => {
@@ -502,8 +630,45 @@ pub fn update_right_panel_visibility(
             for mut node in header_query.iter_mut() {
                 node.display = Display::None;
             }
-            for mut node in inventory_query.iter_mut() {
+        }
+    }
+}
+
+// ルールエディタの位置を戦闘モードに応じて調整
+pub fn update_rule_editor_position(
+    game_state: Res<BevyGameState>,
+    mut rule_editor_query: Query<&mut Node, With<RuleEditor>>,
+    mut battle_rule_query: Query<&mut Node, (With<BattleRuleDisplay>, Without<RuleEditor>, Without<MainContentArea>)>,
+    mut main_content_query: Query<&mut Node, (With<MainContentArea>, Without<RuleEditor>, Without<BattleRuleDisplay>)>,
+) {
+    match game_state.0.mode {
+        GameMode::RuleCreation => {
+            // ルール作成モード：メインエリアにルールエディタを表示
+            for mut node in rule_editor_query.iter_mut() {
+                node.display = Display::Flex;
+            }
+            // メインコンテンツエリアを表示
+            for mut node in main_content_query.iter_mut() {
+                node.display = Display::Flex;
+                node.min_height = Val::Px(200.0);
+            }
+            // バトルルール表示を非表示
+            for mut node in battle_rule_query.iter_mut() {
                 node.display = Display::None;
+            }
+        }
+        GameMode::Battle => {
+            // 戦闘モード：メインエリアのルールエディタを非表示
+            for mut node in rule_editor_query.iter_mut() {
+                node.display = Display::None;
+            }
+            // メインコンテンツエリアを小さく
+            for mut node in main_content_query.iter_mut() {
+                node.display = Display::None; // 戦闘モードでは完全に非表示
+            }
+            // フッターにバトルルール表示を表示
+            for mut node in battle_rule_query.iter_mut() {
+                node.display = Display::Flex;
             }
         }
     }
