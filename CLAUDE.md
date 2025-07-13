@@ -1,11 +1,17 @@
 # hello-bevy 設計サマリ
 
-## 🚀 最新アップデート (RandomCharacterPickNode削除)
+## 🚀 最新アップデート (重複ノードの統合)
 ### 設計変更サマリ
 - **RandomCharacterPickNode削除**: 責務重複の解消
   - `crates/action-system/src/nodes/character/random_character_pick_node.rs` を削除
   - `crates/action-system/src/nodes/array/random_pick_node.rs` の `CharacterRandomPickNode` を使用するように統一
   - 同じ機能を提供する2つのノードが存在していた問題を解消
+
+- **条件ノードの統合**: GameNumeric traitベースの実装に統一
+  - `greater_than_condition_node.rs` を削除（→ `game_numeric_greater_than_node.rs` に統合）
+  - `character_hp_vs_value_condition_node.rs` を削除（→ `game_numeric_greater_than_node.rs` に統合）
+  - 型エイリアスによる後方互換性を維持しつつ、より抽象的な実装に統一
+  - コードの重複を排除し、メンテナンス性を向上
 
 ## 🚀 最新アップデート (GameNumeric trait統一化)
 ### 設計変更サマリ

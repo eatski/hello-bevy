@@ -47,7 +47,7 @@ impl Node<Vec<Character>> for FilterListNode {
 mod tests {
     use super::*;
     use crate::nodes::array::team_members_node::TeamMembersNode;
-    use crate::nodes::condition::greater_than_condition_node::GreaterThanConditionNode;
+    use crate::nodes::condition::GreaterThanConditionNode;
     use crate::nodes::character::character_hp_value_node::CharacterHpValueNode;
     use crate::nodes::character::element_node::ElementNode;
     use crate::nodes::value::constant_value_node::ConstantValueNode;
