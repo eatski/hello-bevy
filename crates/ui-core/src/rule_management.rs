@@ -1,6 +1,6 @@
 // Rule management logic - independent of Bevy
 
-use battle::RuleNode;
+use action_system::RuleNode;
 use token_input::{FlatTokenInput, convert_flat_rules_to_nodes};
 
 #[derive(Default, Clone, Debug)]

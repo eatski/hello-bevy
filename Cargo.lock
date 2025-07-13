@@ -2521,7 +2521,6 @@ dependencies = [
 name = "json-rule"
 version = "0.1.0"
 dependencies = [
- "action-system",
  "serde",
  "serde_json",
  "token-input",

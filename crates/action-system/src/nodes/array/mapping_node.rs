@@ -79,7 +79,6 @@ mod tests {
     // ConstantArrayNode removed - using direct values in tests
     use crate::nodes::character::element_node::ElementNode;
     use crate::nodes::character::character_hp_value_node::CharacterHpValueNode;
-    use crate::nodes::value::constant_value_node::ConstantValueNode;
     use crate::nodes::character::acting_character_node::ActingCharacterNode;
     use crate::{BattleContext, Team, TeamSide};
     use rand::SeedableRng;
