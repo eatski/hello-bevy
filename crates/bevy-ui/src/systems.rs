@@ -1,5 +1,6 @@
 // Bevy system integration - all game systems setup
 use bevy::prelude::*;
+use rand::SeedableRng;
 
 use crate::{GameTeamBattle, BevyGameState, BevyCurrentRules};
 use crate::ui::{BattleUI, LatestLogUI};
@@ -17,11 +18,13 @@ pub fn setup_team_battle(mut commands: Commands, current_rules: Res<BevyCurrentR
     let enemy_rule_set = load_rules_from_file(DEFAULT_ENEMY_RULES_PATH)
         .expect("Failed to load enemy rules from JSON file");
     
+    let rng = rand::rngs::StdRng::from_entropy();
     let team_battle = BattleOrchestrator::create_battle(
         &current_rules.0,
         player_team,
         enemy_team,
         &enemy_rule_set,
+        rng,
     );
     println!("Loaded team battle rules: UI rules for players, JSON for enemies");
     commands.insert_resource(GameTeamBattle(team_battle));
@@ -44,11 +47,13 @@ pub fn handle_team_restart(
         let enemy_rule_set = load_rules_from_file(DEFAULT_ENEMY_RULES_PATH)
             .expect("Failed to load enemy rules from JSON file");
         
+        let rng = rand::rngs::StdRng::from_entropy();
         game_team_battle.0 = BattleOrchestrator::create_battle(
             &current_rules.0,
             player_team,
             enemy_team,
             &enemy_rule_set,
+            rng,
         );
         println!("チーム戦闘をリスタートしました");
     }
@@ -68,11 +73,13 @@ pub fn apply_rules_to_battle(
         let enemy_rule_set = load_rules_from_file(DEFAULT_ENEMY_RULES_PATH)
             .expect("Failed to load enemy rules from JSON file");
         
+        let rng = rand::rngs::StdRng::from_entropy();
         game_team_battle.0 = BattleOrchestrator::create_battle(
             &current_rules.0,
             player_team,
             enemy_team,
             &enemy_rule_set,
+            rng,
         );
         println!("新しいチーム戦闘を開始しました。");
     }

@@ -52,7 +52,7 @@ mod tests {
         // Enemy has no rules
         let enemy_rule_set = RuleSet { rules: vec![] };
         
-        let mut battle = BattleOrchestrator::create_battle_with_rng(
+        let mut battle = BattleOrchestrator::create_battle(
             &current_rules,
             player_team,
             enemy_team,
@@ -161,7 +161,7 @@ mod tests {
         // Enemy has no rules
         let enemy_rule_set = RuleSet { rules: vec![] };
         
-        let mut battle = BattleOrchestrator::create_battle_with_rng(
+        let mut battle = BattleOrchestrator::create_battle(
             &current_rules,
             player_team,
             enemy_team,
@@ -218,7 +218,7 @@ mod tests {
         // Enemy has no rules
         let enemy_rule_set = RuleSet { rules: vec![] };
         
-        let mut battle = BattleOrchestrator::create_battle_with_rng(
+        let mut battle = BattleOrchestrator::create_battle(
             &current_rules,
             player_team,
             enemy_team,
@@ -388,7 +388,7 @@ mod tests {
         // Enemy has no rules
         let enemy_rule_set = RuleSet { rules: vec![] };
         
-        let mut battle = BattleOrchestrator::create_battle_with_rng(
+        let mut battle = BattleOrchestrator::create_battle(
             &current_rules,
             player_team,
             enemy_team,
@@ -438,7 +438,7 @@ mod tests {
         // Enemy has no rules
         let enemy_rule_set = RuleSet { rules: vec![] };
         
-        let mut battle = BattleOrchestrator::create_battle_with_rng(
+        let mut battle = BattleOrchestrator::create_battle(
             &current_rules,
             player_team,
             enemy_team,
@@ -488,7 +488,7 @@ mod tests {
         // Enemy has no rules
         let enemy_rule_set = RuleSet { rules: vec![] };
         
-        let mut battle = BattleOrchestrator::create_battle_with_rng(
+        let mut battle = BattleOrchestrator::create_battle(
             &current_rules,
             player_team,
             enemy_team,
@@ -531,7 +531,7 @@ mod tests {
         // Enemy has no rules
         let enemy_rule_set = RuleSet { rules: vec![] };
         
-        let mut battle = BattleOrchestrator::create_battle_with_rng(
+        let mut battle = BattleOrchestrator::create_battle(
             &current_rules,
             player_team,
             enemy_team,
@@ -578,7 +578,7 @@ mod tests {
         // Setup enemy rules - heal acting character
         let enemy_rule_set = create_heal_rule_set(StructuredTokenInput::ActingCharacter);
         
-        let mut battle = BattleOrchestrator::create_battle_with_rng(
+        let mut battle = BattleOrchestrator::create_battle(
             &current_rules,
             player_team,
             enemy_team,

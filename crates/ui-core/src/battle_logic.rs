@@ -2,7 +2,6 @@
 use battle::{TeamBattle, Team};
 use json_rule::RuleSet;
 use token_input::convert_ruleset_to_nodes;
-use rand::SeedableRng;
 use crate::{CurrentRules, GameMode, GameState};
 
 pub struct BattleOrchestrator;
@@ -10,17 +9,6 @@ pub struct BattleOrchestrator;
 impl BattleOrchestrator {
     // Create and setup a new battle with the given teams and rules
     pub fn create_battle(
-        current_rules: &CurrentRules,
-        player_team: Team,
-        enemy_team: Team,
-        enemy_rule_set: &RuleSet,
-    ) -> TeamBattle {
-        let rng = rand::rngs::StdRng::from_entropy();
-        Self::create_battle_with_rng(current_rules, player_team, enemy_team, enemy_rule_set, rng)
-    }
-    
-    // Create battle with a specific RNG (useful for tests)
-    pub fn create_battle_with_rng(
         current_rules: &CurrentRules,
         player_team: Team,
         enemy_team: Team,
