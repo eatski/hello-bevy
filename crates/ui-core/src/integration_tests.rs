@@ -11,15 +11,6 @@ fn create_test_rng() -> StdRng {
     StdRng::seed_from_u64(12345)
 }
 
-// Helper to create a RuleSet with a single Strike rule targeting a character
-fn create_strike_rule_set(target: StructuredTokenInput) -> RuleSet {
-    RuleSet {
-        rules: vec![StructuredTokenInput::Strike {
-            target: Box::new(target),
-        }],
-    }
-}
-
 // Helper to create a RuleSet with a single Heal rule targeting a character
 fn create_heal_rule_set(target: StructuredTokenInput) -> RuleSet {
     RuleSet {
@@ -557,7 +548,6 @@ mod tests {
     fn test_multi_character_battle_ui_to_battle_integration() {
         // Test complex battle with multiple characters and rules
         let strike_rule = vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters];
-        let heal_rule = vec![FlatTokenInput::Heal, FlatTokenInput::ActingCharacter];
         
         // Setup battle with multiple characters
         let player_team = Team::new("Heroes".to_string(), vec![
