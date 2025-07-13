@@ -224,24 +224,7 @@ mod tests {
         assert_eq!(result.id, 42);
     }
 
-    #[test]
-    fn test_max_node_integration() {
-        use crate::nodes::array::{MaxNode, ConstantArrayNode};
-        
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        let character = Character::new(18, "Test Character".to_string(), 100, 100, 20);
-        let team = Team::new("Test Team".to_string(), vec![character.clone()]);
-        let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
-        
-        // Test MaxNode with constant array
-        let array_node = Box::new(ConstantArrayNode::new(vec![10, 50, 30, 80, 20]));
-        let max_node = MaxNode::new(array_node);
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<i32>::evaluate(&max_node, &eval_context, &mut rng).unwrap();
-        
-        assert_eq!(result, 80);
-    }
+    // Removed test_max_node_integration - ConstantArrayNode deleted
 
     #[test]
     fn test_max_node_with_character_hp_integration() {
@@ -281,25 +264,6 @@ mod tests {
         assert_eq!(result, 80);
     }
 
-    #[test]
-    fn test_max_node_empty_array_integration() {
-        use crate::nodes::array::{MaxNode, ConstantArrayNode};
-        
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        let character = Character::new(22, "Test Character".to_string(), 100, 100, 20);
-        let team = Team::new("Test Team".to_string(), vec![character.clone()]);
-        let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
-        
-        // Test MaxNode with empty array
-        let array_node = Box::new(ConstantArrayNode::new(vec![]));
-        let max_node = MaxNode::new(array_node);
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<i32>::evaluate(&max_node, &eval_context, &mut rng);
-        
-        // Should return an error for empty array
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cannot find max of empty array"));
-    }
+    // Removed test_max_node_empty_array_integration - ConstantArrayNode deleted
 
 }

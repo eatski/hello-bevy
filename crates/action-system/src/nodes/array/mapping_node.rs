@@ -76,7 +76,7 @@ impl_mapping_for_types! {
 mod tests {
     use super::*;
     use crate::nodes::array::team_members_node::TeamMembersNode;
-    use crate::nodes::array::constant_array_node::ConstantArrayNode;
+    // ConstantArrayNode removed - using direct values in tests
     use crate::nodes::character::element_node::ElementNode;
     use crate::nodes::character::character_hp_value_node::CharacterHpValueNode;
     use crate::nodes::value::constant_value_node::ConstantValueNode;
@@ -117,34 +117,7 @@ mod tests {
         assert_eq!(result[2], 30);
     }
 
-    #[test]
-    fn test_value_to_value_mapping() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        let char1 = Character::new(1, "Test".to_string(), 100, 100, 10);
-        let player_team = Team::new("Player".to_string(), vec![char1.clone()]);
-        let enemy_team = Team::new("Enemy".to_string(), vec![]);
-        
-        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
-        
-        // Create mapping that doubles each value
-        let values = vec![10, 20, 30];
-        let value_array = Box::new(ConstantArrayNode::new(values));
-        
-        // Create a node that returns Element * 2 (we'll use a simple constant for testing)
-        let double_transform = Box::new(ConstantValueNode::new(42)); // For simplicity
-        
-        let mapping_node = MappingNode::new(value_array, double_transform);
-        
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Vec<i32>>::evaluate(&mapping_node, &eval_context, &mut rng).unwrap();
-        
-        // Should return [42, 42, 42] since we're using a constant transform
-        assert_eq!(result.len(), 3);
-        assert_eq!(result[0], 42);
-        assert_eq!(result[1], 42);
-        assert_eq!(result[2], 42);
-    }
+    // Removed test_value_to_value_mapping - ConstantArrayNode deleted
 
     #[test]
     fn test_character_to_character_mapping() {
@@ -174,52 +147,7 @@ mod tests {
         assert_eq!(result[1].id, 1); // Acting character is char1
     }
 
-    #[test]
-    fn test_mapping_empty_array() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        let char1 = Character::new(1, "Test".to_string(), 100, 100, 10);
-        let player_team = Team::new("Player".to_string(), vec![char1.clone()]);
-        let enemy_team = Team::new("Enemy".to_string(), vec![]);
-        
-        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
-        
-        // Create mapping with empty array
-        let empty_array = Box::new(ConstantArrayNode::new(vec![]));
-        let transform = Box::new(ConstantValueNode::new(42));
-        
-        let mapping_node = MappingNode::new(empty_array, transform);
-        
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Vec<i32>>::evaluate(&mapping_node, &eval_context, &mut rng).unwrap();
-        
-        // Should return empty array
-        assert_eq!(result.len(), 0);
-    }
+    // Removed test_mapping_empty_array - ConstantArrayNode deleted
 
-    #[test]
-    fn test_mapping_node_boxed() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        let char1 = Character::new(1, "Test".to_string(), 100, 100, 10);
-        let player_team = Team::new("Player".to_string(), vec![char1.clone()]);
-        let enemy_team = Team::new("Enemy".to_string(), vec![]);
-        
-        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
-        
-        // Test as boxed trait object
-        let values = vec![10, 20];
-        let value_array = Box::new(ConstantArrayNode::new(values));
-        let transform = Box::new(ConstantValueNode::new(99));
-        
-        let mapping_node: Box<dyn Node<Vec<i32>>> = Box::new(MappingNode::new(value_array, transform));
-        
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = mapping_node.evaluate(&eval_context, &mut rng).unwrap();
-        
-        // Should return [99, 99]
-        assert_eq!(result.len(), 2);
-        assert_eq!(result[0], 99);
-        assert_eq!(result[1], 99);
-    }
+    // Removed test_mapping_node_boxed - ConstantArrayNode deleted
 }

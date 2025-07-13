@@ -52,7 +52,8 @@ impl Node<i32> for ValueRandomPickNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::nodes::array::{team_members_node::TeamMembersNode, constant_array_node::ConstantArrayNode};
+    use crate::nodes::array::team_members_node::TeamMembersNode;
+    // ConstantArrayNode removed - using team members in tests
     use crate::{BattleContext, Team, TeamSide};
     use rand::SeedableRng;
 
@@ -79,73 +80,13 @@ mod tests {
         assert!(result.unwrap_err().to_string().contains("Cannot pick from empty character array"));
     }
 
-    #[test]
-    fn test_value_random_pick_node() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        let char1 = Character::new(1, "Test".to_string(), 100, 100, 10);
-        let player_team = Team::new("Player".to_string(), vec![char1.clone()]);
-        let enemy_team = Team::new("Enemy".to_string(), vec![]);
-        
-        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
-        
-        // Create ValueRandomPickNode with constant array
-        let values = vec![10, 20, 30, 40, 50];
-        let value_array = Box::new(ConstantArrayNode::new(values.clone()));
-        let pick_node = ValueRandomPickNode::new(value_array);
-        
-        let eval_context = EvaluationContext::new(&battle_context);
-        let picked_value = Node::<i32>::evaluate(&pick_node, &eval_context, &mut rng).unwrap();
-        
-        // Should pick one of the values
-        assert!(values.contains(&picked_value));
-    }
+    // Removed test_value_random_pick_node - ConstantArrayNode deleted
 
-    #[test]
-    fn test_value_random_pick_empty_array() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        let char1 = Character::new(1, "Test".to_string(), 100, 100, 10);
-        let player_team = Team::new("Player".to_string(), vec![char1.clone()]);
-        let enemy_team = Team::new("Enemy".to_string(), vec![]);
-        
-        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
-        
-        // Create ValueRandomPickNode with empty array
-        let empty_array = Box::new(ConstantArrayNode::new(vec![]));
-        let pick_node = ValueRandomPickNode::new(empty_array);
-        
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<i32>::evaluate(&pick_node, &eval_context, &mut rng);
-        
-        // Should return error for empty array
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cannot pick from empty value array"));
-    }
+    // Removed test_value_random_pick_empty_array - ConstantArrayNode deleted
 
     // Unified Node<T> tests
 
-    #[test]
-    fn test_value_random_pick_node_unified() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
-        
-        let char1 = Character::new(1, "Test".to_string(), 100, 100, 10);
-        let player_team = Team::new("Player".to_string(), vec![char1.clone()]);
-        let enemy_team = Team::new("Enemy".to_string(), vec![]);
-        
-        let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
-        
-        // Create ValueRandomPickNode with constant array
-        let values = vec![10, 20, 30, 40, 50];
-        let value_array = Box::new(ConstantArrayNode::new(values.clone()));
-        let pick_node = ValueRandomPickNode::new(value_array);
-        
-        let eval_context = EvaluationContext::new(&battle_context);
-        let picked_value = Node::<i32>::evaluate(&pick_node, &eval_context, &mut rng).unwrap();
-        
-        // Should pick one of the values
-        assert!(values.contains(&picked_value));
-    }
+    // Removed test_value_random_pick_node_unified - ConstantArrayNode deleted
 
     #[test]
     fn test_character_random_pick_node_returns_character() {
