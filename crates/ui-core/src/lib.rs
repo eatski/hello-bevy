@@ -10,5 +10,5 @@ mod integration_tests;
 // Re-export public types
 pub use game_state::{GameState, GameMode};
 pub use rule_management::CurrentRules;
-pub use token_input::{FlatTokenInput, convert_flat_rules_to_nodes};
+pub use token_input::{FlatTokenInput, convert_flat_to_structured, convert_structured_to_node};
 pub use battle_logic::BattleOrchestrator;

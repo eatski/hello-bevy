@@ -1,8 +1,6 @@
 // FlatTokenInput → StructuredTokenInput 変換
 
 use crate::{FlatTokenInput, StructuredTokenInput};
-use crate::structured_to_node::{convert_structured_to_node};
-use action_system::RuleNode;
 
 // FlatTokenInput → StructuredTokenInput 変換
 pub fn convert_flat_to_structured(flat_tokens: &[FlatTokenInput]) -> Result<Vec<StructuredTokenInput>, String> {
@@ -168,77 +166,6 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
     }
 }
 
-// Vec<Vec<FlatTokenInput>> → Vec<RuleNode> 変換（UI入力経路）
-pub fn convert_flat_rules_to_nodes(flat_rules: &[Vec<FlatTokenInput>]) -> Vec<RuleNode> {
-    flat_rules
-        .iter()
-        .filter(|rule_row| !rule_row.is_empty())
-        .filter_map(|rule_row| {
-            // FlatTokenInput → StructuredTokenInput → Node
-            match convert_flat_to_structured(rule_row) {
-                Ok(structured_tokens) => {
-                    if structured_tokens.is_empty() {
-                        println!("WARNING: Empty structured tokens for rule: {:?}", rule_row);
-                        return None;
-                    }
-                    
-                    match convert_structured_to_node(&structured_tokens[0]) {
-                        Ok(parsed) => {
-                            match parsed.require_action() {
-                                Ok(action) => Some(action),
-                                Err(e) => {
-                                    println!("ERROR: Failed to require action for rule: {:?}", rule_row);
-                                    println!("       Error: {}", e);
-                                    None
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            println!("ERROR: Failed to convert structured to node for rule: {:?}", rule_row);
-                            println!("       Error: {}", e);
-                            None
-                        }
-                    }
-                }
-                Err(e) => {
-                    println!("ERROR: Failed to convert flat to structured for rule: {:?}", rule_row);
-                    println!("       Error: {}", e);
-                    None
-                }
-            }
-        })
-        .collect()
-}
-
-// Result版 - エラーを明示的に返す
-pub fn convert_flat_rules_to_nodes_strict(flat_rules: &[Vec<FlatTokenInput>]) -> Result<Vec<RuleNode>, String> {
-    let mut result = Vec::new();
-    
-    for (rule_index, rule_row) in flat_rules.iter().enumerate() {
-        if rule_row.is_empty() {
-            continue;
-        }
-        
-        // FlatTokenInput → StructuredTokenInput → Node
-        let structured_tokens = convert_flat_to_structured(rule_row)
-            .map_err(|e| format!("Rule {}: Failed to convert flat to structured: {}", rule_index, e))?;
-        
-        if structured_tokens.is_empty() {
-            return Err(format!("Rule {}: Empty structured tokens", rule_index));
-        }
-        
-        let parsed = convert_structured_to_node(&structured_tokens[0])
-            .map_err(|e| format!("Rule {}: Failed to convert structured to node: {}", rule_index, e))?;
-        
-        let action = parsed.require_action()
-            .map_err(|e| format!("Rule {}: Failed to require action: {}", rule_index, e))?;
-        
-        result.push(action);
-    }
-    
-    Ok(result)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -396,27 +323,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_character_hp_integration() {
-        // Test CharacterHPValue integration
-        let flat_rules = vec![
-            vec![FlatTokenInput::Strike, FlatTokenInput::CharacterHpToCharacter, FlatTokenInput::CharacterToHp, FlatTokenInput::ActingCharacter],
-        ];
-        
-        let nodes = convert_flat_rules_to_nodes(&flat_rules);
-        assert_eq!(nodes.len(), 1);
-    }
-
-    #[test]
-    fn test_character_hp_value_integration() {
-        // Test standalone CharacterHPValue
-        let flat_rules = vec![
-            vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters],
-        ];
-        
-        let nodes = convert_flat_rules_to_nodes(&flat_rules);
-        assert_eq!(nodes.len(), 1);
-    }
 
     #[test]
     fn test_eq_character_comparison() {
@@ -462,23 +368,4 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_flat_rules_to_nodes() {
-        let flat_rules = vec![
-            vec![FlatTokenInput::Strike, FlatTokenInput::ActingCharacter],
-            vec![FlatTokenInput::Heal, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters],
-        ];
-        
-        let nodes = convert_flat_rules_to_nodes(&flat_rules);
-        assert_eq!(nodes.len(), 2);
-    }
-
-    #[test]
-    fn test_conversion_integration() {
-        // Test full conversion pipeline: Flat → Structured → Node
-        let flat = vec![FlatTokenInput::Strike, FlatTokenInput::ActingCharacter];
-        let structured = convert_flat_to_structured(&flat).unwrap();
-        let node_result = convert_structured_to_node(&structured[0]).unwrap();
-        assert!(node_result.require_action().is_ok());
-    }
 }
