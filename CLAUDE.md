@@ -1,5 +1,12 @@
 # hello-bevy 設計サマリ
 
+## 🚀 最新アップデート (RandomCharacterPickNode削除)
+### 設計変更サマリ
+- **RandomCharacterPickNode削除**: 責務重複の解消
+  - `crates/action-system/src/nodes/character/random_character_pick_node.rs` を削除
+  - `crates/action-system/src/nodes/array/random_pick_node.rs` の `CharacterRandomPickNode` を使用するように統一
+  - 同じ機能を提供する2つのノードが存在していた問題を解消
+
 ## 🚀 最新アップデート (GameNumeric trait統一化)
 ### 設計変更サマリ
 - **GameNumeric trait**: CharacterHPとi32値を統一的に扱うtraitを新規追加
