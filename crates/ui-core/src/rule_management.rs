@@ -44,7 +44,13 @@ impl CurrentRules {
                         }
                         
                         match convert_structured_to_node(&structured_tokens[0]) {
-                            Ok(parsed) => parsed.require_action().ok(),
+                            Ok(parsed) => {
+                                // require_action()の実装を直接記述
+                                match parsed.node.downcast::<Box<dyn action_system::Node<Box<dyn action_system::Action>>>>() {
+                                    Ok(action) => Some(*action),
+                                    Err(_) => None,
+                                }
+                            },
                             Err(_) => None,
                         }
                     }
