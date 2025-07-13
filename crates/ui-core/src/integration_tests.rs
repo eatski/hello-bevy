@@ -3,46 +3,30 @@
 
 use crate::{GameState, CurrentRules, FlatTokenInput, BattleOrchestrator};
 use battle::{TeamBattle, Team, Character as GameCharacter};
-use token_input::{RuleSet, StructuredTokenInput};
+use token_input::{RuleSet, StructuredTokenInput, convert_flat_rules_to_nodes};
 use rand::{SeedableRng, rngs::StdRng};
 use action_system::{CharacterToHpNode, ElementNode};
 
-// Helper function to create a test battle using BattleOrchestrator
-fn create_test_battle_with_rules(
-    player_flat_rules: Vec<Vec<FlatTokenInput>>,
-    enemy_flat_rules: Vec<Vec<FlatTokenInput>>,
-    player_team: Team,
-    enemy_team: Team,
-) -> TeamBattle {
-    // Set up player rules through CurrentRules
-    let current_rules = CurrentRules::with_rules(player_flat_rules);
-    
-    // Convert enemy rules to RuleSet format
-    let enemy_rule_set = flat_rules_to_rule_set(enemy_flat_rules);
-    
-    // Create battle using BattleOrchestrator
-    BattleOrchestrator::create_battle(
-        &current_rules,
-        player_team,
-        enemy_team,
-        &enemy_rule_set,
-    )
-}
-
-// Helper to convert flat rules to RuleSet for enemy rules
-fn flat_rules_to_rule_set(flat_rules: Vec<Vec<FlatTokenInput>>) -> RuleSet {
-    use token_input::convert_flat_to_structured;
-    
-    // Each flat rule becomes one StructuredTokenInput in the RuleSet
-    let rules: Vec<StructuredTokenInput> = flat_rules.into_iter()
-        .filter_map(|tokens| convert_flat_to_structured(&tokens).ok())
-        .collect();
-    
-    RuleSet { rules }
-}
-
 fn create_test_rng() -> StdRng {
     StdRng::seed_from_u64(12345)
+}
+
+// Helper to create a RuleSet with a single Strike rule targeting a character
+fn create_strike_rule_set(target: StructuredTokenInput) -> RuleSet {
+    RuleSet {
+        rules: vec![StructuredTokenInput::Strike {
+            target: Box::new(target),
+        }],
+    }
+}
+
+// Helper to create a RuleSet with a single Heal rule targeting a character
+fn create_heal_rule_set(target: StructuredTokenInput) -> RuleSet {
+    RuleSet {
+        rules: vec![StructuredTokenInput::Heal {
+            target: Box::new(target),
+        }],
+    }
 }
 
 #[cfg(test)]
@@ -54,6 +38,9 @@ mod tests {
         // Test UI input → Battle execution → Damage verification
         let flat_rule = vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters];
         
+        // Setup player rules
+        let current_rules = CurrentRules::with_rules(vec![flat_rule]);
+        
         // Setup battle with player and enemy
         let player_team = Team::new("Heroes".to_string(), vec![
             GameCharacter::new(1, "Fighter".to_string(), 100, 50, 25),
@@ -62,11 +49,15 @@ mod tests {
             GameCharacter::new(2, "Slime".to_string(), 80, 20, 15),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![flat_rule],
-            vec![vec![]],
+        // Enemy has no rules
+        let enemy_rule_set = RuleSet { rules: vec![] };
+        
+        let mut battle = BattleOrchestrator::create_battle_with_rng(
+            &current_rules,
             player_team,
             enemy_team,
+            &enemy_rule_set,
+            create_test_rng(),
         );
         
         // Execute battle turn and verify damage was dealt
@@ -164,11 +155,18 @@ mod tests {
             GameCharacter::new(2, "Slime".to_string(), 80, 20, 15),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![flat_rule],
-            vec![vec![]],
+        // Setup player rules
+        let current_rules = CurrentRules::with_rules(vec![flat_rule]);
+        
+        // Enemy has no rules
+        let enemy_rule_set = RuleSet { rules: vec![] };
+        
+        let mut battle = BattleOrchestrator::create_battle_with_rng(
+            &current_rules,
             player_team,
             enemy_team,
+            &enemy_rule_set,
+            create_test_rng(),
         );
         
         // Execute battle turn and verify it doesn't crash
@@ -214,11 +212,18 @@ mod tests {
             FlatTokenInput::Enemy
         ];
         
-        let mut battle = create_test_battle_with_rules(
-            vec![flat_rule],
-            vec![vec![]],
+        // Setup player rules
+        let current_rules = CurrentRules::with_rules(vec![flat_rule]);
+        
+        // Enemy has no rules
+        let enemy_rule_set = RuleSet { rules: vec![] };
+        
+        let mut battle = BattleOrchestrator::create_battle_with_rng(
+            &current_rules,
             player_team,
             enemy_team,
+            &enemy_rule_set,
+            create_test_rng(),
         );
         
         // Execute battle turn
@@ -258,15 +263,6 @@ mod tests {
         // Create a complex rule that targets the lowest HP enemy
         // The FlatTokenInput version would be too complex for now, so we'll manually verify the concept
         
-        let flat_rule = vec![
-            FlatTokenInput::Strike,
-            FlatTokenInput::RandomPick,
-            FlatTokenInput::TeamMembers,
-            FlatTokenInput::Enemy
-        ];
-        
-        // Rules will be created in the loop for each test run
-        
         // Run the battle multiple times to verify statistical targeting
         let mut lowest_hp_targeted = 0;
         let total_runs = 10;
@@ -294,12 +290,14 @@ mod tests {
                 FlatTokenInput::Enemy
             ];
             
-            // Note: create_test_battle_with_rules uses a fixed seed
-            let mut battle = create_test_battle_with_rules(
-                vec![test_flat_rule],
-                vec![vec![]],
+            let test_rule_nodes = convert_flat_rules_to_nodes(&[test_flat_rule]);
+            let test_rng = StdRng::seed_from_u64(12345 + run as u64); // Variable seed for each run
+            let mut battle = TeamBattle::new(
                 test_player_team,
                 test_enemy_team,
+                vec![test_rule_nodes],
+                vec![vec![]],
+                test_rng,
             );
             
             // Execute battle turn
@@ -374,6 +372,10 @@ mod tests {
     fn test_heal_ui_to_battle_integration() {
         // Test UI input → Battle execution → Healing verification
         let flat_rule = vec![FlatTokenInput::Heal, FlatTokenInput::ActingCharacter];
+        
+        // Setup player rules
+        let current_rules = CurrentRules::with_rules(vec![flat_rule]);
+        
         // Setup battle with damaged player character
         let mut damaged_player = GameCharacter::new(1, "Injured Hero".to_string(), 100, 100, 20);
         damaged_player.hp = 40; // Damaged
@@ -383,11 +385,15 @@ mod tests {
             GameCharacter::new(2, "Dummy".to_string(), 50, 20, 10),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![flat_rule],
-            vec![vec![]],
+        // Enemy has no rules
+        let enemy_rule_set = RuleSet { rules: vec![] };
+        
+        let mut battle = BattleOrchestrator::create_battle_with_rng(
+            &current_rules,
             player_team,
             enemy_team,
+            &enemy_rule_set,
+            create_test_rng(),
         );
         
         // Execute battle turn and verify healing occurred
@@ -426,11 +432,18 @@ mod tests {
             GameCharacter::new(2, "Target".to_string(), 60, 20, 15),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![flat_rule],
-            vec![vec![]],
+        // Setup player rules
+        let current_rules = CurrentRules::with_rules(vec![flat_rule]);
+        
+        // Enemy has no rules
+        let enemy_rule_set = RuleSet { rules: vec![] };
+        
+        let mut battle = BattleOrchestrator::create_battle_with_rng(
+            &current_rules,
             player_team,
             enemy_team,
+            &enemy_rule_set,
+            create_test_rng(),
         );
         
         // Execute battle turn and verify conditional strike occurred
@@ -469,11 +482,18 @@ mod tests {
             GameCharacter::new(2, "Target".to_string(), 60, 20, 15),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![flat_rule],
-            vec![vec![]],
+        // Setup player rules
+        let current_rules = CurrentRules::with_rules(vec![flat_rule]);
+        
+        // Enemy has no rules
+        let enemy_rule_set = RuleSet { rules: vec![] };
+        
+        let mut battle = BattleOrchestrator::create_battle_with_rng(
+            &current_rules,
             player_team,
             enemy_team,
+            &enemy_rule_set,
+            create_test_rng(),
         );
         
         // Execute battle turn and verify NO strike occurred
@@ -505,11 +525,18 @@ mod tests {
             GameCharacter::new(3, "SecondEnemy".to_string(), 70, 25, 20),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![flat_rule],
-            vec![vec![]],
+        // Setup player rules
+        let current_rules = CurrentRules::with_rules(vec![flat_rule]);
+        
+        // Enemy has no rules
+        let enemy_rule_set = RuleSet { rules: vec![] };
+        
+        let mut battle = BattleOrchestrator::create_battle_with_rng(
+            &current_rules,
             player_team,
             enemy_team,
+            &enemy_rule_set,
+            create_test_rng(),
         );
         
         // Execute battle turn and verify self-targeting occurred
@@ -545,11 +572,18 @@ mod tests {
             GameCharacter::new(4, "Goblin".to_string(), 60, 30, 15),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![strike_rule],
-            vec![heal_rule],
+        // Setup player rules
+        let current_rules = CurrentRules::with_rules(vec![strike_rule]);
+        
+        // Setup enemy rules - heal acting character
+        let enemy_rule_set = create_heal_rule_set(StructuredTokenInput::ActingCharacter);
+        
+        let mut battle = BattleOrchestrator::create_battle_with_rng(
+            &current_rules,
             player_team,
             enemy_team,
+            &enemy_rule_set,
+            create_test_rng(),
         );
         
         // Execute multiple turns and verify both strike and heal actions occur
@@ -593,12 +627,11 @@ mod tests {
             GameCharacter::new(6, "Goblin Shaman".to_string(), 70, 90, 20),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![player_strike_rule],
-            vec![enemy_heal_rule],
-            player_team,
-            enemy_team,
-        );
+        let player_rules = convert_flat_rules_to_nodes(&[player_strike_rule]);
+        let enemy_rules = convert_flat_rules_to_nodes(&[enemy_heal_rule]);
+        
+        let rng = create_test_rng();
+        let mut battle = TeamBattle::new(player_team, enemy_team, vec![player_rules], vec![enemy_rules], rng);
         
         // Execute full battle round and verify both teams acted
         let initial_battle_log_size = battle.battle_log.len();
@@ -710,12 +743,10 @@ mod tests {
             GameCharacter::new(2, "Test Enemy".to_string(), 70, 25, 18),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![rule1, rule2, rule3],
-            vec![vec![]],
-            player_team,
-            enemy_team,
-        );
+        let player_rules = convert_flat_rules_to_nodes(&[rule1, rule2, rule3]);
+        
+        let rng = create_test_rng();
+        let mut battle = TeamBattle::new(player_team, enemy_team, vec![player_rules], vec![vec![]], rng);
         
         // Execute battle and verify one of the rules executed
         let initial_player_hp = battle.player_team.members[0].hp;
@@ -749,12 +780,13 @@ mod tests {
             GameCharacter::new(2, "Weak Enemy".to_string(), 10, 10, 5), // Very weak
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![strong_strike_rule],
-            vec![vec![]],
-            player_team,
-            enemy_team,
-        );
+        let rule_nodes = convert_flat_rules_to_nodes(&[strong_strike_rule]);
+        
+        let player_rules = vec![rule_nodes];
+        let enemy_rules = vec![vec![]];
+        
+        let rng = create_test_rng();
+        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
         
         // Execute battle until completion
         let mut turns_executed = 0;
@@ -784,12 +816,10 @@ mod tests {
             GameCharacter::new(2, "Test Enemy".to_string(), 80, 30, 20),
         ]);
         
-        let mut battle = create_test_battle_with_rules(
-            vec![],
-            vec![vec![]],
-            player_team,
-            enemy_team,
-        );
+        let empty_rules = convert_flat_rules_to_nodes(&[]);
+        
+        let rng = create_test_rng();
+        let mut battle = TeamBattle::new(player_team, enemy_team, vec![empty_rules], vec![vec![]], rng);
         
         // Execute battle turn with empty rules
         let initial_player_hp = battle.player_team.members[0].hp;

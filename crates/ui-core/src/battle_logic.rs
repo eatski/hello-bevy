@@ -15,6 +15,18 @@ impl BattleOrchestrator {
         enemy_team: Team,
         enemy_rule_set: &RuleSet,
     ) -> TeamBattle {
+        let rng = rand::rngs::StdRng::from_entropy();
+        Self::create_battle_with_rng(current_rules, player_team, enemy_team, enemy_rule_set, rng)
+    }
+    
+    // Create battle with a specific RNG (useful for tests)
+    pub fn create_battle_with_rng(
+        current_rules: &CurrentRules,
+        player_team: Team,
+        enemy_team: Team,
+        enemy_rule_set: &RuleSet,
+        rng: rand::rngs::StdRng,
+    ) -> TeamBattle {
         // Convert UI rules for player characters
         let player_rules_per_character: Vec<_> = (0..player_team.members.len())
             .map(|_| current_rules.convert_to_rule_nodes())
@@ -25,7 +37,6 @@ impl BattleOrchestrator {
             .map(|_| convert_ruleset_to_nodes(enemy_rule_set))
             .collect();
         
-        let rng = rand::rngs::StdRng::from_entropy();
         TeamBattle::new(
             player_team, 
             enemy_team, 
