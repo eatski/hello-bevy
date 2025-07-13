@@ -27,144 +27,50 @@ impl<TInput, TOutput> MappingNode<TInput, TOutput> {
     }
 }
 
-
-// Implementation for Character to Character mapping
-impl Node<Vec<Character>> for MappingNode<Character, Character> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
-        // Get the input array
-        let input_array = self.array_node.evaluate(eval_context, rng)?;
-        
-        let mut output_array = Vec::new();
-        
-        // Apply the transformation to each element
-        for element in input_array {
-            // Create an evaluation context with the current element
-            let element_eval_context = eval_context.with_new_current_element(CurrentElement::Character(element));
-            
-            // Apply the transformation function
-            let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
-            
-            output_array.push(transformed_element);
-        }
-        
-        Ok(output_array)
-    }
+/// Macro to generate MappingNode implementations
+/// This approach scales better than manual type aliases while maintaining clarity
+macro_rules! impl_mapping_for_types {
+    // Base case: generate implementation for each type combination
+    ($(($input_type:ty, $output_type:ty, $current_element_variant:ident)),* $(,)?) => {
+        $(
+            impl Node<Vec<$output_type>> for MappingNode<$input_type, $output_type> {
+                fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<$output_type>> {
+                    // Get the input array
+                    let input_array = self.array_node.evaluate(eval_context, rng)?;
+                    
+                    let mut output_array = Vec::new();
+                    
+                    // Apply the transformation to each element
+                    for element in input_array {
+                        // Create an evaluation context with the current element
+                        let element_eval_context = eval_context.with_new_current_element(CurrentElement::$current_element_variant(element));
+                        
+                        // Apply the transformation function
+                        let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
+                        
+                        output_array.push(transformed_element);
+                    }
+                    
+                    Ok(output_array)
+                }
+            }
+        )*
+    };
 }
 
-// Implementation for Character to Value mapping
-impl Node<Vec<i32>> for MappingNode<Character, i32> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<i32>> {
-        // Get the input array
-        let input_array = self.array_node.evaluate(eval_context, rng)?;
-        
-        let mut output_array = Vec::new();
-        
-        // Apply the transformation to each element
-        for element in input_array {
-            // Create an evaluation context with the current element
-            let element_eval_context = eval_context.with_new_current_element(CurrentElement::Character(element));
-            
-            // Apply the transformation function
-            let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
-            
-            output_array.push(transformed_element);
-        }
-        
-        Ok(output_array)
-    }
+// Register all supported type combinations here
+// To add new types: just add them to this list and they'll work everywhere
+impl_mapping_for_types! {
+    (Character, Character, Character),
+    (Character, i32, Character),
+    (Character, CharacterHP, Character),
+    (i32, i32, Value),
+    (i32, Character, Value),
+    (CharacterHP, Character, CharacterHP),
+    // Future types go here - adding a new type here automatically supports it everywhere
+    // Example: (TeamSide, TeamSide, TeamSide),
 }
 
-// Implementation for Value to Value mapping
-impl Node<Vec<i32>> for MappingNode<i32, i32> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<i32>> {
-        // Get the input array
-        let input_array = self.array_node.evaluate(eval_context, rng)?;
-        
-        let mut output_array = Vec::new();
-        
-        // Apply the transformation to each element
-        for element in input_array {
-            // Create an evaluation context with the current element
-            let element_eval_context = eval_context.with_new_current_element(CurrentElement::Value(element));
-            
-            // Apply the transformation function
-            let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
-            
-            output_array.push(transformed_element);
-        }
-        
-        Ok(output_array)
-    }
-}
-
-// Implementation for Value to Character mapping
-impl Node<Vec<Character>> for MappingNode<i32, Character> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
-        // Get the input array
-        let input_array = self.array_node.evaluate(eval_context, rng)?;
-        
-        let mut output_array = Vec::new();
-        
-        // Apply the transformation to each element
-        for element in input_array {
-            // Create an evaluation context with the current element
-            let element_eval_context = eval_context.with_new_current_element(CurrentElement::Value(element));
-            
-            // Apply the transformation function
-            let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
-            
-            output_array.push(transformed_element);
-        }
-        
-        Ok(output_array)
-    }
-}
-
-// Implementation for CharacterHP to Character mapping
-impl Node<Vec<Character>> for MappingNode<CharacterHP, Character> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
-        // Get the input array
-        let input_array = self.array_node.evaluate(eval_context, rng)?;
-        
-        let mut output_array = Vec::new();
-        
-        // Apply the transformation to each element
-        for element in input_array {
-            // Create an evaluation context with the current element
-            let element_eval_context = eval_context.with_new_current_element(CurrentElement::CharacterHP(element));
-            
-            // Apply the transformation function
-            let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
-            
-            output_array.push(transformed_element);
-        }
-        
-        Ok(output_array)
-    }
-}
-
-// Implementation for Character to CharacterHP mapping
-impl Node<Vec<CharacterHP>> for MappingNode<Character, CharacterHP> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<CharacterHP>> {
-        // Get the input array
-        let input_array = self.array_node.evaluate(eval_context, rng)?;
-        
-        let mut output_array = Vec::new();
-        
-        // Apply the transformation to each element
-        for element in input_array {
-            // Create an evaluation context with the current element
-            let element_eval_context = eval_context.with_new_current_element(CurrentElement::Character(element));
-            
-            // Apply the transformation function
-            let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
-            
-            output_array.push(transformed_element);
-        }
-        
-        Ok(output_array)
-    }
-}
 
 #[cfg(test)]
 mod tests {

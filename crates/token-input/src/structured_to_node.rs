@@ -1,18 +1,12 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, AllTeamSidesNode, GreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode, CharacterHP};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, AllTeamSidesNode, GreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
 use action_system::nodes::array::MappingNode;
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
 
-// Type aliases for mapping nodes - defined here where they're used
-type CharacterToCharacterMappingNode = MappingNode<Character, Character>;
-type CharacterToValueMappingNode = MappingNode<Character, i32>;
-type ValueToValueMappingNode = MappingNode<i32, i32>;
-type ValueToCharacterMappingNode = MappingNode<i32, Character>;
-type CharacterHPToCharacterMappingNode = MappingNode<CharacterHP, Character>;
-type CharacterToHpMappingNode = MappingNode<Character, CharacterHP>;
+// No more type aliases needed - MappingNode is now generic and auto-implemented
 
 // パース結果を表すAnyベースのResolver
 pub struct ParsedResolver {
@@ -303,18 +297,18 @@ fn convert_numeric_min_token(array: &StructuredTokenInput) -> Result<ParsedResol
 }
 
 fn convert_map_token(array: &StructuredTokenInput, transform: &StructuredTokenInput) -> Result<ParsedResolver, String> {
-    // All mapping combinations are automatically tried
-    // To add new types: just add a new line below following the same pattern
+    // All mapping combinations are automatically tried using the generic MappingNode
+    // Thanks to the macro implementation in action-system, all type combinations are supported
     try_all_mapping_combinations!(
         array, transform;
-        (require_character_array, require_character, CharacterToCharacterMappingNode, Vec<Character>, "CharacterArray"),
-        (require_character_array, require_value, CharacterToValueMappingNode, Vec<i32>, "ValueArray"),
-        (require_character_array, require_character_hp, CharacterToHpMappingNode, Vec<action_system::CharacterHP>, "CharacterHPArray"),
-        (require_character_hp_array, require_character, CharacterHPToCharacterMappingNode, Vec<Character>, "CharacterArray"),
-        (require_value_array, require_value, ValueToValueMappingNode, Vec<i32>, "ValueArray"),
-        (require_value_array, require_character, ValueToCharacterMappingNode, Vec<Character>, "CharacterArray")
-        // NEW TYPES GO HERE - no other changes needed anywhere else!
-        // Example: (require_team_side_array, require_team_side, TeamSideToTeamSideMappingNode, Vec<TeamSide>, "TeamSideArray")
+        (require_character_array, require_character, MappingNode, Vec<Character>, "CharacterArray"),
+        (require_character_array, require_value, MappingNode, Vec<i32>, "ValueArray"),
+        (require_character_array, require_character_hp, MappingNode, Vec<action_system::CharacterHP>, "CharacterHPArray"),
+        (require_character_hp_array, require_character, MappingNode, Vec<Character>, "CharacterArray"),
+        (require_value_array, require_value, MappingNode, Vec<i32>, "ValueArray"),
+        (require_value_array, require_character, MappingNode, Vec<Character>, "CharacterArray")
+        // NEW TYPES: Just add new combinations here. The impl will be auto-generated in action-system!
+        // Example: (require_team_side_array, require_team_side, MappingNode, Vec<TeamSide>, "TeamSideArray")
     );
     
     Err(format!("Cannot determine mapping type for Map - no compatible array→transform combination found"))
