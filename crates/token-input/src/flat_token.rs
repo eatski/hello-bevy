@@ -23,8 +23,8 @@ pub enum FlatTokenInput {
     Hero,             // 味方チーム定数
     Max,              // 配列の最大値
     Min,              // 配列の最小値
-    GameNumericMax,   // GameNumeric統一最大値
-    GameNumericMin,   // GameNumeric統一最小値
+    NumericMax,   // Numeric統一最大値
+    NumericMin,   // Numeric統一最小値
 }
 
 // 表示テキストは元のUITokenTypeと同じ
@@ -55,8 +55,8 @@ impl FlatTokenInput {
             FlatTokenInput::Hero => "Hero".to_string(),
             FlatTokenInput::Max => "Max".to_string(),
             FlatTokenInput::Min => "Min".to_string(),
-            FlatTokenInput::GameNumericMax => "GameMax".to_string(),
-            FlatTokenInput::GameNumericMin => "GameMin".to_string(),
+            FlatTokenInput::NumericMax => "GameMax".to_string(),
+            FlatTokenInput::NumericMin => "GameMin".to_string(),
         }
     }
 }

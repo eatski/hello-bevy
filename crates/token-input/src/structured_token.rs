@@ -69,11 +69,11 @@ pub enum StructuredTokenInput {
     Min {
         array: Box<StructuredTokenInput>,
     },
-    // Unified GameNumeric operations
-    GameNumericMax {
+    // Unified Numeric operations
+    NumericMax {
         array: Box<StructuredTokenInput>,
     },
-    GameNumericMin {
+    NumericMin {
         array: Box<StructuredTokenInput>,
     },
 }

@@ -1,7 +1,7 @@
 // StructuredTokenInput → Node 変換
 
 use crate::{StructuredTokenInput, RuleSet};
-use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, AllTeamSidesNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode, CharacterHP};
+use action_system::{RuleNode, ConditionCheckNode, ConstantValueNode, ActingCharacterNode, RandomConditionNode, GreaterThanConditionNode, StrikeActionNode, HealActionNode, AllCharactersNode, Character, Node, Action, FilterListNode, CharacterTeamNode, ElementNode, EnemyNode, HeroNode, TeamSide, AllTeamSidesNode, GreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode, CharacterHP};
 use action_system::nodes::array::MappingNode;
 use action_system::nodes::condition::EqConditionNode;
 use std::any::Any;
@@ -201,7 +201,7 @@ fn convert_greater_than_token(left: &StructuredTokenInput, right: &StructuredTok
         (require_value, require_value, GreaterThanConditionNode),
         (require_character_hp, require_value, CharacterHpVsValueGreaterThanNode),
         (require_value, require_character_hp, ValueVsCharacterHpGreaterThanNode),
-        (require_character_hp, require_character_hp, GameNumericGreaterThanNode<action_system::CharacterHP>)
+        (require_character_hp, require_character_hp, GreaterThanNode<action_system::CharacterHP>)
     )
 }
 
@@ -278,7 +278,7 @@ fn convert_max_token(array: &StructuredTokenInput) -> Result<ParsedResolver, Str
     )
 }
 
-fn convert_game_numeric_max_token(array: &StructuredTokenInput) -> Result<ParsedResolver, String> {
+fn convert_numeric_max_token(array: &StructuredTokenInput) -> Result<ParsedResolver, String> {
     try_all_array_operations!(
         array, MaxNode;
         (require_value_array, i32, "Value"),
@@ -294,7 +294,7 @@ fn convert_min_token(array: &StructuredTokenInput) -> Result<ParsedResolver, Str
     )
 }
 
-fn convert_game_numeric_min_token(array: &StructuredTokenInput) -> Result<ParsedResolver, String> {
+fn convert_numeric_min_token(array: &StructuredTokenInput) -> Result<ParsedResolver, String> {
     try_all_array_operations!(
         array, MinNode;
         (require_value_array, i32, "Value"),
@@ -392,14 +392,14 @@ pub fn convert_structured_to_node(token: &StructuredTokenInput) -> Result<Parsed
         StructuredTokenInput::Max { array } => {
             convert_max_token(array)
         }
-        StructuredTokenInput::GameNumericMax { array } => {
-            convert_game_numeric_max_token(array)
+        StructuredTokenInput::NumericMax { array } => {
+            convert_numeric_max_token(array)
         }
         StructuredTokenInput::Min { array } => {
             convert_min_token(array)
         }
-        StructuredTokenInput::GameNumericMin { array } => {
-            convert_game_numeric_min_token(array)
+        StructuredTokenInput::NumericMin { array } => {
+            convert_numeric_min_token(array)
         }
         _ => Err(format!("Unknown token type: {:?}", token))
     }

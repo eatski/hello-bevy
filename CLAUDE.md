@@ -1,41 +1,45 @@
 # hello-bevy 設計サマリ
 
-## 🚀 最新アップデート (重複ノードの統合)
+## 🚀 最新アップデート (命名の簡素化)
 ### 設計変更サマリ
-- **RandomCharacterPickNode削除**: 責務重複の解消
-  - `crates/action-system/src/nodes/character/random_character_pick_node.rs` を削除
-  - `crates/action-system/src/nodes/array/random_pick_node.rs` の `CharacterRandomPickNode` を使用するように統一
-  - 同じ機能を提供する2つのノードが存在していた問題を解消
+- **game_numericプレフィックス削除**: より簡潔な命名に統一
+  - `GameNumeric` trait → `Numeric` trait
+  - `game_numeric.rs` → `numeric.rs`
+  - `game_numeric_greater_than_node.rs` → `greater_than_node.rs`
+  - `GameNumericGreaterThanNode` → `GreaterThanNode`
+  - `GameNumericMax/Min` トークン → `NumericMax/Min` トークン
+  - 型統一化により冗長なプレフィックスが不要になったため、より直感的な命名に変更
 
-- **条件ノードの統合**: GameNumeric traitベースの実装に統一
-  - `greater_than_condition_node.rs` を削除（→ `game_numeric_greater_than_node.rs` に統合）
-  - `character_hp_vs_value_condition_node.rs` を削除（→ `game_numeric_greater_than_node.rs` に統合）
+- **重複ノードの統合**: Numeric traitベースの実装に統一
+  - `greater_than_condition_node.rs` を削除（→ `greater_than_node.rs` に統合）
+  - `character_hp_vs_value_condition_node.rs` を削除（→ `greater_than_node.rs` に統合）
+  - `random_character_pick_node.rs` を削除（→ `CharacterRandomPickNode` に統合）
   - 型エイリアスによる後方互換性を維持しつつ、より抽象的な実装に統一
   - コードの重複を排除し、メンテナンス性を向上
 
-## 🚀 最新アップデート (GameNumeric trait統一化)
+## 🚀 以前のアップデート (Numeric trait統一化)
 ### 設計変更サマリ
-- **GameNumeric trait**: CharacterHPとi32値を統一的に扱うtraitを新規追加
+- **Numeric trait**: CharacterHPとi32値を統一的に扱うtraitを実装
   - Max, Min, GreaterThan等の数値演算で型混在をサポート
-  - `crates/action-system/src/core/game_numeric.rs` に実装
+  - `crates/action-system/src/core/numeric.rs` に実装
   - **YAGNI原則適用**: 未使用の`from_i32()`メソッドを削除し、シンプルな設計に変更
-- **統一化ノード**: GameNumericMaxNode, GameNumericMinNode, GameNumericGreaterThanNodeを追加
+- **統一化ノード**: MaxNode, MinNode, GreaterThanNodeを追加
   - 既存のMax/MinノードはAPI後方互換性を維持
   - CharacterHPとi32の両方を同じインターフェースで処理可能
-- **トークン拡張**: GameNumericMax, GameNumericMin トークンをUI入力システムに追加
+- **トークン拡張**: NumericMax, NumericMin トークンをUI入力システムに追加
   - FlatTokenInput, StructuredTokenInputの両方をサポート
 - **型安全性**: CharacterHP vs i32 の比較演算も統一的に処理
-- **テスト追加**: GameNumeric trait の機能テスト (crates/action-system/src/core/game_numeric.rs:43-79)
+- **テスト追加**: Numeric trait の機能テスト (crates/action-system/src/core/numeric.rs:43-79)
 - **統合テスト追加**: 最低HP敵攻撃テスト (crates/ui-core/src/integration_tests.rs:1345-1417)
 
 ### ファイル変更箇所
-- 新規: `crates/action-system/src/core/game_numeric.rs` - GameNumeric trait定義
-- 新規: `crates/action-system/src/nodes/array/game_numeric_max_min_node.rs` - 統一Max/Minノード
-- 新規: `crates/action-system/src/nodes/condition/game_numeric_greater_than_node.rs` - 統一GreaterThanノード
-- 更新: `crates/token-input/src/flat_token.rs` - GameNumericMax/Min トークン追加
+- 新規: `crates/action-system/src/core/numeric.rs` - Numeric trait定義
+- 新規: `crates/action-system/src/nodes/condition/greater_than_node.rs` - 統一GreaterThanノード
+- 更新: `crates/token-input/src/flat_token.rs` - NumericMax/Min トークン追加
 - 更新: `crates/token-input/src/structured_token.rs` - 構造化トークン拡張
 - 更新: `crates/token-input/src/structured_to_node.rs` - 変換ロジック拡張
 - 更新: 各種mod.rs, lib.rs - エクスポート追加
+- 削除: 重複実装ファイル（上記参照）
 
 ## 📝　重要
 タスク完了時に必ず以下を実施するように事前にタスク化すること

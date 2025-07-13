@@ -5,8 +5,8 @@ pub mod nodes;
 pub mod system;
 
 // Re-export essential types only
-pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, RuleNode, NodeError, NodeResult, GameNumeric};
-pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode, TeamSideEqNode, CharacterTeamNode, CharacterHpVsValueConditionNode, ValueVsCharacterHpConditionNode, GameNumericGreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
+pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, RuleNode, NodeError, NodeResult, Numeric};
+pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode, TeamSideEqNode, CharacterTeamNode, CharacterHpVsValueConditionNode, ValueVsCharacterHpConditionNode, GreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
 pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
 pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode};
 pub use nodes::evaluation_context::EvaluationContext;

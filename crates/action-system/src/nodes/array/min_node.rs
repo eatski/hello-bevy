@@ -1,19 +1,19 @@
 use crate::nodes::unified_node::Node;
 use crate::nodes::evaluation_context::EvaluationContext;
-use crate::core::{NodeResult, GameNumeric};
+use crate::core::{NodeResult, Numeric};
 
-/// Array内の最小値を返すノード（GameNumeric対応）
-pub struct MinNode<T: GameNumeric> {
+/// Array内の最小値を返すノード（Numeric対応）
+pub struct MinNode<T: Numeric> {
     array_node: Box<dyn Node<Vec<T>>>,
 }
 
-impl<T: GameNumeric> MinNode<T> {
+impl<T: Numeric> MinNode<T> {
     pub fn new(array_node: Box<dyn Node<Vec<T>>>) -> Self {
         Self { array_node }
     }
 }
 
-impl<T: GameNumeric> Node<T> for MinNode<T> {
+impl<T: Numeric> Node<T> for MinNode<T> {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<T> {
         let array = self.array_node.evaluate(eval_context, rng)?;
         

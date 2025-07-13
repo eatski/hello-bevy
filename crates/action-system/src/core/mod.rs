@@ -2,10 +2,10 @@ pub mod character;
 pub mod character_hp;
 pub mod core;
 pub mod actions;
-pub mod game_numeric;
+pub mod numeric;
 
 pub use character::{Character, Team, TeamSide};
 pub use character_hp::CharacterHP;
 pub use core::{Action, BattleState, RuleNode, NodeError, NodeResult};
 pub use actions::{StrikeAction, HealAction};
-pub use game_numeric::GameNumeric;
+pub use numeric::Numeric;

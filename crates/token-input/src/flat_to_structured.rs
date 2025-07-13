@@ -151,19 +151,19 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
             let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
             Ok((StructuredTokenInput::Min { array: Box::new(array_token) }, 1 + array_consumed))
         }
-        FlatTokenInput::GameNumericMax => {
+        FlatTokenInput::NumericMax => {
             if index + 1 >= tokens.len() {
-                return Err("GameNumericMax requires an array argument".to_string());
+                return Err("NumericMax requires an array argument".to_string());
             }
             let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
-            Ok((StructuredTokenInput::GameNumericMax { array: Box::new(array_token) }, 1 + array_consumed))
+            Ok((StructuredTokenInput::NumericMax { array: Box::new(array_token) }, 1 + array_consumed))
         }
-        FlatTokenInput::GameNumericMin => {
+        FlatTokenInput::NumericMin => {
             if index + 1 >= tokens.len() {
-                return Err("GameNumericMin requires an array argument".to_string());
+                return Err("NumericMin requires an array argument".to_string());
             }
             let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
-            Ok((StructuredTokenInput::GameNumericMin { array: Box::new(array_token) }, 1 + array_consumed))
+            Ok((StructuredTokenInput::NumericMin { array: Box::new(array_token) }, 1 + array_consumed))
         }
     }
 }

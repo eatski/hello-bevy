@@ -1,20 +1,20 @@
 use crate::nodes::unified_node::Node;
 use crate::nodes::evaluation_context::EvaluationContext;
-use crate::core::{NodeResult, GameNumeric};
+use crate::core::{NodeResult, Numeric};
 
-/// Generic GreaterThan node that works with any GameNumeric type
-pub struct GameNumericGreaterThanNode<T: GameNumeric> {
+/// Generic GreaterThan node that works with any Numeric type
+pub struct GreaterThanNode<T: Numeric> {
     left_node: Box<dyn Node<T>>,
     right_node: Box<dyn Node<T>>,
 }
 
-impl<T: GameNumeric> GameNumericGreaterThanNode<T> {
+impl<T: Numeric> GreaterThanNode<T> {
     pub fn new(left_node: Box<dyn Node<T>>, right_node: Box<dyn Node<T>>) -> Self {
         Self { left_node, right_node }
     }
 }
 
-impl<T: GameNumeric> Node<bool> for GameNumericGreaterThanNode<T> {
+impl<T: Numeric> Node<bool> for GreaterThanNode<T> {
     fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<bool> {
         let left_value = self.left_node.evaluate(eval_context, rng)?;
         let right_value = self.right_node.evaluate(eval_context, rng)?;
@@ -66,7 +66,7 @@ impl Node<bool> for ValueVsCharacterHpGreaterThanNode {
 }
 
 // Type aliases for convenience
-pub type GreaterThanConditionNode = GameNumericGreaterThanNode<i32>;
+pub type GreaterThanConditionNode = GreaterThanNode<i32>;
 pub type CharacterHpVsValueConditionNode = CharacterHpVsValueGreaterThanNode;
 pub type ValueVsCharacterHpConditionNode = ValueVsCharacterHpGreaterThanNode;
 
@@ -187,7 +187,7 @@ mod tests {
         
         let left_node = Box::new(ConstantCharacterHPNode::new(char_hp1));
         let right_node = Box::new(ConstantCharacterHPNode::new(char_hp2));
-        let gt_node = GameNumericGreaterThanNode::<CharacterHP>::new(left_node, right_node);
+        let gt_node = GreaterThanNode::<CharacterHP>::new(left_node, right_node);
         
         let result = gt_node.evaluate(&eval_context, &mut rng).unwrap();
         assert_eq!(result, true);
