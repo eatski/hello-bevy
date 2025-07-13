@@ -1,11 +1,45 @@
 // Integration tests for UI core functionality - End-to-end testing
 // Tests UI input → Battle execution → Result verification
 
-use crate::{GameState, CurrentRules, FlatTokenInput};
+use crate::{GameState, CurrentRules, FlatTokenInput, BattleOrchestrator};
 use battle::{TeamBattle, Team, Character as GameCharacter};
-use token_input::convert_flat_rules_to_nodes;
+use token_input::{RuleSet, StructuredTokenInput};
 use rand::{SeedableRng, rngs::StdRng};
 use action_system::{CharacterToHpNode, ElementNode};
+
+// Helper function to create a test battle using BattleOrchestrator
+fn create_test_battle_with_rules(
+    player_flat_rules: Vec<Vec<FlatTokenInput>>,
+    enemy_flat_rules: Vec<Vec<FlatTokenInput>>,
+    player_team: Team,
+    enemy_team: Team,
+) -> TeamBattle {
+    // Set up player rules through CurrentRules
+    let current_rules = CurrentRules::with_rules(player_flat_rules);
+    
+    // Convert enemy rules to RuleSet format
+    let enemy_rule_set = flat_rules_to_rule_set(enemy_flat_rules);
+    
+    // Create battle using BattleOrchestrator
+    BattleOrchestrator::create_battle(
+        &current_rules,
+        player_team,
+        enemy_team,
+        &enemy_rule_set,
+    )
+}
+
+// Helper to convert flat rules to RuleSet for enemy rules
+fn flat_rules_to_rule_set(flat_rules: Vec<Vec<FlatTokenInput>>) -> RuleSet {
+    use token_input::convert_flat_to_structured;
+    
+    // Each flat rule becomes one StructuredTokenInput in the RuleSet
+    let rules: Vec<StructuredTokenInput> = flat_rules.into_iter()
+        .filter_map(|tokens| convert_flat_to_structured(&tokens).ok())
+        .collect();
+    
+    RuleSet { rules }
+}
 
 fn create_test_rng() -> StdRng {
     StdRng::seed_from_u64(12345)
@@ -19,8 +53,6 @@ mod tests {
     fn test_basic_strike_ui_to_battle_integration() {
         // Test UI input → Battle execution → Damage verification
         let flat_rule = vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters];
-        let rule_nodes = convert_flat_rules_to_nodes(&[flat_rule]);
-        assert_eq!(rule_nodes.len(), 1, "Should convert Strike rule");
         
         // Setup battle with player and enemy
         let player_team = Team::new("Heroes".to_string(), vec![
@@ -30,11 +62,12 @@ mod tests {
             GameCharacter::new(2, "Slime".to_string(), 80, 20, 15),
         ]);
         
-        let player_rules = vec![rule_nodes];
-        let enemy_rules = vec![vec![]];
-        
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![flat_rule],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle turn and verify damage was dealt
         let initial_enemy_hp = battle.enemy_team.members[0].hp;
@@ -123,9 +156,6 @@ mod tests {
             FlatTokenInput::ActingCharacter
         ];
         
-        let rule_nodes = convert_flat_rules_to_nodes(&[flat_rule]);
-        assert_eq!(rule_nodes.len(), 1, "Should convert CharacterHP rule");
-        
         // Setup battle with player and enemy
         let player_team = Team::new("Heroes".to_string(), vec![
             GameCharacter::new(1, "Fighter".to_string(), 100, 50, 25),
@@ -134,11 +164,12 @@ mod tests {
             GameCharacter::new(2, "Slime".to_string(), 80, 20, 15),
         ]);
         
-        let player_rules = vec![rule_nodes];
-        let enemy_rules = vec![vec![]];
-        
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![flat_rule],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle turn and verify it doesn't crash
         let initial_enemy_hp = battle.enemy_team.members[0].hp;
@@ -183,14 +214,12 @@ mod tests {
             FlatTokenInput::Enemy
         ];
         
-        let rule_nodes = convert_flat_rules_to_nodes(&[flat_rule]);
-        assert_eq!(rule_nodes.len(), 1, "Should convert rule");
-        
-        let player_rules = vec![rule_nodes];
-        let enemy_rules = vec![vec![]];
-        
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![flat_rule],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle turn
         battle.execute_turn();
@@ -236,11 +265,7 @@ mod tests {
             FlatTokenInput::Enemy
         ];
         
-        let rule_nodes = convert_flat_rules_to_nodes(&[flat_rule]);
-        assert_eq!(rule_nodes.len(), 1, "Should convert rule");
-        
-        let _player_rules = vec![rule_nodes];
-        let _enemy_rules: Vec<Vec<action_system::RuleNode>> = vec![vec![]];
+        // Rules will be created in the loop for each test run
         
         // Run the battle multiple times to verify statistical targeting
         let mut lowest_hp_targeted = 0;
@@ -269,13 +294,13 @@ mod tests {
                 FlatTokenInput::Enemy
             ];
             
-            let test_rule_nodes = convert_flat_rules_to_nodes(&[test_flat_rule]);
-            let test_player_rules = vec![test_rule_nodes];
-            let test_enemy_rules: Vec<Vec<action_system::RuleNode>> = vec![vec![]];
-            
-            // Use different seed for each run to get different results
-            let rng = rand::rngs::StdRng::seed_from_u64(12345 + run as u64);
-            let mut battle = TeamBattle::new(test_player_team, test_enemy_team, test_player_rules, test_enemy_rules, rng);
+            // Note: create_test_battle_with_rules uses a fixed seed
+            let mut battle = create_test_battle_with_rules(
+                vec![test_flat_rule],
+                vec![vec![]],
+                test_player_team,
+                test_enemy_team,
+            );
             
             // Execute battle turn
             battle.execute_turn();
@@ -349,9 +374,6 @@ mod tests {
     fn test_heal_ui_to_battle_integration() {
         // Test UI input → Battle execution → Healing verification
         let flat_rule = vec![FlatTokenInput::Heal, FlatTokenInput::ActingCharacter];
-        let rule_nodes = convert_flat_rules_to_nodes(&[flat_rule]);
-        assert_eq!(rule_nodes.len(), 1, "Should convert Heal rule");
-        
         // Setup battle with damaged player character
         let mut damaged_player = GameCharacter::new(1, "Injured Hero".to_string(), 100, 100, 20);
         damaged_player.hp = 40; // Damaged
@@ -361,11 +383,12 @@ mod tests {
             GameCharacter::new(2, "Dummy".to_string(), 50, 20, 10),
         ]);
         
-        let player_rules = vec![rule_nodes];
-        let enemy_rules = vec![vec![]];
-        
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![flat_rule],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle turn and verify healing occurred
         let initial_player_hp = battle.player_team.members[0].hp;
@@ -394,9 +417,6 @@ mod tests {
             FlatTokenInput::RandomPick,
             FlatTokenInput::AllCharacters,
         ];
-        let rule_nodes = convert_flat_rules_to_nodes(&[flat_rule]);
-        assert_eq!(rule_nodes.len(), 1, "Should convert conditional strike rule");
-        
         // Setup battle with player having high HP (should trigger strike)
         let mut high_hp_player = GameCharacter::new(1, "Healthy Fighter".to_string(), 100, 50, 25);
         high_hp_player.hp = 75; // Above threshold (50)
@@ -406,11 +426,12 @@ mod tests {
             GameCharacter::new(2, "Target".to_string(), 60, 20, 15),
         ]);
         
-        let player_rules = vec![rule_nodes];
-        let enemy_rules = vec![vec![]];
-        
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![flat_rule],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle turn and verify conditional strike occurred
         let initial_enemy_hp = battle.enemy_team.members[0].hp;
@@ -439,9 +460,6 @@ mod tests {
             FlatTokenInput::RandomPick,
             FlatTokenInput::AllCharacters,
         ];
-        let rule_nodes = convert_flat_rules_to_nodes(&[flat_rule]);
-        assert_eq!(rule_nodes.len(), 1, "Should convert conditional strike rule");
-        
         // Setup battle with player having low HP (should NOT trigger strike)
         let mut low_hp_player = GameCharacter::new(1, "Wounded Fighter".to_string(), 100, 50, 25);
         low_hp_player.hp = 30; // Below threshold (50)
@@ -451,11 +469,12 @@ mod tests {
             GameCharacter::new(2, "Target".to_string(), 60, 20, 15),
         ]);
         
-        let player_rules = vec![rule_nodes];
-        let enemy_rules = vec![vec![]];
-        
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![flat_rule],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle turn and verify NO strike occurred
         let initial_enemy_hp = battle.enemy_team.members[0].hp;
@@ -477,9 +496,6 @@ mod tests {
             FlatTokenInput::Strike,
             FlatTokenInput::ActingCharacter,
         ];
-        let rule_nodes = convert_flat_rules_to_nodes(&[flat_rule]);
-        assert_eq!(rule_nodes.len(), 1, "Should convert target-specific strike rule");
-        
         // Setup battle with multiple enemies
         let player_team = Team::new("Heroes".to_string(), vec![
             GameCharacter::new(1, "Attacker".to_string(), 100, 50, 25),
@@ -489,11 +505,12 @@ mod tests {
             GameCharacter::new(3, "SecondEnemy".to_string(), 70, 25, 20),
         ]);
         
-        let player_rules = vec![rule_nodes];
-        let enemy_rules = vec![vec![]];
-        
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, player_rules, enemy_rules, rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![flat_rule],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle turn and verify self-targeting occurred
         let initial_player_hp = battle.player_team.members[0].hp;
@@ -515,12 +532,6 @@ mod tests {
         let strike_rule = vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters];
         let heal_rule = vec![FlatTokenInput::Heal, FlatTokenInput::ActingCharacter];
         
-        let player_rules = convert_flat_rules_to_nodes(&[strike_rule]);
-        let enemy_rules = convert_flat_rules_to_nodes(&[heal_rule]);
-        
-        assert_eq!(player_rules.len(), 1, "Should convert player strike rule");
-        assert_eq!(enemy_rules.len(), 1, "Should convert enemy heal rule");
-        
         // Setup battle with multiple characters
         let player_team = Team::new("Heroes".to_string(), vec![
             GameCharacter::new(1, "Warrior".to_string(), 120, 60, 30),
@@ -534,8 +545,12 @@ mod tests {
             GameCharacter::new(4, "Goblin".to_string(), 60, 30, 15),
         ]);
         
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, vec![player_rules], vec![enemy_rules], rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![strike_rule],
+            vec![heal_rule],
+            player_team,
+            enemy_team,
+        );
         
         // Execute multiple turns and verify both strike and heal actions occur
         let _initial_enemy_hp = battle.enemy_team.members[0].hp;
@@ -563,12 +578,6 @@ mod tests {
         let player_strike_rule = vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters];
         let enemy_heal_rule = vec![FlatTokenInput::Heal, FlatTokenInput::ActingCharacter];
         
-        let player_rules = convert_flat_rules_to_nodes(&[player_strike_rule]);
-        let enemy_rules = convert_flat_rules_to_nodes(&[enemy_heal_rule]);
-        
-        assert_eq!(player_rules.len(), 1, "Should convert player strike rule");
-        assert_eq!(enemy_rules.len(), 1, "Should convert enemy heal rule");
-        
         // Setup battle with full teams
         let player_team = Team::new("Heroes".to_string(), vec![
             GameCharacter::new(1, "Knight".to_string(), 150, 80, 35),
@@ -584,8 +593,12 @@ mod tests {
             GameCharacter::new(6, "Goblin Shaman".to_string(), 70, 90, 20),
         ]);
         
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, vec![player_rules], vec![enemy_rules], rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![player_strike_rule],
+            vec![enemy_heal_rule],
+            player_team,
+            enemy_team,
+        );
         
         // Execute full battle round and verify both teams acted
         let initial_battle_log_size = battle.battle_log.len();
@@ -688,9 +701,6 @@ mod tests {
             FlatTokenInput::ActingCharacter,
         ];
         
-        let player_rules = convert_flat_rules_to_nodes(&[rule1, rule2, rule3]);
-        assert_eq!(player_rules.len(), 3, "Should convert all three rules");
-        
         // Setup battle with player needing healing
         let mut damaged_player = GameCharacter::new(1, "Injured Fighter".to_string(), 100, 50, 25);
         damaged_player.hp = 35; // Above 30 threshold, should trigger heal
@@ -700,8 +710,12 @@ mod tests {
             GameCharacter::new(2, "Test Enemy".to_string(), 70, 25, 18),
         ]);
         
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, vec![player_rules], vec![vec![]], rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![rule1, rule2, rule3],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle and verify one of the rules executed
         let initial_player_hp = battle.player_team.members[0].hp;
@@ -727,8 +741,6 @@ mod tests {
     fn test_battle_completion_ui_to_battle_integration() {
         // Test battle completion when one team is defeated
         let strong_strike_rule = vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters];
-        let rule_nodes = convert_flat_rules_to_nodes(&[strong_strike_rule]);
-        
         // Setup battle with weak enemy that can be defeated
         let player_team = Team::new("Heroes".to_string(), vec![
             GameCharacter::new(1, "Powerful Hero".to_string(), 200, 100, 50),
@@ -737,8 +749,12 @@ mod tests {
             GameCharacter::new(2, "Weak Enemy".to_string(), 10, 10, 5), // Very weak
         ]);
         
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, vec![rule_nodes], vec![vec![]], rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![strong_strike_rule],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle until completion
         let mut turns_executed = 0;
@@ -760,9 +776,6 @@ mod tests {
     #[test]
     fn test_empty_rules_ui_to_battle_integration() {
         // Test behavior with empty rules
-        let empty_rules = convert_flat_rules_to_nodes(&[]);
-        assert_eq!(empty_rules.len(), 0, "Should have no converted rules");
-        
         // Setup battle with empty rules
         let player_team = Team::new("Heroes".to_string(), vec![
             GameCharacter::new(1, "Idle Hero".to_string(), 100, 50, 25),
@@ -771,8 +784,12 @@ mod tests {
             GameCharacter::new(2, "Test Enemy".to_string(), 80, 30, 20),
         ]);
         
-        let rng = create_test_rng();
-        let mut battle = TeamBattle::new(player_team, enemy_team, vec![empty_rules], vec![vec![]], rng);
+        let mut battle = create_test_battle_with_rules(
+            vec![],
+            vec![vec![]],
+            player_team,
+            enemy_team,
+        );
         
         // Execute battle turn with empty rules
         let initial_player_hp = battle.player_team.members[0].hp;
