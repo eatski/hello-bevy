@@ -4,6 +4,8 @@ pub mod ui;
 pub mod display_text;
 pub mod systems;
 pub mod plugin;
+pub mod default_teams;
+pub mod battle_display;
 
 // Re-export public types  
 pub use ui::{GameFont, GameTeamBattle, BevyGameState, BevyCurrentRules, load_font, setup_ui, handle_rule_editing, update_rule_display, update_battle_rule_display, update_token_inventory_display, update_instruction_display, handle_battle_reset, handle_screenshot, update_right_panel_visibility, update_rule_editor_position};

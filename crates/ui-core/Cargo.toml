@@ -7,4 +7,5 @@ edition = "2021"
 action-system = { path = "../action-system" }
 battle = { path = "../battle" }
 token-input = { path = "../token-input" }
+json-rule = { path = "../json-rule" }
 rand = "0.8.5"
