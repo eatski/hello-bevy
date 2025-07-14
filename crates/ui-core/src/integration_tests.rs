@@ -67,7 +67,7 @@ mod tests {
     #[test]
     fn test_character_hp_type_integration() {
         // Test CharacterHP type with HpCharacterNode functionality
-        use action_system::{Character, CharacterHP, TeamSide, Team, BattleContext, CharacterToHpNode, CharacterHpToCharacterNode, ActingCharacterNode, EvaluationContext, Node, ElementNode};
+        use action_system::{Character, CharacterHP, TeamSide, Team, BattleContext, CharacterToHpNode, CharacterHpToCharacterNode, ActingCharacterNode, EvaluationContext, Node};
         use rand::rngs::StdRng;
         
         let mut rng = StdRng::seed_from_u64(12345);
@@ -1604,5 +1604,205 @@ mod tests {
                  initial_low_hp, final_low_hp, damage_dealt);
         println!("   Other enemies remained unharmed: High HP ({} HP), Medium HP ({} HP)", 
                  final_high_hp, final_medium_hp);
+    }
+    
+    #[test]
+    fn test_structured_token_to_node_conversion_integration() {
+        // Test the complete flow: StructuredTokenInput → Node → Battle execution
+        use token_input::{convert_structured_to_node, convert_ruleset_to_nodes};
+        
+        // Create a complex rule using StructuredTokenInput
+        let complex_rule = StructuredTokenInput::Check {
+            condition: Box::new(StructuredTokenInput::GreaterThan {
+                left: Box::new(StructuredTokenInput::CharacterToHp {
+                    character: Box::new(StructuredTokenInput::ActingCharacter),
+                }),
+                right: Box::new(StructuredTokenInput::Number { value: 50 }),
+            }),
+            then_action: Box::new(StructuredTokenInput::Strike {
+                target: Box::new(StructuredTokenInput::RandomPick {
+                    array: Box::new(StructuredTokenInput::FilterList {
+                        array: Box::new(StructuredTokenInput::AllCharacters),
+                        condition: Box::new(StructuredTokenInput::Eq {
+                            left: Box::new(StructuredTokenInput::CharacterTeam {
+                                character: Box::new(StructuredTokenInput::Element),
+                            }),
+                            right: Box::new(StructuredTokenInput::Enemy),
+                        }),
+                    }),
+                }),
+            }),
+        };
+        
+        // Convert to ParsedResolver and verify
+        let parsed = convert_structured_to_node(&complex_rule).unwrap();
+        assert_eq!(parsed.type_name, "Action");
+        
+        // Create RuleSet and convert to nodes
+        let ruleset = RuleSet {
+            rules: vec![complex_rule],
+        };
+        let rule_nodes = convert_ruleset_to_nodes(&ruleset);
+        assert_eq!(rule_nodes.len(), 1);
+        
+        // Use the converted rules in actual battle
+        let player_team = Team::new("Heroes".to_string(), vec![
+            GameCharacter::new(1, "Strong Hero".to_string(), 100, 50, 25),
+        ]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            GameCharacter::new(2, "Enemy 1".to_string(), 80, 30, 20),
+            GameCharacter::new(3, "Enemy 2".to_string(), 70, 30, 18),
+        ]);
+        
+        let mut battle = TeamBattle::new(
+            player_team.clone(),
+            enemy_team.clone(),
+            vec![rule_nodes],
+            vec![vec![]],
+            create_test_rng(),
+        );
+        
+        // Execute turn - should attack enemy if hero HP > 50
+        let initial_enemy1_hp = battle.enemy_team.members[0].hp;
+        let initial_enemy2_hp = battle.enemy_team.members[1].hp;
+        
+        battle.execute_turn();
+        
+        // Verify that one enemy was attacked
+        let enemy1_damaged = battle.enemy_team.members[0].hp < initial_enemy1_hp;
+        let enemy2_damaged = battle.enemy_team.members[1].hp < initial_enemy2_hp;
+        
+        assert!(
+            enemy1_damaged || enemy2_damaged,
+            "One enemy should have been attacked since hero HP (100) > 50"
+        );
+    }
+    
+    #[test]
+    fn test_all_team_sides_usage_integration() {
+        // Test AllTeamSides token usage in a realistic scenario
+        use token_input::convert_structured_to_node;
+        
+        // This is a hypothetical test since AllTeamSides isn't directly used in UI
+        // but demonstrates how it would work in structured token conversion
+        let all_sides_token = StructuredTokenInput::AllTeamSides;
+        let parsed = convert_structured_to_node(&all_sides_token).unwrap();
+        assert_eq!(parsed.type_name, "Vec<TeamSide>");
+    }
+    
+    #[test]
+    fn test_numeric_max_min_with_character_hp_integration() {
+        // Test NumericMax/NumericMin functionality with CharacterHP values
+        use token_input::{convert_structured_to_node, convert_ruleset_to_nodes};
+        
+        let rule = StructuredTokenInput::Strike {
+            target: Box::new(StructuredTokenInput::CharacterHpToCharacter {
+                character_hp: Box::new(StructuredTokenInput::NumericMax {
+                    array: Box::new(StructuredTokenInput::Map {
+                        array: Box::new(StructuredTokenInput::TeamMembers {
+                            team_side: Box::new(StructuredTokenInput::Hero),
+                        }),
+                        transform: Box::new(StructuredTokenInput::CharacterToHp {
+                            character: Box::new(StructuredTokenInput::Element),
+                        }),
+                    }),
+                }),
+            }),
+        };
+        
+        // Convert and verify
+        let parsed = convert_structured_to_node(&rule).unwrap();
+        assert_eq!(parsed.type_name, "Action");
+        
+        let ruleset = RuleSet { rules: vec![rule] };
+        let rule_nodes = convert_ruleset_to_nodes(&ruleset);
+        
+        // Setup battle with multiple heroes having different HP
+        let mut hero1 = GameCharacter::new(1, "Low HP Hero".to_string(), 100, 50, 25);
+        hero1.hp = 40;
+        let mut hero2 = GameCharacter::new(2, "High HP Hero".to_string(), 100, 50, 25);
+        hero2.hp = 90; // This hero should be targeted as they have max HP
+        
+        let player_team = Team::new("Heroes".to_string(), vec![hero1, hero2]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            GameCharacter::new(3, "Enemy".to_string(), 80, 30, 20),
+        ]);
+        
+        let mut battle = TeamBattle::new(
+            player_team.clone(),
+            enemy_team.clone(),
+            vec![rule_nodes],
+            vec![vec![]],
+            create_test_rng(),
+        );
+        
+        // Execute turn - hero should strike themselves (the one with max HP)
+        let initial_hero1_hp = battle.player_team.members[0].hp;
+        let initial_hero2_hp = battle.player_team.members[1].hp;
+        
+        battle.execute_turn();
+        
+        // The high HP hero should have damaged themselves
+        assert_eq!(battle.player_team.members[0].hp, initial_hero1_hp, "Low HP hero should not be damaged");
+        assert!(
+            battle.player_team.members[1].hp < initial_hero2_hp,
+            "High HP hero should have damaged themselves. HP: {} -> {}",
+            initial_hero2_hp,
+            battle.player_team.members[1].hp
+        );
+    }
+    
+    #[test]
+    fn test_team_members_with_dynamic_team_side_integration() {
+        // Test TeamMembers with dynamically evaluated TeamSide
+        use token_input::{convert_structured_to_node, convert_ruleset_to_nodes};
+        
+        let rule = StructuredTokenInput::Strike {
+            target: Box::new(StructuredTokenInput::RandomPick {
+                array: Box::new(StructuredTokenInput::TeamMembers {
+                    team_side: Box::new(StructuredTokenInput::CharacterTeam {
+                        character: Box::new(StructuredTokenInput::ActingCharacter),
+                    }),
+                }),
+            }),
+        };
+        
+        // Convert to nodes
+        let parsed = convert_structured_to_node(&rule).unwrap();
+        assert_eq!(parsed.type_name, "Action");
+        
+        let ruleset = RuleSet { rules: vec![rule] };
+        let rule_nodes = convert_ruleset_to_nodes(&ruleset);
+        
+        // Setup battle
+        let player_team = Team::new("Heroes".to_string(), vec![
+            GameCharacter::new(1, "Hero 1".to_string(), 100, 50, 25),
+            GameCharacter::new(2, "Hero 2".to_string(), 90, 50, 22),
+        ]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            GameCharacter::new(3, "Enemy".to_string(), 80, 30, 20),
+        ]);
+        
+        let mut battle = TeamBattle::new(
+            player_team.clone(),
+            enemy_team.clone(),
+            vec![rule_nodes],
+            vec![vec![]],
+            create_test_rng(),
+        );
+        
+        // Execute turn - hero should strike a member of their own team
+        let initial_total_player_hp: i32 = battle.player_team.members.iter().map(|c| c.hp).sum();
+        
+        battle.execute_turn();
+        
+        let final_total_player_hp: i32 = battle.player_team.members.iter().map(|c| c.hp).sum();
+        
+        assert!(
+            final_total_player_hp < initial_total_player_hp,
+            "A player team member should have been damaged. Total HP: {} -> {}",
+            initial_total_player_hp,
+            final_total_player_hp
+        );
     }
 }
