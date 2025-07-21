@@ -101,10 +101,10 @@ mod tests {
         let player_team = Team::new("Player".to_string(), vec![character.clone()]);
         let enemy_team = Team::new("Enemy".to_string(), vec![]);
         let battle_context = BattleContext::new(&character, TeamSide::Player, &player_team, &enemy_team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let hp_value_node = CharacterToHpNode::new(Box::new(ActingCharacterNode));
-        let result_hp = Node::<CharacterHP>::evaluate(&hp_value_node, &eval_context, &mut rng).unwrap();
+        let result_hp = Node::<CharacterHP>::evaluate(&hp_value_node, &mut eval_context).unwrap();
         assert_eq!(result_hp.get_hp(), 100);
         assert_eq!(result_hp.get_character().id, 1);
         
@@ -114,14 +114,14 @@ mod tests {
         }
         
         impl Node<CharacterHP> for MockCharacterHPNode {
-            fn evaluate(&self, _eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> action_system::NodeResult<CharacterHP> {
+            fn evaluate(&self, _eval_context: &mut EvaluationContext) -> action_system::NodeResult<CharacterHP> {
                 Ok(self.character_hp.clone())
             }
         }
         
         let mock_hp_node = MockCharacterHPNode { character_hp: character_hp.clone() };
         let hp_char_node = CharacterHpToCharacterNode::new(Box::new(mock_hp_node));
-        let result_char = Node::<Character>::evaluate(&hp_char_node, &eval_context, &mut rng).unwrap();
+        let result_char = Node::<Character>::evaluate(&hp_char_node, &mut eval_context).unwrap();
         assert_eq!(result_char.id, 1);
         assert_eq!(result_char.name, "Test Hero");
         assert_eq!(result_char.hp, 100);
@@ -340,7 +340,7 @@ mod tests {
         let player_team = Team::new("Player".to_string(), vec![char1.clone()]);
         let enemy_team = Team::new("Enemy".to_string(), vec![char1.clone(), char2.clone(), char3.clone()]);
         let battle_context = BattleContext::new(&char1, TeamSide::Player, &player_team, &enemy_team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         // Create the node chain:
         // TeamMembersNode(Enemy) -> CharacterToHpMappingNode -> MinNode -> HpCharacterNode
@@ -351,7 +351,7 @@ mod tests {
         let hp_to_character_node = CharacterHpToCharacterNode::new(Box::new(min_hp_node));
         
         // Execute the chain
-        let result = Node::<Character>::evaluate(&hp_to_character_node, &eval_context, &mut rng).unwrap();
+        let result = Node::<Character>::evaluate(&hp_to_character_node, &mut eval_context).unwrap();
         
         // Verify we got the character with the lowest HP
         assert_eq!(result.id, 3);

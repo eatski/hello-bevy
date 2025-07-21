@@ -15,7 +15,7 @@ impl HealActionNode {
 }
 
 impl Node<Box<dyn Action>> for HealActionNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Box<dyn Action>> {
         let battle_context = eval_context.get_battle_context();
         let acting_character = battle_context.get_acting_character();
         
@@ -25,7 +25,7 @@ impl Node<Box<dyn Action>> for HealActionNode {
         }
         
         // Evaluate target character
-        let target_character = self.target.evaluate(eval_context, rng)?;
+        let target_character = self.target.evaluate(eval_context)?;
         
         // Create and return HealAction with the target character's ID
         Ok(Box::new(HealAction::new(target_character.id)))
@@ -56,8 +56,8 @@ mod tests {
         let heal = HealActionNode::new(target);
         let mut rng = StdRng::from_entropy();
         
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Box<dyn Action>>::evaluate(&heal, &eval_context, &mut rng);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let result = Node::<Box<dyn Action>>::evaluate(&heal, &mut eval_context);
         assert!(result.is_ok(), "HealActionNode should return HealAction for alive character");
         if let Ok(action) = result {
             assert_eq!(action.get_action_name(), "Heal");
@@ -69,8 +69,8 @@ mod tests {
         let dead_battle_context = crate::BattleContext::new(&dead_character, TeamSide::Player, &dead_player_team, &dead_enemy_team);
         let target_dead = Box::new(ActingCharacterNode);
         let heal_dead = HealActionNode::new(target_dead);
-        let dead_eval_context = EvaluationContext::new(&dead_battle_context);
-        let result = Node::<Box<dyn Action>>::evaluate(&heal_dead, &dead_eval_context, &mut rng);
+        let mut dead_eval_context = EvaluationContext::new(&dead_battle_context, &mut rng);
+        let result = Node::<Box<dyn Action>>::evaluate(&heal_dead, &mut dead_eval_context);
         assert!(matches!(result, Err(NodeError::Break)), "HealActionNode should return Break error for dead character");
     }
 }

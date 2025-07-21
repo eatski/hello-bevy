@@ -6,13 +6,13 @@ use crate::nodes::evaluation_context::EvaluationContext;
 /// Unified generic trait for all node types
 /// Replaces CharacterNode, ValueNode, ConditionNode, and ArrayNode<T>
 pub trait Node<T>: Send + Sync {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<T>;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<T>;
 }
 
 // Box implementation for trait objects
 impl<T> Node<T> for Box<dyn Node<T> + Send + Sync> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<T> {
-        (**self).evaluate(eval_context, rng)
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<T> {
+        (**self).evaluate(eval_context)
     }
 }
 
@@ -30,7 +30,7 @@ mod tests {
     }
 
     impl Node<i32> for TestCharacterNode {
-        fn evaluate(&self, _eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
+        fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<i32> {
             Ok(self.character_id)
         }
     }
@@ -42,7 +42,7 @@ mod tests {
     }
 
     impl Node<bool> for TestConditionNode {
-        fn evaluate(&self, _eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<bool> {
+        fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<bool> {
             Ok(self.result)
         }
     }
@@ -54,7 +54,7 @@ mod tests {
     }
 
     impl Node<Vec<Character>> for TestArrayNode {
-        fn evaluate(&self, _eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
+        fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<Vec<Character>> {
             Ok(self.characters.clone())
         }
     }
@@ -66,10 +66,10 @@ mod tests {
         let char1 = Character::new(1, "Test".to_string(), 100, 100, 10);
         let team = Team::new("Team".to_string(), vec![char1.clone()]);
         let battle_context = BattleContext::new(&char1, TeamSide::Player, &team, &team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let char_node = TestCharacterNode { character_id: 42 };
-        let result = char_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = char_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, 42);
     }
 
@@ -80,10 +80,10 @@ mod tests {
         let char1 = Character::new(1, "Test".to_string(), 100, 100, 10);
         let team = Team::new("Team".to_string(), vec![char1.clone()]);
         let battle_context = BattleContext::new(&char1, TeamSide::Player, &team, &team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let condition_node = TestConditionNode { result: true };
-        let result = condition_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = condition_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
     }
 
@@ -97,10 +97,10 @@ mod tests {
         
         let team = Team::new("Team".to_string(), vec![char1.clone()]);
         let battle_context = BattleContext::new(&char1, TeamSide::Player, &team, &team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let array_node = TestArrayNode { characters: characters.clone() };
-        let result = array_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = array_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, 1);
         assert_eq!(result[1].id, 2);
@@ -113,14 +113,14 @@ mod tests {
         let char1 = Character::new(1, "Test".to_string(), 100, 100, 10);
         let team = Team::new("Team".to_string(), vec![char1.clone()]);
         let battle_context = BattleContext::new(&char1, TeamSide::Player, &team, &team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         // Test boxed trait objects
         let char_node: Box<dyn Node<i32>> = Box::new(TestCharacterNode { character_id: 99 });
         let condition_node: Box<dyn Node<bool>> = Box::new(TestConditionNode { result: false });
         
-        let char_result = char_node.evaluate(&eval_context, &mut rng).unwrap();
-        let condition_result = condition_node.evaluate(&eval_context, &mut rng).unwrap();
+        let char_result = char_node.evaluate(&mut eval_context).unwrap();
+        let condition_result = condition_node.evaluate(&mut eval_context).unwrap();
         
         assert_eq!(char_result, 99);
         assert_eq!(condition_result, false);

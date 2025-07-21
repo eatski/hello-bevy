@@ -14,8 +14,8 @@ impl<T: Numeric> MinNode<T> {
 }
 
 impl<T: Numeric> Node<T> for MinNode<T> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<T> {
-        let array = self.array_node.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<T> {
+        let array = self.array_node.evaluate(eval_context)?;
         
         if array.is_empty() {
             return Err(crate::NodeError::EvaluationError("Cannot find min of empty array".to_string()));

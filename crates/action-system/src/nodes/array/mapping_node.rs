@@ -34,19 +34,19 @@ macro_rules! impl_mapping_for_types {
     ($(($input_type:ty, $output_type:ty, $current_element_variant:ident)),* $(,)?) => {
         $(
             impl Node<Vec<$output_type>> for MappingNode<$input_type, $output_type> {
-                fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<$output_type>> {
+                fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Vec<$output_type>> {
                     // Get the input array
-                    let input_array = self.array_node.evaluate(eval_context, rng)?;
+                    let input_array = self.array_node.evaluate(eval_context)?;
                     
                     let mut output_array = Vec::new();
                     
                     // Apply the transformation to each element
                     for element in input_array {
                         // Create an evaluation context with the current element
-                        let element_eval_context = eval_context.with_new_current_element(CurrentElement::$current_element_variant(element));
+                        let mut element_eval_context = eval_context.with_current_element_from_context(CurrentElement::$current_element_variant(element));
                         
                         // Apply the transformation function
-                        let transformed_element = self.transform_node.evaluate(&element_eval_context, rng)?;
+                        let transformed_element = self.transform_node.evaluate(&mut element_eval_context)?;
                         
                         output_array.push(transformed_element);
                     }
@@ -106,8 +106,8 @@ mod tests {
         
         let mapping_node = MappingNode::new(team_array, hp_extractor);
         
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Vec<i32>>::evaluate(&mapping_node, &eval_context, &mut rng).unwrap();
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let result = Node::<Vec<i32>>::evaluate(&mapping_node, &mut eval_context).unwrap();
         
         // Should return [50, 75, 30] - the HP values of the characters
         assert_eq!(result.len(), 3);
@@ -137,8 +137,8 @@ mod tests {
         
         let mapping_node = MappingNode::new(team_array, acting_char_transform);
         
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Vec<Character>>::evaluate(&mapping_node, &eval_context, &mut rng).unwrap();
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let result = Node::<Vec<Character>>::evaluate(&mapping_node, &mut eval_context).unwrap();
         
         // Should return [acting_char, acting_char] - the acting character for each element
         assert_eq!(result.len(), 2);

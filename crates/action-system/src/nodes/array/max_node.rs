@@ -14,8 +14,8 @@ impl<T: Numeric> MaxNode<T> {
 }
 
 impl<T: Numeric> Node<T> for MaxNode<T> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<T> {
-        let array = self.array_node.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<T> {
+        let array = self.array_node.evaluate(eval_context)?;
         
         if array.is_empty() {
             return Err(crate::NodeError::EvaluationError("Cannot find max of empty array".to_string()));

@@ -22,7 +22,7 @@ impl Default for AllTeamSidesNode {
 }
 
 impl Node<Vec<TeamSide>> for AllTeamSidesNode {
-    fn evaluate(&self, _eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<Vec<TeamSide>> {
+    fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<Vec<TeamSide>> {
         Ok(vec![TeamSide::Player, TeamSide::Enemy])
     }
 }

@@ -20,11 +20,10 @@ impl ActionCalculationSystem {
     }
 
     pub fn calculate_action(&mut self, battle_context: &BattleContext) -> Option<Box<dyn Action>> {
-        let rng = &mut self.rng;
-        let eval_context = EvaluationContext::new(battle_context);
+        let mut eval_context = EvaluationContext::new(battle_context, &mut self.rng);
 
         for rule in &self.rules {
-            match Node::<Box<dyn Action>>::evaluate(rule.as_ref(), &eval_context, rng) {
+            match Node::<Box<dyn Action>>::evaluate(rule.as_ref(), &mut eval_context) {
                 Ok(action) => {
                     return Some(action);
                 }

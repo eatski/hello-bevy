@@ -19,9 +19,9 @@ impl FilterListNode {
 }
 
 impl Node<Vec<Character>> for FilterListNode {
-    fn evaluate(&self, eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
+    fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<Vec<Character>> {
         // Get the array to filter
-        let characters = self.array.evaluate(eval_context, rng)?;
+        let characters = self.array.evaluate(eval_context)?;
         
         let mut filtered = Vec::new();
         
@@ -29,10 +29,10 @@ impl Node<Vec<Character>> for FilterListNode {
         for character in characters {
             // Create an evaluation context with the current character as the element being processed
             // This allows the Element node to reference the current character being evaluated
-            let element_eval_context = eval_context.with_new_element(&character);
+            let mut element_eval_context = eval_context.with_element_from_context(&character);
             
             // Evaluate condition with the element-specific context
-            let condition_result = self.condition.evaluate(&element_eval_context, rng)?;
+            let condition_result = self.condition.evaluate(&mut element_eval_context)?;
             
             if condition_result {
                 filtered.push(character);
@@ -82,8 +82,8 @@ mod tests {
         
         let filter_node = FilterListNode::new(team_array, hp_condition);
         
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Vec<Character>>::evaluate(&filter_node, &eval_context, &mut rng).unwrap();
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let result = Node::<Vec<Character>>::evaluate(&filter_node, &mut eval_context).unwrap();
         
         // Should only return the high HP character (80 > 50)
         assert_eq!(result.len(), 1);
@@ -115,8 +115,8 @@ mod tests {
         
         let filter_node = FilterListNode::new(team_array, hp_condition);
         
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Vec<Character>>::evaluate(&filter_node, &eval_context, &mut rng).unwrap();
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let result = Node::<Vec<Character>>::evaluate(&filter_node, &mut eval_context).unwrap();
         
         // Should return empty array
         assert_eq!(result.len(), 0);

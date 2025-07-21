@@ -27,23 +27,23 @@ pub type ValueRandomPickNode = GenericRandomPickNode<i32>;
 // Unified implementations
 
 impl Node<Character> for CharacterRandomPickNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Character> {
-        let characters = self.array_node.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Character> {
+        let characters = self.array_node.evaluate(eval_context)?;
         if characters.is_empty() {
             return Err(NodeError::EvaluationError("Cannot pick from empty character array".to_string()));
         }
-        let index = rng.gen_range(0..characters.len());
+        let index = eval_context.rng.gen_range(0..characters.len());
         Ok(characters[index].clone())
     }
 }
 
 impl Node<i32> for ValueRandomPickNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
-        let values = self.array_node.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<i32> {
+        let values = self.array_node.evaluate(eval_context)?;
         if values.is_empty() {
             return Err(NodeError::EvaluationError("Cannot pick from empty value array".to_string()));
         }
-        let index = rng.gen_range(0..values.len());
+        let index = eval_context.rng.gen_range(0..values.len());
         Ok(values[index])
     }
 }
@@ -72,8 +72,8 @@ mod tests {
         let empty_array = Box::new(TeamMembersNode::new(TeamSide::Enemy)); // Enemy team is empty
         let pick_node = CharacterRandomPickNode::new(empty_array);
         
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Character>::evaluate(&pick_node, &eval_context, &mut rng);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let result = Node::<Character>::evaluate(&pick_node, &mut eval_context);
         
         // Should return error for empty array
         assert!(result.is_err());
@@ -106,8 +106,8 @@ mod tests {
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
         let pick_node = CharacterRandomPickNode::new(team_array);
         
-        let eval_context = EvaluationContext::new(&battle_context);
-        let picked_character = Node::<Character>::evaluate(&pick_node, &eval_context, &mut rng).unwrap();
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let picked_character = Node::<Character>::evaluate(&pick_node, &mut eval_context).unwrap();
         
         // Should pick one of the characters
         assert!([1, 2, 3].contains(&picked_character.id));

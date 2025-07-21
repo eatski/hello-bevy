@@ -15,7 +15,7 @@ impl ConstantValueNode {
 
 // Unified implementation
 impl Node<i32> for ConstantValueNode {
-    fn evaluate(&self, _eval_context: &crate::nodes::evaluation_context::EvaluationContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<i32> {
+    fn evaluate(&self, _eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> crate::core::NodeResult<i32> {
         Ok(self.value)
     }
 }

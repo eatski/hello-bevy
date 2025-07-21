@@ -15,7 +15,7 @@ impl AllCharactersNode {
 }
 
 impl Node<Vec<Character>> for AllCharactersNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<Vec<Character>> {
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Vec<Character>> {
         let battle_context = eval_context.get_battle_context();
         let character_refs = battle_context.all_characters();
         let characters = character_refs.into_iter().cloned().collect();

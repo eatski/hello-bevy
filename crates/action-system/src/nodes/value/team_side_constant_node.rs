@@ -13,7 +13,7 @@ impl EnemyNode {
 }
 
 impl Node<TeamSide> for EnemyNode {
-    fn evaluate(&self, _context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<TeamSide> {
+    fn evaluate(&self, _context: &mut EvaluationContext) -> NodeResult<TeamSide> {
         Ok(TeamSide::Enemy)
     }
 }
@@ -28,7 +28,7 @@ impl HeroNode {
 }
 
 impl Node<TeamSide> for HeroNode {
-    fn evaluate(&self, _context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<TeamSide> {
+    fn evaluate(&self, _context: &mut EvaluationContext) -> NodeResult<TeamSide> {
         Ok(TeamSide::Player)
     }
 }

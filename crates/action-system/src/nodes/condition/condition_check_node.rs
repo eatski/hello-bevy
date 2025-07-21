@@ -16,11 +16,11 @@ impl ConditionCheckNode {
 }
 
 impl Node<Box<dyn Action>> for ConditionCheckNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<Box<dyn Action>> {
-        let condition_result = self.condition.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Box<dyn Action>> {
+        let condition_result = self.condition.evaluate(eval_context)?;
         if condition_result {
             // Continue: delegate to next node
-            self.next.evaluate(eval_context, rng)
+            self.next.evaluate(eval_context)
         } else {
             Err(NodeError::Break)
         }
@@ -51,8 +51,8 @@ mod tests {
         );
         let mut rng = StdRng::from_entropy();
         
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Box<dyn Action>>::evaluate(&check_random, &eval_context, &mut rng);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let result = Node::<Box<dyn Action>>::evaluate(&check_random, &mut eval_context);
         // Should either return an Action or Break error
         match result {
             Ok(_action) => assert!(true), // Got an action

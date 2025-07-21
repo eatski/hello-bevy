@@ -15,9 +15,9 @@ impl<T: Numeric> GreaterThanNode<T> {
 }
 
 impl<T: Numeric> Node<bool> for GreaterThanNode<T> {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<bool> {
-        let left_value = self.left_node.evaluate(eval_context, rng)?;
-        let right_value = self.right_node.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
+        let left_value = self.left_node.evaluate(eval_context)?;
+        let right_value = self.right_node.evaluate(eval_context)?;
         
         Ok(left_value.to_i32() > right_value.to_i32())
     }
@@ -36,9 +36,9 @@ impl CharacterHpVsValueGreaterThanNode {
 }
 
 impl Node<bool> for CharacterHpVsValueGreaterThanNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<bool> {
-        let left_value = self.left_node.evaluate(eval_context, rng)?;
-        let right_value = self.right_node.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
+        let left_value = self.left_node.evaluate(eval_context)?;
+        let right_value = self.right_node.evaluate(eval_context)?;
         
         Ok(left_value.to_i32() > right_value)
     }
@@ -57,9 +57,9 @@ impl ValueVsCharacterHpGreaterThanNode {
 }
 
 impl Node<bool> for ValueVsCharacterHpGreaterThanNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<bool> {
-        let left_value = self.left_node.evaluate(eval_context, rng)?;
-        let right_value = self.right_node.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
+        let left_value = self.left_node.evaluate(eval_context)?;
+        let right_value = self.right_node.evaluate(eval_context)?;
         
         Ok(left_value > right_value.to_i32())
     }
@@ -92,7 +92,7 @@ mod tests {
     }
 
     impl Node<CharacterHP> for ConstantCharacterHPNode {
-        fn evaluate(&self, _eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> NodeResult<CharacterHP> {
+        fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<CharacterHP> {
             Ok(self.character_hp.clone())
         }
     }
@@ -104,13 +104,13 @@ mod tests {
         let character = Character::new(1, "Test".to_string(), 100, 100, 10);
         let team = Team::new("Test Team".to_string(), vec![character.clone()]);
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let left_node = Box::new(ConstantValueNode::new(50));
         let right_node = Box::new(ConstantValueNode::new(30));
         let gt_node = GreaterThanConditionNode::new(left_node, right_node);
         
-        let result = gt_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
     }
 
@@ -121,13 +121,13 @@ mod tests {
         let character = Character::new(1, "Test".to_string(), 100, 100, 10);
         let team = Team::new("Test Team".to_string(), vec![character.clone()]);
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let left_node = Box::new(ConstantValueNode::new(20));
         let right_node = Box::new(ConstantValueNode::new(30));
         let gt_node = GreaterThanConditionNode::new(left_node, right_node);
         
-        let result = gt_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, false);
     }
 
@@ -138,7 +138,7 @@ mod tests {
         let character = Character::new(1, "Test".to_string(), 100, 100, 10);
         let team = Team::new("Test Team".to_string(), vec![character.clone()]);
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let test_char = Character::new(1, "TestChar".to_string(), 100, 100, 10);
         let char_hp = CharacterHP::from_character_with_hp(test_char, 80);
@@ -147,7 +147,7 @@ mod tests {
         let right_node = Box::new(ConstantValueNode::new(50));
         let gt_node = CharacterHpVsValueConditionNode::new(left_node, right_node);
         
-        let result = gt_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
     }
 
@@ -158,7 +158,7 @@ mod tests {
         let character = Character::new(1, "Test".to_string(), 100, 100, 10);
         let team = Team::new("Test Team".to_string(), vec![character.clone()]);
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let test_char = Character::new(1, "TestChar".to_string(), 100, 100, 10);
         let char_hp = CharacterHP::from_character_with_hp(test_char, 30);
@@ -167,7 +167,7 @@ mod tests {
         let right_node = Box::new(ConstantCharacterHPNode::new(char_hp));
         let gt_node = ValueVsCharacterHpConditionNode::new(left_node, right_node);
         
-        let result = gt_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
     }
 
@@ -178,7 +178,7 @@ mod tests {
         let character = Character::new(1, "Test".to_string(), 100, 100, 10);
         let team = Team::new("Test Team".to_string(), vec![character.clone()]);
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
-        let eval_context = EvaluationContext::new(&battle_context);
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let test_char1 = Character::new(1, "TestChar1".to_string(), 100, 100, 10);
         let test_char2 = Character::new(2, "TestChar2".to_string(), 100, 100, 10);
@@ -189,7 +189,7 @@ mod tests {
         let right_node = Box::new(ConstantCharacterHPNode::new(char_hp2));
         let gt_node = GreaterThanNode::<CharacterHP>::new(left_node, right_node);
         
-        let result = gt_node.evaluate(&eval_context, &mut rng).unwrap();
+        let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
     }
 }

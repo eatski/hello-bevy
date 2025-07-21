@@ -16,8 +16,8 @@ impl CountArrayNode {
 }
 
 impl Node<i32> for CountArrayNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<i32> {
-        let characters = self.array_node.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<i32> {
+        let characters = self.array_node.evaluate(eval_context)?;
         Ok(characters.len() as i32)
     }
 }

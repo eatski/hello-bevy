@@ -16,9 +16,9 @@ impl<T> EqConditionNode<T> {
 }
 
 impl<T: PartialEq + fmt::Debug + Clone + Send + Sync + 'static> Node<bool> for EqConditionNode<T> {
-    fn evaluate(&self, context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<bool> {
-        let left_value = self.left.evaluate(context, rng)?;
-        let right_value = self.right.evaluate(context, rng)?;
+    fn evaluate(&self, context: &mut EvaluationContext) -> NodeResult<bool> {
+        let left_value = self.left.evaluate(context)?;
+        let right_value = self.right.evaluate(context)?;
         Ok(left_value == right_value)
     }
 }
@@ -37,8 +37,8 @@ impl CharacterTeamNode {
 }
 
 impl Node<TeamSide> for CharacterTeamNode {
-    fn evaluate(&self, context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> NodeResult<TeamSide> {
-        let character = self.character_node.evaluate(context, rng)?;
+    fn evaluate(&self, context: &mut EvaluationContext) -> NodeResult<TeamSide> {
+        let character = self.character_node.evaluate(context)?;
         
         // Check if character is in player team
         if context.battle_context.player_team.get_member_by_id(character.id).is_some() {

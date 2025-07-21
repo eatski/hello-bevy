@@ -8,8 +8,8 @@ pub struct RandomConditionNode;
 
 // Unified implementation
 impl Node<bool> for RandomConditionNode {
-    fn evaluate(&self, _eval_context: &crate::nodes::evaluation_context::EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<bool> {
-        Ok(rng.gen_bool(0.5))
+    fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> crate::core::NodeResult<bool> {
+        Ok(eval_context.rng.gen_bool(0.5))
     }
 }
 
@@ -36,20 +36,22 @@ mod tests {
         // Test with seeded RNG for deterministic behavior
         let mut rng1 = StdRng::seed_from_u64(42);
         let mut rng2 = StdRng::seed_from_u64(42);
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result1 = Node::<bool>::evaluate(&random, &eval_context, &mut rng1).unwrap();
-        let result2 = Node::<bool>::evaluate(&random, &eval_context, &mut rng2).unwrap();
+        let mut eval_context1 = EvaluationContext::new(&battle_context, &mut rng1);
+        let mut eval_context2 = EvaluationContext::new(&battle_context, &mut rng2);
+        let result1 = Node::<bool>::evaluate(&random, &mut eval_context1).unwrap();
+        let result2 = Node::<bool>::evaluate(&random, &mut eval_context2).unwrap();
         
         // Same seed should produce same result
         assert_eq!(result1, result2);
         
-        // Test with random RNG for variety
-        let mut rng = StdRng::from_entropy();
+        // Test with random RNG for variety - use different RNG instances
         let mut true_count = 0;
         let mut false_count = 0;
         
-        for _ in 0..100 {
-            if Node::<bool>::evaluate(&random, &eval_context, &mut rng).unwrap() {
+        for i in 0..100 {
+            let mut local_rng = StdRng::seed_from_u64(42 + i as u64);
+            let mut eval_context = EvaluationContext::new(&battle_context, &mut local_rng);
+            if Node::<bool>::evaluate(&random, &mut eval_context).unwrap() {
                 true_count += 1;
             } else {
                 false_count += 1;
@@ -76,11 +78,10 @@ mod tests {
         
         let mut results = Vec::new();
         
-        let eval_context = EvaluationContext::new(&battle_context);
-        
-        // 同一RNGで20回評価
+        // 同一RNGコンテキストで20回評価
         for _ in 0..20 {
-            let result = Node::<bool>::evaluate(&random, &eval_context, &mut rng).unwrap();
+            let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+            let result = Node::<bool>::evaluate(&random, &mut eval_context).unwrap();
             results.push(result);
         }
         
@@ -106,11 +107,11 @@ mod tests {
         // Test with seeded RNG for deterministic behavior
         let mut rng1 = StdRng::seed_from_u64(42);
         let mut rng2 = StdRng::seed_from_u64(42);
-        let eval_context = EvaluationContext::new(&battle_context);
-        
         // Test unified implementation
-        let result1 = Node::<bool>::evaluate(&random, &eval_context, &mut rng1).unwrap();
-        let result2 = Node::<bool>::evaluate(&random, &eval_context, &mut rng2).unwrap();
+        let mut eval_context1 = EvaluationContext::new(&battle_context, &mut rng1);
+        let mut eval_context2 = EvaluationContext::new(&battle_context, &mut rng2);
+        let result1 = Node::<bool>::evaluate(&random, &mut eval_context1).unwrap();
+        let result2 = Node::<bool>::evaluate(&random, &mut eval_context2).unwrap();
         
         // Same seed should produce same result
         assert_eq!(result1, result2);
@@ -118,16 +119,18 @@ mod tests {
         // Test as boxed trait object
         let boxed_node: Box<dyn Node<bool>> = Box::new(RandomConditionNode);
         let mut rng3 = StdRng::seed_from_u64(42);
-        let boxed_result = boxed_node.evaluate(&eval_context, &mut rng3).unwrap();
+        let mut eval_context3 = EvaluationContext::new(&battle_context, &mut rng3);
+        let boxed_result = boxed_node.evaluate(&mut eval_context3).unwrap();
         assert_eq!(boxed_result, result1);
         
-        // Test variety with random RNG
-        let mut rng = StdRng::from_entropy();
+        // Test variety with different RNG instances
         let mut true_count = 0;
         let mut false_count = 0;
         
-        for _ in 0..100 {
-            if Node::<bool>::evaluate(&random, &eval_context, &mut rng).unwrap() {
+        for i in 0..100 {
+            let mut local_rng = StdRng::seed_from_u64(100 + i as u64);
+            let mut eval_context = EvaluationContext::new(&battle_context, &mut local_rng);
+            if Node::<bool>::evaluate(&random, &mut eval_context).unwrap() {
                 true_count += 1;
             } else {
                 false_count += 1;

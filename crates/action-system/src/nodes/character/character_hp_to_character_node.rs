@@ -15,8 +15,8 @@ impl CharacterHpToCharacterNode {
 }
 
 impl Node<crate::Character> for CharacterHpToCharacterNode {
-    fn evaluate(&self, eval_context: &EvaluationContext, rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<crate::Character> {
-        let character_hp = self.character_hp_node.evaluate(eval_context, rng)?;
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> crate::core::NodeResult<crate::Character> {
+        let character_hp = self.character_hp_node.evaluate(eval_context)?;
         Ok(character_hp.get_character().clone())
     }
 }
@@ -40,7 +40,7 @@ mod tests {
     }
 
     impl Node<CharacterHP> for TestCharacterHPNode {
-        fn evaluate(&self, _eval_context: &EvaluationContext, _rng: &mut dyn rand::RngCore) -> crate::core::NodeResult<CharacterHP> {
+        fn evaluate(&self, _eval_context: &mut EvaluationContext) -> crate::core::NodeResult<CharacterHP> {
             Ok(self.character_hp.clone())
         }
     }
@@ -58,8 +58,8 @@ mod tests {
         
         // Test CharacterHpToCharacterNode with TestCharacterHPNode
         let hp_char_node = CharacterHpToCharacterNode::new(Box::new(TestCharacterHPNode::new(character_hp)));
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Character>::evaluate(&hp_char_node, &eval_context, &mut rng).unwrap();
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let result = Node::<Character>::evaluate(&hp_char_node, &mut eval_context).unwrap();
         
         assert_eq!(result.id, 1);
         assert_eq!(result.name, "Test Player");
@@ -80,8 +80,8 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         let hp_char_node = CharacterHpToCharacterNode::new(Box::new(TestCharacterHPNode::new(character_hp)));
-        let eval_context = EvaluationContext::new(&battle_context);
-        let result = Node::<Character>::evaluate(&hp_char_node, &eval_context, &mut rng).unwrap();
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        let result = Node::<Character>::evaluate(&hp_char_node, &mut eval_context).unwrap();
         
         assert_eq!(result.id, 2);
         assert_eq!(result.name, "Injured Player");
