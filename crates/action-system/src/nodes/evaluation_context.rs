@@ -109,7 +109,6 @@ mod tests {
     fn test_evaluation_context_with_new_element() {
         use rand::SeedableRng;
         let mut rng1 = rand::rngs::StdRng::seed_from_u64(12345);
-        let mut rng2 = rand::rngs::StdRng::seed_from_u64(12345);
         
         let acting_character = Character::new(1, "Acting".to_string(), 100, 100, 20);
         let element1 = Character::new(2, "Element1".to_string(), 80, 100, 15);

@@ -101,7 +101,7 @@ mod tests {
 
     #[test]
     fn test_element_node_with_different_types() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
+        let rng = rand::rngs::StdRng::seed_from_u64(12345);
         
         let character = Character::new(1, "Test".to_string(), 100, 100, 20);
         let team = Team::new("Test Team".to_string(), vec![character.clone()]);
@@ -133,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_element_node_unified() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
+        let rng = rand::rngs::StdRng::seed_from_u64(12345);
         
         let character = Character::new(99, "Unified Test".to_string(), 100, 100, 30);
         let current_element = Character::new(123, "Element".to_string(), 80, 80, 25);
