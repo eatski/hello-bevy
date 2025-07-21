@@ -1,5 +1,8 @@
 # 本格的な型つきプログラミング言語としてリアーキテクチャ
 
+crates/token-input/src/structured_to_node.rsは行き当たりばっかりの変換ロジックを書き連ねておりスケールしない
+本格的な型システムを有するコンパイラを開発する必要がある
+
 ## 言語アーキテクチャ
 
 ### フロントエンド
@@ -10,8 +13,14 @@
 また、演算子などの概念は存在せずすべてtokenがそれを担う
 例: `=` は存在せず `Eq(a,b)` 関数がある
 
+
+#### 入力の例
+- rules/enemy_rules.json
+- crates/token-input/src/structured_token.rs
+
 ### アウトプット
 コンパイルで木構造のNodeをアウトプットし、そのNodeはそのまま実行できる
+Nodeの実体が実行時のロジックを持つ
 
 [最終アウトプット](crates/action-system)
 
@@ -42,7 +51,4 @@ Numericは数値やキャラクターのHPなどを包括した抽象概念
 大小比較関数などはNumericな型であれば、別の型同士でも比較可能
 
 
-### 入力の例
-- rules/enemy_rules.json
-- crates/token-input/src/structured_token.rs
 
