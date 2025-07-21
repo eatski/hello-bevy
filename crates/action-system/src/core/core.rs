@@ -1,27 +1,7 @@
 // Core traits and types for the action system
 
-// Common error type for all resolvers and nodes
-#[derive(Clone, Debug, PartialEq)]
-pub enum NodeError {
-    // General evaluation error
-    EvaluationError(String),
-    // Action resolution should break/skip this rule
-    Break,
-}
-
-impl std::fmt::Display for NodeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            NodeError::EvaluationError(msg) => write!(f, "Evaluation error: {}", msg),
-            NodeError::Break => write!(f, "Action resolution break"),
-        }
-    }
-}
-
-impl std::error::Error for NodeError {}
-
-// Type alias for Result with NodeError
-pub type NodeResult<T> = Result<T, NodeError>;
+// Re-export node core types
+pub use node_core::{NodeError, NodeResult};
 
 // Battle state for mutable operations during action execution
 #[derive(Debug)]
@@ -72,4 +52,4 @@ impl Action for Box<dyn Action> {
 }
 
 // Simplified rule system - all nodes are unified Node<Box<dyn Action>>
-pub type RuleNode = Box<dyn crate::nodes::unified_node::Node<Box<dyn Action>>>;
+pub type RuleNode = Box<dyn for<'a> node_core::Node<Box<dyn Action>, crate::nodes::evaluation_context::EvaluationContext<'a>> + Send + Sync>;

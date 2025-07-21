@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/node-core",
     "crates/action-system",
     "crates/json-rule",
     "crates/battle",
@@ -16,6 +17,7 @@ edition = "2021"
 [dependencies]
 bevy = "0.16.0"
 rand = "0.8.5"
+node-core = { path = "crates/node-core" }
 action-system = { path = "crates/action-system" }
 json-rule = { path = "crates/json-rule" }
 battle = { path = "crates/battle" }

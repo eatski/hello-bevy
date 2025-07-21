@@ -1,6 +1,7 @@
 use crate::core::NodeResult;
 use crate::nodes::evaluation_context::EvaluationContext;
-use crate::nodes::unified_node::Node;
+use node_core::Node;
+use crate::nodes::evaluation_context::EvaluationContext;
 use crate::TeamSide;
 
 #[derive(Debug)]

@@ -1,7 +1,8 @@
 // HP Character node - returns Character from a CharacterHP node
 
 use crate::nodes::evaluation_context::EvaluationContext;
-use crate::nodes::unified_node::Node;
+use node_core::Node;
+use crate::nodes::evaluation_context::EvaluationContext;
 use crate::core::character_hp::CharacterHP;
 
 pub struct CharacterHpToCharacterNode {

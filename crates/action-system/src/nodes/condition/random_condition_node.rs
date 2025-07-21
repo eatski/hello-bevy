@@ -1,14 +1,15 @@
 // Random condition node - randomly returns true or false
 
 use rand::Rng;
-use crate::nodes::unified_node::Node;
+use node_core::Node;
+use crate::nodes::evaluation_context::EvaluationContext;
 
 #[derive(Debug)]
 pub struct RandomConditionNode;
 
 // Unified implementation
-impl Node<bool> for RandomConditionNode {
-    fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> crate::core::NodeResult<bool> {
+impl<'a> Node<bool, EvaluationContext<'a>> for RandomConditionNode {
+    fn evaluate(&self, eval_context: &mut EvaluationContext<'a>) -> crate::core::NodeResult<bool> {
         Ok(eval_context.rng.gen_bool(0.5))
     }
 }

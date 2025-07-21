@@ -1,21 +1,16 @@
-// Unified Node<T> trait - single generic trait for all node types
+// Type aliases for action-system specific Node traits
 
-use crate::core::NodeResult;
 use crate::nodes::evaluation_context::EvaluationContext;
 
-/// Unified generic trait for all node types
-/// Replaces CharacterNode, ValueNode, ConditionNode, and ArrayNode<T>
-pub trait Node<T>: Send + Sync {
-    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<T>;
-}
+// Re-export the core Node trait
+pub use node_core::Node as CoreNode;
+pub use node_core::{NodeResult, NodeError};
 
-// Box implementation for trait objects
-impl<T> Node<T> for Box<dyn Node<T> + Send + Sync> {
-    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<T> {
-        (**self).evaluate(eval_context)
-    }
-}
+/// Type alias for Node trait with action-system's EvaluationContext
+pub type Node<T> = dyn for<'a> CoreNode<T, EvaluationContext<'a>> + Send + Sync;
 
+/// Type alias for boxed Node trait objects
+pub type BoxedNode<T> = Box<Node<T>>;
 
 #[cfg(test)]
 mod tests {
@@ -29,8 +24,8 @@ mod tests {
         character_id: i32,
     }
 
-    impl Node<i32> for TestCharacterNode {
-        fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<i32> {
+    impl<'a> CoreNode<i32, EvaluationContext<'a>> for TestCharacterNode {
+        fn evaluate(&self, _eval_context: &mut EvaluationContext<'a>) -> NodeResult<i32> {
             Ok(self.character_id)
         }
     }
@@ -41,8 +36,8 @@ mod tests {
         result: bool,
     }
 
-    impl Node<bool> for TestConditionNode {
-        fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<bool> {
+    impl<'a> CoreNode<bool, EvaluationContext<'a>> for TestConditionNode {
+        fn evaluate(&self, _eval_context: &mut EvaluationContext<'a>) -> NodeResult<bool> {
             Ok(self.result)
         }
     }
@@ -53,8 +48,8 @@ mod tests {
         characters: Vec<Character>,
     }
 
-    impl Node<Vec<Character>> for TestArrayNode {
-        fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<Vec<Character>> {
+    impl<'a> CoreNode<Vec<Character>, EvaluationContext<'a>> for TestArrayNode {
+        fn evaluate(&self, _eval_context: &mut EvaluationContext<'a>) -> NodeResult<Vec<Character>> {
             Ok(self.characters.clone())
         }
     }
@@ -116,8 +111,8 @@ mod tests {
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         // Test boxed trait objects
-        let char_node: Box<dyn Node<i32>> = Box::new(TestCharacterNode { character_id: 99 });
-        let condition_node: Box<dyn Node<bool>> = Box::new(TestConditionNode { result: false });
+        let char_node: Box<dyn for<'a> CoreNode<i32, EvaluationContext<'a>>> = Box::new(TestCharacterNode { character_id: 99 });
+        let condition_node: Box<dyn for<'a> CoreNode<bool, EvaluationContext<'a>>> = Box::new(TestConditionNode { result: false });
         
         let char_result = char_node.evaluate(&mut eval_context).unwrap();
         let condition_result = condition_node.evaluate(&mut eval_context).unwrap();

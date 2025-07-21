@@ -1,6 +1,7 @@
 // FilterList node - filters array elements based on condition
 use crate::core::NodeResult;
-use crate::nodes::unified_node::Node;
+use node_core::Node;
+use crate::nodes::evaluation_context::EvaluationContext;
 use crate::Character;
 
 /// Node that filters an array of characters based on a condition

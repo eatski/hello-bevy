@@ -2,21 +2,21 @@
 
 use crate::core::{Action, NodeResult, NodeError};
 use crate::nodes::evaluation_context::EvaluationContext;
-use crate::nodes::unified_node::Node;
+use node_core::Node;
 
 pub struct ConditionCheckNode {
-    condition: Box<dyn Node<bool>>,
-    next: Box<dyn Node<Box<dyn Action>>>,
+    condition: Box<dyn for<'a> Node<bool, EvaluationContext<'a>>>,
+    next: Box<dyn for<'a> Node<Box<dyn Action>, EvaluationContext<'a>>>,
 }
 
 impl ConditionCheckNode {
-    pub fn new(condition: Box<dyn Node<bool>>, next: Box<dyn Node<Box<dyn Action>>>) -> Self {
+    pub fn new(condition: Box<dyn for<'a> Node<bool, EvaluationContext<'a>>>, next: Box<dyn for<'a> Node<Box<dyn Action>, EvaluationContext<'a>>>) -> Self {
         Self { condition, next }
     }
 }
 
-impl Node<Box<dyn Action>> for ConditionCheckNode {
-    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Box<dyn Action>> {
+impl<'a> Node<Box<dyn Action>, EvaluationContext<'a>> for ConditionCheckNode {
+    fn evaluate(&self, eval_context: &mut EvaluationContext<'a>) -> NodeResult<Box<dyn Action>> {
         let condition_result = self.condition.evaluate(eval_context)?;
         if condition_result {
             // Continue: delegate to next node

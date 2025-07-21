@@ -1,5 +1,4 @@
-use crate::nodes::unified_node::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use node_core::Node;
 use crate::core::{NodeResult, Numeric};
 
 /// Array内の最大値を返すノード（Numeric対応）

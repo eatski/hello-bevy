@@ -1,6 +1,7 @@
 // Element node - references the current character being processed in array operations
 use crate::core::NodeResult;
-use crate::nodes::unified_node::Node;
+use node_core::Node;
+use crate::nodes::evaluation_context::EvaluationContext;
 
 /// Node that returns the current character being processed in array operations
 /// This is typically used within FilterList conditions to reference the element being evaluated

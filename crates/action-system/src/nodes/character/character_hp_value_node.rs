@@ -1,7 +1,8 @@
 // Character HP Value node - returns i32 HP value from a character node
 
 use crate::nodes::evaluation_context::EvaluationContext;
-use crate::nodes::unified_node::Node;
+use node_core::Node;
+use crate::nodes::evaluation_context::EvaluationContext;
 use crate::core::NodeResult;
 
 pub struct CharacterHpValueNode {

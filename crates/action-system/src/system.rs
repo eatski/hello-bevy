@@ -2,7 +2,7 @@
 
 use rand::rngs::StdRng;
 use super::core::{Action, RuleNode, NodeError};
-use crate::nodes::unified_node::Node;
+use node_core::Node;
 use crate::BattleContext;
 use crate::nodes::evaluation_context::EvaluationContext;
 
@@ -23,7 +23,7 @@ impl ActionCalculationSystem {
         let mut eval_context = EvaluationContext::new(battle_context, &mut self.rng);
 
         for rule in &self.rules {
-            match Node::<Box<dyn Action>>::evaluate(rule.as_ref(), &mut eval_context) {
+            match rule.as_ref().evaluate(&mut eval_context) {
                 Ok(action) => {
                     return Some(action);
                 }

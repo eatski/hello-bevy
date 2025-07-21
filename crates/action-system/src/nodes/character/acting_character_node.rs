@@ -1,6 +1,7 @@
 // Acting character node - returns the character currently performing action calculation
 
-use crate::nodes::unified_node::Node;
+use node_core::Node;
+use crate::nodes::evaluation_context::EvaluationContext;
 
 #[derive(Debug)]
 pub struct ActingCharacterNode;

@@ -1,7 +1,6 @@
 // AllTeamSidesNode - returns all possible team sides
 use crate::core::NodeResult;
-use crate::nodes::unified_node::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use node_core::Node;
 use crate::TeamSide;
 
 /// Node that returns an array of both team sides

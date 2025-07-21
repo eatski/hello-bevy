@@ -1,8 +1,7 @@
 // Heal action node - resolves to heal action with target character
 
 use crate::core::{NodeResult, NodeError, Action, HealAction};
-use crate::nodes::unified_node::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use node_core::Node;
 
 pub struct HealActionNode {
     target: Box<dyn Node<crate::Character>>,

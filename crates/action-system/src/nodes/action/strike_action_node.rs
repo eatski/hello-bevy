@@ -1,8 +1,7 @@
 // Strike action node - resolves to strike action with target character
 
 use crate::core::{NodeResult, NodeError, Action, StrikeAction};
-use crate::nodes::unified_node::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use node_core::Node;
 
 pub struct StrikeActionNode {
     target: Box<dyn Node<crate::Character>>,
