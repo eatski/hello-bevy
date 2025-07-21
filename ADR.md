@@ -1,9 +1,38 @@
-# 未実装のアーキテクチャデザイン
+# 本格的な型つきプログラミング言語としてリアーキテクチャ
 
-## ElementNodeを廃止し、Node(Fn)の引数として渡す
+## 言語アーキテクチャ
 
-- ElementNodeを廃止
-  - EvaluationContext#current_elementも廃止
-- 入力側のElementトークンは生かす
-  - `FilterList -> AllCharacter -> GraterThan -> CharacterHp -> Element -> Number(30)` のようにFilterListの引数をElementで参照できるように
-  - `FilterList -> AllCharacter -> GraterThan -> CharacterHp -> Element -> Number(30)` が `FilterList {array: AllCharacter, condition: (element) => gt(hp(element),30)}` に変換される
+### フロントエンド
+
+基本的に、プログラムはトークンを組み合わせる形で実装していく
+
+2つの形式をサポート
+- フラット型（ゲームUIから設定できる）
+- JSON型（ゲーム開発者がenemyのステータスを設定するのに使用する）
+
+### 最終的なアウトプット
+コンパイルで木構造のNodeをアウトプットし、そのNodeはそのまま実行できる
+
+### 言語機能
+
+#### 型
+基本的な静的型検査機能を持ち、検査のFBをユーザーに伝えられる
+
+#### 関数
+フロントエンドには関数は存在しないが、Mappingなどの
+トークンの一部引数内では、引数トークンを使って、関数の引数を取得することで擬似的に関数を実装できる
+
+Mapping {
+  array: Somethings
+  transform: MappingLogic
+}
+
+#### ジェネリクス
+フロントエンドからは型を明示的に指定できず、すべて型推論で型を決定する
+
+
+#### 抽象型
+例: Numeric
+
+Numericは数値やキャラクターのHPなどを包括した抽象概念
+大小比較関数などはNumericな型であれば、別の型同士でも比較可能
