@@ -5,6 +5,9 @@ use action_system::*;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 
+// Type alias for Node trait with action-system's EvaluationContext
+type ActionSystemNode<T> = dyn for<'a> Node<T, EvaluationContext<'a>> + Send + Sync;
+
 // Type-erased node wrapper that preserves type information
 pub struct TypedNode {
     pub node: Box<dyn Any>,
@@ -13,7 +16,7 @@ pub struct TypedNode {
 }
 
 impl TypedNode {
-    pub fn new<T: Any + 'static>(node: Box<dyn Node<T>>, type_name: String) -> Self {
+    pub fn new<T: Any + 'static>(node: Box<ActionSystemNode<T>>, type_name: String) -> Self {
         Self {
             node: Box::new(node) as Box<dyn Any>,
             type_id: TypeId::of::<T>(),
@@ -21,9 +24,9 @@ impl TypedNode {
         }
     }
     
-    pub fn downcast<T: Any + 'static>(self) -> Result<Box<dyn Node<T>>, String> {
+    pub fn downcast<T: Any + 'static>(self) -> Result<Box<ActionSystemNode<T>>, String> {
         if self.type_id == TypeId::of::<T>() {
-            self.node.downcast::<Box<dyn Node<T>>>()
+            self.node.downcast::<Box<ActionSystemNode<T>>>()
                 .map(|boxed| *boxed)
                 .map_err(|_| format!("Failed to downcast to {}", std::any::type_name::<T>()))
         } else {
@@ -35,7 +38,7 @@ impl TypedNode {
 // Trait for converting StructuredTokenInput to specific node types
 pub trait NodeConverter<T> {
     fn can_convert(&self, token: &StructuredTokenInput) -> bool;
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<T>>, String>;
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<T>>, String>;
 }
 
 // Registry to hold all converters
@@ -61,7 +64,7 @@ impl ConverterRegistry {
             .push(Box::new(converter));
     }
     
-    pub fn convert<T: Any + 'static>(&self, token: &StructuredTokenInput) -> Result<Box<dyn Node<T>>, String> {
+    pub fn convert<T: Any + 'static>(&self, token: &StructuredTokenInput) -> Result<Box<ActionSystemNode<T>>, String> {
         let type_id = TypeId::of::<T>();
         
         if let Some(converters) = self.converters.get(&type_id) {
@@ -174,6 +177,8 @@ impl ConverterRegistry {
         self.register_converter(Box::new(MinI32Converter));
         self.register_converter(Box::new(MaxCharacterHPConverter));
         self.register_converter(Box::new(MinCharacterHPConverter));
+        self.register_converter(Box::new(MaxCharacterConverter));
+        self.register_converter(Box::new(MinCharacterConverter));
     }
 }
 

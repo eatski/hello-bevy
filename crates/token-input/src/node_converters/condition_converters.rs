@@ -1,6 +1,9 @@
 use crate::{StructuredTokenInput, node_converter::{NodeConverter, ConverterRegistry, matches_token}};
 use action_system::*;
 
+// Type alias for Node trait with action-system's EvaluationContext
+type ActionSystemNode<T> = dyn for<'a> Node<T, EvaluationContext<'a>> + Send + Sync;
+
 pub struct TrueOrFalseRandomConverter;
 
 impl NodeConverter<bool> for TrueOrFalseRandomConverter {
@@ -8,7 +11,7 @@ impl NodeConverter<bool> for TrueOrFalseRandomConverter {
         matches_token(token, "TrueOrFalseRandom")
     }
     
-    fn convert(&self, _token: &StructuredTokenInput, _registry: &ConverterRegistry) -> Result<Box<dyn Node<bool>>, String> {
+    fn convert(&self, _token: &StructuredTokenInput, _registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<bool>>, String> {
         Ok(Box::new(RandomConditionNode))
     }
 }
@@ -20,7 +23,7 @@ impl NodeConverter<bool> for GreaterThanConverter {
         matches_token(token, "GreaterThan")
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<bool>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<bool>>, String> {
         if let StructuredTokenInput::GreaterThan { left, right } = token {
             // Try different type combinations
             // Both i32
@@ -57,7 +60,7 @@ impl NodeConverter<bool> for EqConverter {
         matches_token(token, "Eq")
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<bool>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<bool>>, String> {
         if let StructuredTokenInput::Eq { left, right } = token {
             // Try TeamSide comparison
             if let (Ok(left_team), Ok(right_team)) = (registry.convert::<TeamSide>(left), registry.convert::<TeamSide>(right)) {

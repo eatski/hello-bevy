@@ -1,22 +1,21 @@
 use crate::core::{NodeError, NodeResult};
 use crate::nodes::evaluation_context::EvaluationContext;
-use node_core::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::TeamSide;
 use std::fmt;
 
 pub struct EqConditionNode<T> {
-    left: Box<dyn Node<T>>,
-    right: Box<dyn Node<T>>,
+    left: BoxedNode<T>,
+    right: BoxedNode<T>,
 }
 
 impl<T> EqConditionNode<T> {
-    pub fn new(left: Box<dyn Node<T>>, right: Box<dyn Node<T>>) -> Self {
+    pub fn new(left: BoxedNode<T>, right: BoxedNode<T>) -> Self {
         Self { left, right }
     }
 }
 
-impl<T: PartialEq + fmt::Debug + Clone + Send + Sync + 'static> Node<bool> for EqConditionNode<T> {
+impl<'a, T: PartialEq + fmt::Debug + Clone + Send + Sync + 'static> Node<bool, EvaluationContext<'a>> for EqConditionNode<T> {
     fn evaluate(&self, context: &mut EvaluationContext) -> NodeResult<bool> {
         let left_value = self.left.evaluate(context)?;
         let right_value = self.right.evaluate(context)?;
@@ -28,16 +27,16 @@ impl<T: PartialEq + fmt::Debug + Clone + Send + Sync + 'static> Node<bool> for E
 pub type TeamSideEqNode = EqConditionNode<TeamSide>;
 
 pub struct CharacterTeamNode {
-    character_node: Box<dyn Node<crate::Character>>,
+    character_node: BoxedNode<crate::Character>,
 }
 
 impl CharacterTeamNode {
-    pub fn new(character_node: Box<dyn Node<crate::Character>>) -> Self {
+    pub fn new(character_node: BoxedNode<crate::Character>) -> Self {
         Self { character_node }
     }
 }
 
-impl Node<TeamSide> for CharacterTeamNode {
+impl<'a> Node<TeamSide, EvaluationContext<'a>> for CharacterTeamNode {
     fn evaluate(&self, context: &mut EvaluationContext) -> NodeResult<TeamSide> {
         let character = self.character_node.evaluate(context)?;
         

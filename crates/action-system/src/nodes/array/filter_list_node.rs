@@ -1,25 +1,25 @@
 // FilterList node - filters array elements based on condition
 use crate::core::NodeResult;
-use node_core::Node;
+use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::nodes::evaluation_context::EvaluationContext;
 use crate::Character;
 
 /// Node that filters an array of characters based on a condition
 pub struct FilterListNode {
-    array: Box<dyn Node<Vec<Character>>>,
-    condition: Box<dyn Node<bool>>,
+    array: BoxedNode<Vec<Character>>,
+    condition: BoxedNode<bool>,
 }
 
 impl FilterListNode {
     pub fn new(
-        array: Box<dyn Node<Vec<Character>>>,
-        condition: Box<dyn Node<bool>>,
+        array: BoxedNode<Vec<Character>>,
+        condition: BoxedNode<bool>,
     ) -> Self {
         Self { array, condition }
     }
 }
 
-impl Node<Vec<Character>> for FilterListNode {
+impl<'a> Node<Vec<Character>, EvaluationContext<'a>> for FilterListNode {
     fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<Vec<Character>> {
         // Get the array to filter
         let characters = self.array.evaluate(eval_context)?;
@@ -84,7 +84,7 @@ mod tests {
         let filter_node = FilterListNode::new(team_array, hp_condition);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Vec<Character>>::evaluate(&filter_node, &mut eval_context).unwrap();
+        let result = Node::<Vec<Character>, EvaluationContext>::evaluate(&filter_node, &mut eval_context).unwrap();
         
         // Should only return the high HP character (80 > 50)
         assert_eq!(result.len(), 1);
@@ -117,7 +117,7 @@ mod tests {
         let filter_node = FilterListNode::new(team_array, hp_condition);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Vec<Character>>::evaluate(&filter_node, &mut eval_context).unwrap();
+        let result = Node::<Vec<Character>, EvaluationContext>::evaluate(&filter_node, &mut eval_context).unwrap();
         
         // Should return empty array
         assert_eq!(result.len(), 0);

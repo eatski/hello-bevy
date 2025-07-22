@@ -1,7 +1,7 @@
 // Random condition node - randomly returns true or false
 
 use rand::Rng;
-use node_core::Node;
+use crate::nodes::unified_node::CoreNode as Node;
 use crate::nodes::evaluation_context::EvaluationContext;
 
 #[derive(Debug)]
@@ -19,6 +19,7 @@ mod tests {
     use super::*;
     use crate::{Character, Team, TeamSide};
     use crate::nodes::evaluation_context::EvaluationContext;
+    use crate::nodes::unified_node::BoxedNode;
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 
@@ -39,8 +40,8 @@ mod tests {
         let mut rng2 = StdRng::seed_from_u64(42);
         let mut eval_context1 = EvaluationContext::new(&battle_context, &mut rng1);
         let mut eval_context2 = EvaluationContext::new(&battle_context, &mut rng2);
-        let result1 = Node::<bool>::evaluate(&random, &mut eval_context1).unwrap();
-        let result2 = Node::<bool>::evaluate(&random, &mut eval_context2).unwrap();
+        let result1 = random.evaluate(&mut eval_context1).unwrap();
+        let result2 = random.evaluate(&mut eval_context2).unwrap();
         
         // Same seed should produce same result
         assert_eq!(result1, result2);
@@ -52,7 +53,7 @@ mod tests {
         for i in 0..100 {
             let mut local_rng = StdRng::seed_from_u64(42 + i as u64);
             let mut eval_context = EvaluationContext::new(&battle_context, &mut local_rng);
-            if Node::<bool>::evaluate(&random, &mut eval_context).unwrap() {
+            if random.evaluate(&mut eval_context).unwrap() {
                 true_count += 1;
             } else {
                 false_count += 1;
@@ -82,7 +83,7 @@ mod tests {
         // 同一RNGコンテキストで20回評価
         for _ in 0..20 {
             let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-            let result = Node::<bool>::evaluate(&random, &mut eval_context).unwrap();
+            let result = random.evaluate(&mut eval_context).unwrap();
             results.push(result);
         }
         
@@ -111,14 +112,14 @@ mod tests {
         // Test unified implementation
         let mut eval_context1 = EvaluationContext::new(&battle_context, &mut rng1);
         let mut eval_context2 = EvaluationContext::new(&battle_context, &mut rng2);
-        let result1 = Node::<bool>::evaluate(&random, &mut eval_context1).unwrap();
-        let result2 = Node::<bool>::evaluate(&random, &mut eval_context2).unwrap();
+        let result1 = random.evaluate(&mut eval_context1).unwrap();
+        let result2 = random.evaluate(&mut eval_context2).unwrap();
         
         // Same seed should produce same result
         assert_eq!(result1, result2);
         
         // Test as boxed trait object
-        let boxed_node: Box<dyn Node<bool>> = Box::new(RandomConditionNode);
+        let boxed_node: BoxedNode<bool> = Box::new(RandomConditionNode);
         let mut rng3 = StdRng::seed_from_u64(42);
         let mut eval_context3 = EvaluationContext::new(&battle_context, &mut rng3);
         let boxed_result = boxed_node.evaluate(&mut eval_context3).unwrap();
@@ -131,7 +132,7 @@ mod tests {
         for i in 0..100 {
             let mut local_rng = StdRng::seed_from_u64(100 + i as u64);
             let mut eval_context = EvaluationContext::new(&battle_context, &mut local_rng);
-            if Node::<bool>::evaluate(&random, &mut eval_context).unwrap() {
+            if random.evaluate(&mut eval_context).unwrap() {
                 true_count += 1;
             } else {
                 false_count += 1;

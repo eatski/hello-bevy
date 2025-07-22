@@ -1,6 +1,9 @@
 use crate::{StructuredTokenInput, node_converter::{NodeConverter, ConverterRegistry, matches_token}};
 use action_system::*;
 
+// Type alias for Node trait with action-system's EvaluationContext
+type ActionSystemNode<T> = dyn for<'a> Node<T, EvaluationContext<'a>> + Send + Sync;
+
 // Base converters
 pub struct AllCharactersConverter;
 
@@ -9,7 +12,7 @@ impl NodeConverter<Vec<Character>> for AllCharactersConverter {
         matches_token(token, "AllCharacters")
     }
     
-    fn convert(&self, _token: &StructuredTokenInput, _registry: &ConverterRegistry) -> Result<Box<dyn Node<Vec<Character>>>, String> {
+    fn convert(&self, _token: &StructuredTokenInput, _registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Vec<Character>>>, String> {
         Ok(Box::new(AllCharactersNode::new()))
     }
 }
@@ -21,7 +24,7 @@ impl NodeConverter<Vec<Character>> for TeamMembersConverter {
         matches_token(token, "TeamMembers")
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<Vec<Character>>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Vec<Character>>>, String> {
         if let StructuredTokenInput::TeamMembers { team_side } = token {
             // Try to get a static TeamSide value first
             match team_side.as_ref() {
@@ -46,7 +49,7 @@ impl NodeConverter<Vec<TeamSide>> for AllTeamSidesConverter {
         matches_token(token, "AllTeamSides")
     }
     
-    fn convert(&self, _token: &StructuredTokenInput, _registry: &ConverterRegistry) -> Result<Box<dyn Node<Vec<TeamSide>>>, String> {
+    fn convert(&self, _token: &StructuredTokenInput, _registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Vec<TeamSide>>>, String> {
         Ok(Box::new(AllTeamSidesNode::new()))
     }
 }
@@ -64,7 +67,7 @@ impl NodeConverter<Character> for RandomPickCharacterConverter {
         }
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<Character>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Character>>, String> {
         if let StructuredTokenInput::RandomPick { array } = token {
             let array_node = registry.convert::<Vec<Character>>(array)?;
             Ok(Box::new(CharacterRandomPickNode::new(array_node)))
@@ -86,7 +89,7 @@ impl NodeConverter<Vec<Character>> for FilterListCharacterConverter {
         }
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<Vec<Character>>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Vec<Character>>>, String> {
         if let StructuredTokenInput::FilterList { array, condition } = token {
             let array_node = registry.convert::<Vec<Character>>(array)?;
             let condition_node = registry.convert::<bool>(condition)?;
@@ -109,7 +112,7 @@ impl NodeConverter<Vec<CharacterHP>> for MapCharacterToHpConverter {
         }
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<Vec<CharacterHP>>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Vec<CharacterHP>>>, String> {
         if let StructuredTokenInput::Map { array, .. } = token {
             let array_node = registry.convert::<Vec<Character>>(array)?;
             let transform_node = Box::new(CharacterToHpNode::new(Box::new(ElementNode::new())));
@@ -133,7 +136,7 @@ impl NodeConverter<Vec<i32>> for MapCharacterToI32Converter {
         }
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<Vec<i32>>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Vec<i32>>>, String> {
         if let StructuredTokenInput::Map { array, transform } = token {
             let array_node = registry.convert::<Vec<Character>>(array)?;
             let transform_node = registry.convert::<i32>(transform)?;
@@ -152,7 +155,7 @@ impl NodeConverter<i32> for MaxI32Converter {
         matches_token(token, "Max") || matches_token(token, "NumericMax")
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<i32>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<i32>>, String> {
         match token {
             StructuredTokenInput::Max { array } | StructuredTokenInput::NumericMax { array } => {
                 // Try to convert as Vec<i32>
@@ -174,7 +177,7 @@ impl NodeConverter<i32> for MinI32Converter {
         matches_token(token, "Min") || matches_token(token, "NumericMin")
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<i32>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<i32>>, String> {
         match token {
             StructuredTokenInput::Min { array } | StructuredTokenInput::NumericMin { array } => {
                 // Try to convert as Vec<i32>
@@ -205,7 +208,7 @@ impl NodeConverter<CharacterHP> for MaxCharacterHPConverter {
         }
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<CharacterHP>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<CharacterHP>>, String> {
         match token {
             StructuredTokenInput::Max { array } | StructuredTokenInput::NumericMax { array } => {
                 let array_node = registry.convert::<Vec<CharacterHP>>(array)?;
@@ -232,13 +235,58 @@ impl NodeConverter<CharacterHP> for MinCharacterHPConverter {
         }
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<CharacterHP>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<CharacterHP>>, String> {
         match token {
             StructuredTokenInput::Min { array } | StructuredTokenInput::NumericMin { array } => {
                 let array_node = registry.convert::<Vec<CharacterHP>>(array)?;
                 Ok(Box::new(MinNode::<CharacterHP>::new(array_node)))
             }
             _ => Err("Expected Min or NumericMin token".to_string())
+        }
+    }
+}
+
+// Character版のMax/Minコンバーター
+pub struct MaxCharacterConverter;
+
+impl NodeConverter<Character> for MaxCharacterConverter {
+    fn can_convert(&self, token: &StructuredTokenInput) -> bool {
+        if let StructuredTokenInput::Max { array } = token {
+            // Check if array produces Vec<Character>
+            matches_token(array, "AllCharacters") || matches_token(array, "TeamMembers") || matches_token(array, "FilterList")
+        } else {
+            false
+        }
+    }
+    
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Character>>, String> {
+        if let StructuredTokenInput::Max { array } = token {
+            let array_node = registry.convert::<Vec<Character>>(array)?;
+            Ok(Box::new(MaxNodeCharacter::new(array_node)))
+        } else {
+            Err("Expected Max token".to_string())
+        }
+    }
+}
+
+pub struct MinCharacterConverter;
+
+impl NodeConverter<Character> for MinCharacterConverter {
+    fn can_convert(&self, token: &StructuredTokenInput) -> bool {
+        if let StructuredTokenInput::Min { array } = token {
+            // Check if array produces Vec<Character>
+            matches_token(array, "AllCharacters") || matches_token(array, "TeamMembers") || matches_token(array, "FilterList")
+        } else {
+            false
+        }
+    }
+    
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Character>>, String> {
+        if let StructuredTokenInput::Min { array } = token {
+            let array_node = registry.convert::<Vec<Character>>(array)?;
+            Ok(Box::new(MinNodeCharacter::new(array_node)))
+        } else {
+            Err("Expected Min token".to_string())
         }
     }
 }

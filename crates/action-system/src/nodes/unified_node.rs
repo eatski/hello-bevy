@@ -42,7 +42,7 @@ mod tests {
         }
     }
 
-    // Test struct implementing Node<Vec<Character>>
+    // Test struct implementing Node<Vec<Character>
     #[derive(Debug)]
     struct TestArrayNode {
         characters: Vec<Character>,

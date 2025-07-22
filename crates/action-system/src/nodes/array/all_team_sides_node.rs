@@ -1,6 +1,7 @@
 // AllTeamSidesNode - returns all possible team sides
 use crate::core::NodeResult;
-use node_core::Node;
+use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unified_node::CoreNode as Node;
 use crate::TeamSide;
 
 /// Node that returns an array of both team sides
@@ -20,7 +21,7 @@ impl Default for AllTeamSidesNode {
     }
 }
 
-impl Node<Vec<TeamSide>> for AllTeamSidesNode {
+impl<'a> Node<Vec<TeamSide>, EvaluationContext<'a>> for AllTeamSidesNode {
     fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<Vec<TeamSide>> {
         Ok(vec![TeamSide::Player, TeamSide::Enemy])
     }

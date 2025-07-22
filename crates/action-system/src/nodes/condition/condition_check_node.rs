@@ -2,7 +2,7 @@
 
 use crate::core::{Action, NodeResult, NodeError};
 use crate::nodes::evaluation_context::EvaluationContext;
-use node_core::Node;
+use crate::nodes::unified_node::CoreNode as Node;
 
 pub struct ConditionCheckNode {
     condition: Box<dyn for<'a> Node<bool, EvaluationContext<'a>>>,
@@ -52,7 +52,7 @@ mod tests {
         let mut rng = StdRng::from_entropy();
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Box<dyn Action>>::evaluate(&check_random, &mut eval_context);
+        let result = Node::<Box<dyn Action>, EvaluationContext>::evaluate(&check_random, &mut eval_context);
         // Should either return an Action or Break error
         match result {
             Ok(_action) => assert!(true), // Got an action

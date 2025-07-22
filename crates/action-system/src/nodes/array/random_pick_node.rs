@@ -2,18 +2,17 @@
 
 use crate::core::{NodeError, NodeResult};
 use crate::nodes::evaluation_context::EvaluationContext;
-use node_core::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::Character;
 use rand::Rng;
 
 /// Generic RandomPickNode that can pick from arrays of any type
 pub struct GenericRandomPickNode<T> {
-    array_node: Box<dyn Node<Vec<T>>>,
+    array_node: BoxedNode<Vec<T>>,
 }
 
 impl<T> GenericRandomPickNode<T> {
-    pub fn new(array_node: Box<dyn Node<Vec<T>>>) -> Self {
+    pub fn new(array_node: BoxedNode<Vec<T>>) -> Self {
         Self { array_node }
     }
 }
@@ -27,7 +26,7 @@ pub type ValueRandomPickNode = GenericRandomPickNode<i32>;
 
 // Unified implementations
 
-impl Node<Character> for CharacterRandomPickNode {
+impl<'a> Node<Character, EvaluationContext<'a>> for CharacterRandomPickNode {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Character> {
         let characters = self.array_node.evaluate(eval_context)?;
         if characters.is_empty() {
@@ -38,7 +37,7 @@ impl Node<Character> for CharacterRandomPickNode {
     }
 }
 
-impl Node<i32> for ValueRandomPickNode {
+impl<'a> Node<i32, EvaluationContext<'a>> for ValueRandomPickNode {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<i32> {
         let values = self.array_node.evaluate(eval_context)?;
         if values.is_empty() {
@@ -74,7 +73,7 @@ mod tests {
         let pick_node = CharacterRandomPickNode::new(empty_array);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Character>::evaluate(&pick_node, &mut eval_context);
+        let result = pick_node.evaluate(&mut eval_context);
         
         // Should return error for empty array
         assert!(result.is_err());
@@ -108,7 +107,7 @@ mod tests {
         let pick_node = CharacterRandomPickNode::new(team_array);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let picked_character = Node::<Character>::evaluate(&pick_node, &mut eval_context).unwrap();
+        let picked_character = pick_node.evaluate(&mut eval_context).unwrap();
         
         // Should pick one of the characters
         assert!([1, 2, 3].contains(&picked_character.id));

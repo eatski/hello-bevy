@@ -19,7 +19,7 @@ pub fn parse_rules_from_json(json_content: &str) -> Result<RuleSet, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use token_input::{StructuredTokenInput, convert_ruleset_to_nodes};
+    use token_input::{StructuredTokenInput, compiler::Compiler};
 
     #[test]
     fn test_parse_simple_rule_json() {
@@ -71,7 +71,10 @@ mod tests {
             ],
         };
         
-        let node_rules = convert_ruleset_to_nodes(&rule_set);
+        let compiler = Compiler::new();
+        let node_rules: Vec<_> = rule_set.rules.iter()
+            .filter_map(|token| compiler.compile(token).ok())
+            .collect();
         assert_eq!(node_rules.len(), 1);
     }
 
@@ -89,7 +92,10 @@ mod tests {
             ],
         };
         
-        let node_rules = convert_ruleset_to_nodes(&rule_set);
+        let compiler = Compiler::new();
+        let node_rules: Vec<_> = rule_set.rules.iter()
+            .filter_map(|token| compiler.compile(token).ok())
+            .collect();
         assert_eq!(node_rules.len(), 1);
     }
 }

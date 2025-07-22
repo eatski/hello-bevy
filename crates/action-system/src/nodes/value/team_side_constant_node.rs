@@ -1,7 +1,6 @@
 use crate::core::NodeResult;
 use crate::nodes::evaluation_context::EvaluationContext;
-use node_core::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unified_node::CoreNode as Node;
 use crate::TeamSide;
 
 #[derive(Debug)]
@@ -13,7 +12,7 @@ impl EnemyNode {
     }
 }
 
-impl Node<TeamSide> for EnemyNode {
+impl<'a> Node<TeamSide, EvaluationContext<'a>> for EnemyNode {
     fn evaluate(&self, _context: &mut EvaluationContext) -> NodeResult<TeamSide> {
         Ok(TeamSide::Enemy)
     }
@@ -28,7 +27,7 @@ impl HeroNode {
     }
 }
 
-impl Node<TeamSide> for HeroNode {
+impl<'a> Node<TeamSide, EvaluationContext<'a>> for HeroNode {
     fn evaluate(&self, _context: &mut EvaluationContext) -> NodeResult<TeamSide> {
         Ok(TeamSide::Player)
     }

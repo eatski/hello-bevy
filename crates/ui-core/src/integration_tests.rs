@@ -104,7 +104,7 @@ mod tests {
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
         let hp_value_node = CharacterToHpNode::new(Box::new(ActingCharacterNode));
-        let result_hp = Node::<CharacterHP>::evaluate(&hp_value_node, &mut eval_context).unwrap();
+        let result_hp = hp_value_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result_hp.get_hp(), 100);
         assert_eq!(result_hp.get_character().id, 1);
         
@@ -113,7 +113,7 @@ mod tests {
             character_hp: CharacterHP,
         }
         
-        impl Node<CharacterHP> for MockCharacterHPNode {
+        impl action_system::Node<CharacterHP, EvaluationContext<'_>> for MockCharacterHPNode {
             fn evaluate(&self, _eval_context: &mut EvaluationContext) -> action_system::NodeResult<CharacterHP> {
                 Ok(self.character_hp.clone())
             }
@@ -121,7 +121,7 @@ mod tests {
         
         let mock_hp_node = MockCharacterHPNode { character_hp: character_hp.clone() };
         let hp_char_node = CharacterHpToCharacterNode::new(Box::new(mock_hp_node));
-        let result_char = Node::<Character>::evaluate(&hp_char_node, &mut eval_context).unwrap();
+        let result_char = hp_char_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result_char.id, 1);
         assert_eq!(result_char.name, "Test Hero");
         assert_eq!(result_char.hp, 100);
@@ -347,11 +347,11 @@ mod tests {
         let team_members_node = TeamMembersNode::new(TeamSide::Enemy);
         let character_to_hp_transform = CharacterToHpNode::new(Box::new(ElementNode::new()));
         let character_to_hp_mapping = CharacterToHpMappingNode::new(Box::new(team_members_node), Box::new(character_to_hp_transform));
-        let min_hp_node = MinNode::<CharacterHP>::new(Box::new(character_to_hp_mapping));
+        let min_hp_node = MinNode::new(Box::new(character_to_hp_mapping));
         let hp_to_character_node = CharacterHpToCharacterNode::new(Box::new(min_hp_node));
         
         // Execute the chain
-        let result = Node::<Character>::evaluate(&hp_to_character_node, &mut eval_context).unwrap();
+        let result = hp_to_character_node.evaluate(&mut eval_context).unwrap();
         
         // Verify we got the character with the lowest HP
         assert_eq!(result.id, 3);
@@ -1511,7 +1511,7 @@ mod tests {
         // Build custom rule node: Strike(CharacterHpToCharacter(Min(Map(TeamMembers(Enemy), CharacterToHp))))
         let target_lowest_hp_enemy_rule = StrikeActionNode::new(Box::new(
             CharacterHpToCharacterNode::new(Box::new(
-                MinNode::<CharacterHP>::new(Box::new(
+                MinNode::new(Box::new(
                     CharacterToHpMappingNode::new(
                         Box::new(TeamMembersNode::new(TeamSide::Enemy)),
                         Box::new(CharacterToHpNode::new(Box::new(ElementNode::new())))
@@ -1609,7 +1609,7 @@ mod tests {
     #[test]
     fn test_structured_token_to_node_conversion_integration() {
         // Test the complete flow: StructuredTokenInput → Node → Battle execution
-        use token_input::{convert_structured_to_node, convert_ruleset_to_nodes};
+        use token_input::compiler::Compiler;
         
         // Create a complex rule using StructuredTokenInput
         let complex_rule = StructuredTokenInput::Check {
@@ -1634,15 +1634,18 @@ mod tests {
             }),
         };
         
-        // Convert to ParsedResolver and verify
-        let parsed = convert_structured_to_node(&complex_rule).unwrap();
-        assert_eq!(parsed.type_name, "Action");
+        // Convert using Compiler and verify
+        let compiler = Compiler::new();
+        let compiled = compiler.compile(&complex_rule);
+        assert!(compiled.is_ok());
         
         // Create RuleSet and convert to nodes
         let ruleset = RuleSet {
             rules: vec![complex_rule],
         };
-        let rule_nodes = convert_ruleset_to_nodes(&ruleset);
+        let rule_nodes: Vec<_> = ruleset.rules.iter()
+            .filter_map(|token| compiler.compile(token).ok())
+            .collect();
         assert_eq!(rule_nodes.len(), 1);
         
         // Use the converted rules in actual battle
@@ -1681,19 +1684,21 @@ mod tests {
     #[test]
     fn test_all_team_sides_usage_integration() {
         // Test AllTeamSides token usage in a realistic scenario
-        use token_input::convert_structured_to_node;
+        use token_input::compiler::Compiler;
         
         // This is a hypothetical test since AllTeamSides isn't directly used in UI
-        // but demonstrates how it would work in structured token conversion
+        // but demonstrates how it would work in token compilation
         let all_sides_token = StructuredTokenInput::AllTeamSides;
-        let parsed = convert_structured_to_node(&all_sides_token).unwrap();
-        assert_eq!(parsed.type_name, "Vec<TeamSide>");
+        let compiler = Compiler::new();
+        // AllTeamSides returns Vec<TeamSide>, not an Action, so compilation will fail
+        let result = compiler.compile(&all_sides_token);
+        assert!(result.is_err());
     }
     
     #[test]
     fn test_numeric_max_min_with_character_hp_integration() {
         // Test NumericMax/NumericMin functionality with CharacterHP values
-        use token_input::{convert_structured_to_node, convert_ruleset_to_nodes};
+        use token_input::compiler::Compiler;
         
         let rule = StructuredTokenInput::Strike {
             target: Box::new(StructuredTokenInput::CharacterHpToCharacter {
@@ -1710,12 +1715,15 @@ mod tests {
             }),
         };
         
-        // Convert and verify
-        let parsed = convert_structured_to_node(&rule).unwrap();
-        assert_eq!(parsed.type_name, "Action");
+        // Convert and verify using Compiler
+        let compiler = Compiler::new();
+        let compiled = compiler.compile(&rule);
+        assert!(compiled.is_ok());
         
         let ruleset = RuleSet { rules: vec![rule] };
-        let rule_nodes = convert_ruleset_to_nodes(&ruleset);
+        let rule_nodes: Vec<_> = ruleset.rules.iter()
+            .filter_map(|token| compiler.compile(token).ok())
+            .collect();
         
         // Setup battle with multiple heroes having different HP
         let mut hero1 = GameCharacter::new(1, "Low HP Hero".to_string(), 100, 50, 25);
@@ -1755,7 +1763,7 @@ mod tests {
     #[test]
     fn test_team_members_with_dynamic_team_side_integration() {
         // Test TeamMembers with dynamically evaluated TeamSide
-        use token_input::{convert_structured_to_node, convert_ruleset_to_nodes};
+        use token_input::compiler::Compiler;
         
         let rule = StructuredTokenInput::Strike {
             target: Box::new(StructuredTokenInput::RandomPick {
@@ -1767,12 +1775,15 @@ mod tests {
             }),
         };
         
-        // Convert to nodes
-        let parsed = convert_structured_to_node(&rule).unwrap();
-        assert_eq!(parsed.type_name, "Action");
+        // Convert to nodes using Compiler
+        let compiler = Compiler::new();
+        let compiled = compiler.compile(&rule);
+        assert!(compiled.is_ok());
         
         let ruleset = RuleSet { rules: vec![rule] };
-        let rule_nodes = convert_ruleset_to_nodes(&ruleset);
+        let rule_nodes: Vec<_> = ruleset.rules.iter()
+            .filter_map(|token| compiler.compile(token).ok())
+            .collect();
         
         // Setup battle
         let player_team = Team::new("Heroes".to_string(), vec![

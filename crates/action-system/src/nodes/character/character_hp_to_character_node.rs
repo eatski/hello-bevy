@@ -1,21 +1,20 @@
 // HP Character node - returns Character from a CharacterHP node
 
 use crate::nodes::evaluation_context::EvaluationContext;
-use node_core::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::core::character_hp::CharacterHP;
 
 pub struct CharacterHpToCharacterNode {
-    pub character_hp_node: Box<dyn Node<CharacterHP>>,
+    pub character_hp_node: BoxedNode<CharacterHP>,
 }
 
 impl CharacterHpToCharacterNode {
-    pub fn new(character_hp_node: Box<dyn Node<CharacterHP>>) -> Self {
+    pub fn new(character_hp_node: BoxedNode<CharacterHP>) -> Self {
         Self { character_hp_node }
     }
 }
 
-impl Node<crate::Character> for CharacterHpToCharacterNode {
+impl<'a> Node<crate::Character, EvaluationContext<'a>> for CharacterHpToCharacterNode {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> crate::core::NodeResult<crate::Character> {
         let character_hp = self.character_hp_node.evaluate(eval_context)?;
         Ok(character_hp.get_character().clone())
@@ -40,7 +39,7 @@ mod tests {
         }
     }
 
-    impl Node<CharacterHP> for TestCharacterHPNode {
+    impl<'a> Node<CharacterHP, EvaluationContext<'a>> for TestCharacterHPNode {
         fn evaluate(&self, _eval_context: &mut EvaluationContext) -> crate::core::NodeResult<CharacterHP> {
             Ok(self.character_hp.clone())
         }
@@ -60,7 +59,7 @@ mod tests {
         // Test CharacterHpToCharacterNode with TestCharacterHPNode
         let hp_char_node = CharacterHpToCharacterNode::new(Box::new(TestCharacterHPNode::new(character_hp)));
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Character>::evaluate(&hp_char_node, &mut eval_context).unwrap();
+        let result = hp_char_node.evaluate(&mut eval_context).unwrap();
         
         assert_eq!(result.id, 1);
         assert_eq!(result.name, "Test Player");
@@ -82,7 +81,7 @@ mod tests {
         
         let hp_char_node = CharacterHpToCharacterNode::new(Box::new(TestCharacterHPNode::new(character_hp)));
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Character>::evaluate(&hp_char_node, &mut eval_context).unwrap();
+        let result = hp_char_node.evaluate(&mut eval_context).unwrap();
         
         assert_eq!(result.id, 2);
         assert_eq!(result.name, "Injured Player");

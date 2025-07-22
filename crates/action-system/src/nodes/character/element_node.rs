@@ -1,6 +1,6 @@
 // Element node - references the current character being processed in array operations
 use crate::core::NodeResult;
-use node_core::Node;
+use crate::nodes::unified_node::CoreNode as Node;
 use crate::nodes::evaluation_context::EvaluationContext;
 
 /// Node that returns the current character being processed in array operations
@@ -21,7 +21,7 @@ impl Default for ElementNode {
 }
 
 // Unified implementation for Character
-impl Node<crate::Character> for ElementNode {
+impl<'a> Node<crate::Character, EvaluationContext<'a>> for ElementNode {
     fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<crate::Character> {
         // Return the current character being processed (current element in array operations)
         match &eval_context.current_element {
@@ -35,7 +35,7 @@ impl Node<crate::Character> for ElementNode {
 }
 
 // Implementation for Value
-impl Node<i32> for ElementNode {
+impl<'a> Node<i32, EvaluationContext<'a>> for ElementNode {
     fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<i32> {
         match &eval_context.current_element {
             Some(crate::nodes::evaluation_context::CurrentElement::Value(value)) => {
@@ -48,7 +48,7 @@ impl Node<i32> for ElementNode {
 }
 
 // Implementation for TeamSide
-impl Node<crate::TeamSide> for ElementNode {
+impl<'a> Node<crate::TeamSide, EvaluationContext<'a>> for ElementNode {
     fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<crate::TeamSide> {
         match &eval_context.current_element {
             Some(crate::nodes::evaluation_context::CurrentElement::TeamSide(team_side)) => {
@@ -66,6 +66,7 @@ mod tests {
     use crate::{Character, Team, TeamSide};
     use crate::{BattleContext};
     use crate::nodes::evaluation_context::EvaluationContext;
+    use crate::nodes::unified_node::BoxedNode;
     use rand::SeedableRng;
 
     #[test]
@@ -86,7 +87,7 @@ mod tests {
         
         let mut rng1 = rng.clone();
         let mut eval_context1 = EvaluationContext::with_element(&battle_context1, &character2, &mut rng1);
-        let result1 = Node::<crate::Character>::evaluate(&element_node, &mut eval_context1).unwrap();
+        let result1: crate::Character = element_node.evaluate(&mut eval_context1).unwrap();
         assert_eq!(result1.id, 2); // Should return character2 (current element)
         assert_eq!(result1.hp, 75);
         
@@ -94,7 +95,7 @@ mod tests {
         let battle_context2 = BattleContext::new(&character2, TeamSide::Enemy, &player_team, &enemy_team);
         let mut eval_context2 = EvaluationContext::with_element(&battle_context2, &character1, &mut rng);
         
-        let result2 = Node::<crate::Character>::evaluate(&element_node, &mut eval_context2).unwrap();
+        let result2: crate::Character = element_node.evaluate(&mut eval_context2).unwrap();
         assert_eq!(result2.id, 1); // Should return character1 (current element)
         assert_eq!(result2.hp, 50);
     }
@@ -113,22 +114,22 @@ mod tests {
         // Test with Value element - should succeed with Node<i32>
         let mut rng2 = rng.clone();
         let mut value_eval_context = EvaluationContext::with_value_element(&battle_context, 42, &mut rng2);
-        let value_result = Node::<i32>::evaluate(&element_node, &mut value_eval_context);
+        let value_result: NodeResult<i32> = element_node.evaluate(&mut value_eval_context);
         assert!(value_result.is_ok(), "ElementNode should succeed with Value element");
         assert_eq!(value_result.unwrap(), 42);
         
         // Test with TeamSide element - should succeed with Node<TeamSide>
         let mut rng3 = rng.clone();
         let mut team_eval_context = EvaluationContext::with_team_side_element(&battle_context, TeamSide::Enemy, &mut rng3);
-        let team_result = Node::<crate::TeamSide>::evaluate(&element_node, &mut team_eval_context);
+        let team_result: NodeResult<crate::TeamSide> = element_node.evaluate(&mut team_eval_context);
         assert!(team_result.is_ok(), "ElementNode should succeed with TeamSide element");
         assert_eq!(team_result.unwrap(), TeamSide::Enemy);
         
         // Test type mismatches - should fail
-        let value_as_char_result = Node::<crate::Character>::evaluate(&element_node, &mut value_eval_context);
+        let value_as_char_result: NodeResult<crate::Character> = element_node.evaluate(&mut value_eval_context);
         assert!(value_as_char_result.is_err(), "ElementNode should fail when expecting Character but got Value");
         
-        let team_as_value_result = Node::<i32>::evaluate(&element_node, &mut team_eval_context);
+        let team_as_value_result: NodeResult<i32> = element_node.evaluate(&mut team_eval_context);
         assert!(team_as_value_result.is_err(), "ElementNode should fail when expecting Value but got TeamSide");
     }
 
@@ -146,18 +147,18 @@ mod tests {
         let mut eval_context = EvaluationContext::with_element(&battle_context, &current_element, &mut rng4);
         
         // Test unified implementation
-        let result = Node::<crate::Character>::evaluate(&element_node, &mut eval_context).unwrap();
+        let result: crate::Character = element_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result.id, 123);
         
         // Test as boxed trait object
-        let boxed_node: Box<dyn Node<crate::Character>> = Box::new(ElementNode::default());
+        let boxed_node: BoxedNode<crate::Character> = Box::new(ElementNode::default());
         let boxed_result = boxed_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(boxed_result.id, 123);
         
         // Test with new element context
         let element_character = Character::new(456, "NewElement".to_string(), 60, 60, 20);
         let mut element_eval_context = eval_context.with_element_from_context(&element_character);
-        let element_result = Node::<crate::Character>::evaluate(&element_node, &mut element_eval_context).unwrap();
+        let element_result: crate::Character = element_node.evaluate(&mut element_eval_context).unwrap();
         assert_eq!(element_result.id, 456); // Should return new element character
     }
 }

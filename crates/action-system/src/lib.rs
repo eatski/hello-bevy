@@ -6,13 +6,14 @@ pub mod system;
 
 // Re-export essential types only
 pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, RuleNode, NodeError, NodeResult, Numeric};
+// Export Node trait and related types for external crates
+pub use nodes::unified_node::{CoreNode as Node, BoxedNode};
 pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode, TeamSideEqNode, CharacterTeamNode, CharacterHpVsValueConditionNode, ValueVsCharacterHpConditionNode, GreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
 pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
-pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode};
+pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode, MaxNodeCharacter, MinNodeCharacter};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
 pub use nodes::array::{AllCharactersNode, TeamMembersNode, TeamMembersNodeWithNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, MappingNode, AllTeamSidesNode, MaxNode, MinNode, MaxNodeI32, MinNodeI32};
-pub use nodes::unified_node::Node;
 pub use system::ActionCalculationSystem;
 
 #[cfg(test)]
@@ -33,7 +34,7 @@ mod tests {
         
         let all_chars_node = AllCharactersNode::new();
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Vec<Character>>::evaluate(&all_chars_node, &mut eval_context).unwrap();
+        let result = all_chars_node.evaluate(&mut eval_context).unwrap();
         
         assert_eq!(result.len(), 2);
         assert!(result.iter().any(|c| c.name == "Player"));
@@ -62,7 +63,7 @@ mod tests {
         
         let team_node = TeamMembersNode::new(TeamSide::Player);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Vec<Character>>::evaluate(&team_node, &mut eval_context).unwrap();
+        let result = team_node.evaluate(&mut eval_context).unwrap();
         
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].name, "Player1");
@@ -83,7 +84,7 @@ mod tests {
         let all_chars_node = Box::new(AllCharactersNode::new());
         let count_node = CountArrayNode::new(all_chars_node);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<i32>::evaluate(&count_node, &mut eval_context).unwrap();
+        let result = count_node.evaluate(&mut eval_context).unwrap();
         
         assert_eq!(result, 2);
     }
@@ -114,7 +115,7 @@ mod tests {
         let team_members_node = Box::new(TeamMembersNode::new(TeamSide::Player));
         let random_pick_node = CharacterRandomPickNode::new(team_members_node);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result_character = Node::<Character>::evaluate(&random_pick_node, &mut eval_context).unwrap();
+        let result_character = random_pick_node.evaluate(&mut eval_context).unwrap();
         
         // Should pick one of the team members
         let player1_id = player_team.members[0].id;
@@ -148,7 +149,7 @@ mod tests {
         let team_members_node = Box::new(TeamMembersNode::new(TeamSide::Player));
         let random_pick_node = CharacterRandomPickNode::new(team_members_node);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Character>::evaluate(&random_pick_node, &mut eval_context);
+        let result = random_pick_node.evaluate(&mut eval_context);
         
         // Should succeed since team has members (even if dead)
         assert!(result.is_ok());
@@ -195,7 +196,7 @@ mod tests {
         let filter_node = FilterListNode::new(team_array, hp_condition);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Vec<Character>>::evaluate(&filter_node, &mut eval_context).unwrap();
+        let result = filter_node.evaluate(&mut eval_context).unwrap();
         
         // Should return characters with HP > 50 (high_hp_char: 80, medium_hp_char: 60)
         assert_eq!(result.len(), 2);
@@ -218,7 +219,7 @@ mod tests {
         
         let element_node = ElementNode::new();
         let mut eval_context = EvaluationContext::with_element(&battle_context, &current_element, &mut rng);
-        let result = Node::<Character>::evaluate(&element_node, &mut eval_context).unwrap();
+        let result: Character = element_node.evaluate(&mut eval_context).unwrap();
         
         // Should return the current element
         assert_eq!(result.id, 42);
@@ -258,7 +259,7 @@ mod tests {
         // Find the maximum HP using MaxNode
         let max_node = MaxNode::new(Box::new(mapping_node));
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<i32>::evaluate(&max_node, &mut eval_context).unwrap();
+        let result = max_node.evaluate(&mut eval_context).unwrap();
         
         // Should return the maximum HP value (80)
         assert_eq!(result, 80);

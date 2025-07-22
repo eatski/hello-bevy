@@ -1,21 +1,20 @@
 // Character HP Value node - returns i32 HP value from a character node
 
 use crate::nodes::evaluation_context::EvaluationContext;
-use node_core::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::core::NodeResult;
 
 pub struct CharacterHpValueNode {
-    pub character_node: Box<dyn Node<crate::Character>>,
+    pub character_node: BoxedNode<crate::Character>,
 }
 
 impl CharacterHpValueNode {
-    pub fn new(character_node: Box<dyn Node<crate::Character>>) -> Self {
+    pub fn new(character_node: BoxedNode<crate::Character>) -> Self {
         Self { character_node }
     }
 }
 
-impl Node<i32> for CharacterHpValueNode {
+impl<'a> Node<i32, EvaluationContext<'a>> for CharacterHpValueNode {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<i32> {
         let character = self.character_node.evaluate(eval_context)?;
         Ok(character.hp)
@@ -44,7 +43,7 @@ mod tests {
         // Test CharacterHpValueNode with ActingCharacterNode
         let char_hp_value_node = CharacterHpValueNode::new(Box::new(ActingCharacterNode));
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<i32>::evaluate(&char_hp_value_node, &mut eval_context).unwrap();
+        let result = char_hp_value_node.evaluate(&mut eval_context).unwrap();
         
         assert_eq!(result, 100);
     }
@@ -62,7 +61,7 @@ mod tests {
         
         let char_hp_value_node = CharacterHpValueNode::new(Box::new(ActingCharacterNode));
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<i32>::evaluate(&char_hp_value_node, &mut eval_context).unwrap();
+        let result = char_hp_value_node.evaluate(&mut eval_context).unwrap();
         
         assert_eq!(result, 60);
     }

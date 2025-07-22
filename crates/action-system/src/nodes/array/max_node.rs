@@ -1,18 +1,19 @@
-use node_core::Node;
+use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::core::{NodeResult, Numeric};
+use crate::nodes::evaluation_context::EvaluationContext;
 
 /// Array内の最大値を返すノード（Numeric対応）
 pub struct MaxNode<T: Numeric> {
-    array_node: Box<dyn Node<Vec<T>>>,
+    array_node: BoxedNode<Vec<T>>,
 }
 
 impl<T: Numeric> MaxNode<T> {
-    pub fn new(array_node: Box<dyn Node<Vec<T>>>) -> Self {
+    pub fn new(array_node: BoxedNode<Vec<T>>) -> Self {
         Self { array_node }
     }
 }
 
-impl<T: Numeric> Node<T> for MaxNode<T> {
+impl<'a, T: Numeric> Node<T, EvaluationContext<'a>> for MaxNode<T> {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<T> {
         let array = self.array_node.evaluate(eval_context)?;
         

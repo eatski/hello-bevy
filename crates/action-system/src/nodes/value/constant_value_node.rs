@@ -1,6 +1,6 @@
 // Constant value node - returns a fixed numeric value
 
-use node_core::Node;
+use crate::nodes::unified_node::CoreNode as Node;
 use crate::nodes::evaluation_context::EvaluationContext;
 
 #[derive(Debug)]
@@ -15,8 +15,8 @@ impl ConstantValueNode {
 }
 
 // Unified implementation
-impl Node<i32> for ConstantValueNode {
-    fn evaluate(&self, _eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> crate::core::NodeResult<i32> {
+impl<'a> Node<i32, EvaluationContext<'a>> for ConstantValueNode {
+    fn evaluate(&self, _eval_context: &mut EvaluationContext<'a>) -> crate::core::NodeResult<i32> {
         Ok(self.value)
     }
 }

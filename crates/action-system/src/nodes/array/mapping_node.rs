@@ -3,23 +3,22 @@
 
 use crate::core::NodeResult;
 use crate::core::character_hp::CharacterHP;
-use node_core::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::nodes::evaluation_context::{EvaluationContext, CurrentElement};
 use crate::Character;
 
 /// Generic MappingNode that maps an array of input type to an array of output type
 pub struct MappingNode<TInput, TOutput> {
     /// The array node to map over
-    array_node: Box<dyn Node<Vec<TInput>>>,
+    array_node: BoxedNode<Vec<TInput>>,
     /// The transformation function to apply to each element
-    transform_node: Box<dyn Node<TOutput>>,
+    transform_node: BoxedNode<TOutput>,
 }
 
 impl<TInput, TOutput> MappingNode<TInput, TOutput> {
     pub fn new(
-        array_node: Box<dyn Node<Vec<TInput>>>,
-        transform_node: Box<dyn Node<TOutput>>,
+        array_node: BoxedNode<Vec<TInput>>,
+        transform_node: BoxedNode<TOutput>,
     ) -> Self {
         Self {
             array_node,
@@ -34,7 +33,7 @@ macro_rules! impl_mapping_for_types {
     // Base case: generate implementation for each type combination
     ($(($input_type:ty, $output_type:ty, $current_element_variant:ident)),* $(,)?) => {
         $(
-            impl Node<Vec<$output_type>> for MappingNode<$input_type, $output_type> {
+            impl<'a> Node<Vec<$output_type>, EvaluationContext<'a>> for MappingNode<$input_type, $output_type> {
                 fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Vec<$output_type>> {
                     // Get the input array
                     let input_array = self.array_node.evaluate(eval_context)?;
@@ -108,7 +107,7 @@ mod tests {
         let mapping_node = MappingNode::new(team_array, hp_extractor);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Vec<i32>>::evaluate(&mapping_node, &mut eval_context).unwrap();
+        let result = Node::<Vec<i32>, EvaluationContext>::evaluate(&mapping_node, &mut eval_context).unwrap();
         
         // Should return [50, 75, 30] - the HP values of the characters
         assert_eq!(result.len(), 3);
@@ -139,7 +138,7 @@ mod tests {
         let mapping_node = MappingNode::new(team_array, acting_char_transform);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
-        let result = Node::<Vec<Character>>::evaluate(&mapping_node, &mut eval_context).unwrap();
+        let result = Node::<Vec<Character>, EvaluationContext>::evaluate(&mapping_node, &mut eval_context).unwrap();
         
         // Should return [acting_char, acting_char] - the acting character for each element
         assert_eq!(result.len(), 2);

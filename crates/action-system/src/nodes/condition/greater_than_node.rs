@@ -1,19 +1,20 @@
-use node_core::Node;
+use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::core::{NodeResult, Numeric};
+use crate::nodes::evaluation_context::EvaluationContext;
 
 /// Generic GreaterThan node that works with any Numeric type
 pub struct GreaterThanNode<T: Numeric> {
-    left_node: Box<dyn Node<T>>,
-    right_node: Box<dyn Node<T>>,
+    left_node: BoxedNode<T>,
+    right_node: BoxedNode<T>,
 }
 
 impl<T: Numeric> GreaterThanNode<T> {
-    pub fn new(left_node: Box<dyn Node<T>>, right_node: Box<dyn Node<T>>) -> Self {
+    pub fn new(left_node: BoxedNode<T>, right_node: BoxedNode<T>) -> Self {
         Self { left_node, right_node }
     }
 }
 
-impl<T: Numeric> Node<bool> for GreaterThanNode<T> {
+impl<'a, T: Numeric> Node<bool, EvaluationContext<'a>> for GreaterThanNode<T> {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
         let left_value = self.left_node.evaluate(eval_context)?;
         let right_value = self.right_node.evaluate(eval_context)?;
@@ -24,17 +25,17 @@ impl<T: Numeric> Node<bool> for GreaterThanNode<T> {
 
 /// Mixed type GreaterThan node for CharacterHP vs i32
 pub struct CharacterHpVsValueGreaterThanNode {
-    left_node: Box<dyn Node<crate::core::CharacterHP>>,
-    right_node: Box<dyn Node<i32>>,
+    left_node: BoxedNode<crate::core::CharacterHP>,
+    right_node: BoxedNode<i32>,
 }
 
 impl CharacterHpVsValueGreaterThanNode {
-    pub fn new(left_node: Box<dyn Node<crate::core::CharacterHP>>, right_node: Box<dyn Node<i32>>) -> Self {
+    pub fn new(left_node: BoxedNode<crate::core::CharacterHP>, right_node: BoxedNode<i32>) -> Self {
         Self { left_node, right_node }
     }
 }
 
-impl Node<bool> for CharacterHpVsValueGreaterThanNode {
+impl<'a> Node<bool, EvaluationContext<'a>> for CharacterHpVsValueGreaterThanNode {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
         let left_value = self.left_node.evaluate(eval_context)?;
         let right_value = self.right_node.evaluate(eval_context)?;
@@ -45,17 +46,17 @@ impl Node<bool> for CharacterHpVsValueGreaterThanNode {
 
 /// Mixed type GreaterThan node for i32 vs CharacterHP
 pub struct ValueVsCharacterHpGreaterThanNode {
-    left_node: Box<dyn Node<i32>>,
-    right_node: Box<dyn Node<crate::core::CharacterHP>>,
+    left_node: BoxedNode<i32>,
+    right_node: BoxedNode<crate::core::CharacterHP>,
 }
 
 impl ValueVsCharacterHpGreaterThanNode {
-    pub fn new(left_node: Box<dyn Node<i32>>, right_node: Box<dyn Node<crate::core::CharacterHP>>) -> Self {
+    pub fn new(left_node: BoxedNode<i32>, right_node: BoxedNode<crate::core::CharacterHP>) -> Self {
         Self { left_node, right_node }
     }
 }
 
-impl Node<bool> for ValueVsCharacterHpGreaterThanNode {
+impl<'a> Node<bool, EvaluationContext<'a>> for ValueVsCharacterHpGreaterThanNode {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
         let left_value = self.left_node.evaluate(eval_context)?;
         let right_value = self.right_node.evaluate(eval_context)?;
@@ -90,7 +91,7 @@ mod tests {
         }
     }
 
-    impl Node<CharacterHP> for ConstantCharacterHPNode {
+    impl<'a> Node<CharacterHP, EvaluationContext<'a>> for ConstantCharacterHPNode {
         fn evaluate(&self, _eval_context: &mut EvaluationContext) -> NodeResult<CharacterHP> {
             Ok(self.character_hp.clone())
         }

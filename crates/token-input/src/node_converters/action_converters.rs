@@ -1,6 +1,9 @@
 use crate::{StructuredTokenInput, node_converter::{NodeConverter, ConverterRegistry, matches_token}};
 use action_system::*;
 
+// Type alias for Node trait with action-system's EvaluationContext
+type ActionSystemNode<T> = dyn for<'a> Node<T, EvaluationContext<'a>> + Send + Sync;
+
 pub struct StrikeActionConverter;
 
 impl NodeConverter<Box<dyn Action>> for StrikeActionConverter {
@@ -8,7 +11,7 @@ impl NodeConverter<Box<dyn Action>> for StrikeActionConverter {
         matches_token(token, "Strike")
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<Box<dyn Action>>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Box<dyn Action>>>, String> {
         if let StructuredTokenInput::Strike { target } = token {
             let target_node = registry.convert::<Character>(target)?;
             Ok(Box::new(StrikeActionNode::new(target_node)))
@@ -25,7 +28,7 @@ impl NodeConverter<Box<dyn Action>> for HealActionConverter {
         matches_token(token, "Heal")
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<Box<dyn Action>>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Box<dyn Action>>>, String> {
         if let StructuredTokenInput::Heal { target } = token {
             let target_node = registry.convert::<Character>(target)?;
             Ok(Box::new(HealActionNode::new(target_node)))
@@ -42,7 +45,7 @@ impl NodeConverter<Box<dyn Action>> for CheckActionConverter {
         matches_token(token, "Check")
     }
     
-    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<dyn Node<Box<dyn Action>>>, String> {
+    fn convert(&self, token: &StructuredTokenInput, registry: &ConverterRegistry) -> Result<Box<ActionSystemNode<Box<dyn Action>>>, String> {
         if let StructuredTokenInput::Check { condition, then_action } = token {
             let condition_node = registry.convert::<bool>(condition)?;
             let action_node = registry.convert::<Box<dyn Action>>(then_action)?;

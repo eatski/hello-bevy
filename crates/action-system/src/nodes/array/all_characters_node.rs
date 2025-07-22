@@ -2,8 +2,7 @@
 
 use crate::core::NodeResult;
 use crate::nodes::evaluation_context::EvaluationContext;
-use node_core::Node;
-use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unified_node::CoreNode as Node;
 use crate::Character;
 
 #[derive(Debug)]
@@ -15,7 +14,7 @@ impl AllCharactersNode {
     }
 }
 
-impl Node<Vec<Character>> for AllCharactersNode {
+impl<'a> Node<Vec<Character>, EvaluationContext<'a>> for AllCharactersNode {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Vec<Character>> {
         let battle_context = eval_context.get_battle_context();
         let character_refs = battle_context.all_characters();
