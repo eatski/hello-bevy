@@ -65,10 +65,6 @@ impl<'a> Node<bool, EvaluationContext<'a>> for ValueVsCharacterHpGreaterThanNode
     }
 }
 
-// Type aliases for convenience
-pub type GreaterThanConditionNode = GreaterThanNode<i32>;
-pub type CharacterHpVsValueConditionNode = CharacterHpVsValueGreaterThanNode;
-pub type ValueVsCharacterHpConditionNode = ValueVsCharacterHpGreaterThanNode;
 
 #[cfg(test)]
 mod tests {
@@ -108,7 +104,7 @@ mod tests {
         
         let left_node = Box::new(ConstantValueNode::new(50));
         let right_node = Box::new(ConstantValueNode::new(30));
-        let gt_node = GreaterThanConditionNode::new(left_node, right_node);
+        let gt_node = GreaterThanNode::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -125,7 +121,7 @@ mod tests {
         
         let left_node = Box::new(ConstantValueNode::new(20));
         let right_node = Box::new(ConstantValueNode::new(30));
-        let gt_node = GreaterThanConditionNode::new(left_node, right_node);
+        let gt_node = GreaterThanNode::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, false);
@@ -145,7 +141,7 @@ mod tests {
         
         let left_node = Box::new(ConstantCharacterHPNode::new(char_hp));
         let right_node = Box::new(ConstantValueNode::new(50));
-        let gt_node = CharacterHpVsValueConditionNode::new(left_node, right_node);
+        let gt_node = CharacterHpVsValueGreaterThanNode::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -165,7 +161,7 @@ mod tests {
         
         let left_node = Box::new(ConstantValueNode::new(50));
         let right_node = Box::new(ConstantCharacterHPNode::new(char_hp));
-        let gt_node = ValueVsCharacterHpConditionNode::new(left_node, right_node);
+        let gt_node = ValueVsCharacterHpGreaterThanNode::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);

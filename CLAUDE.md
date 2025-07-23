@@ -38,25 +38,6 @@
    ```
 4. **StructuredTokenInput/FlatTokenInputにenumバリアントを追加**
 
-## 🚀 以前のアップデート (旧コンバーターシステムの完全削除と型情報伝播システムへの移行完了)
-### 実装内容
-- **旧コンバーターシステムの完全削除**
-  - `use_typed_converters`オプションを削除（常に新システムを使用）
-  - 古い`CodeGenerator`クラスを削除
-  - 古いコンバーターファイルをすべて削除：
-    - action_converters.rs, condition_converters.rs, value_converters.rs
-    - character_converters.rs, array_converters.rs, team_side_converters.rs
-    - generic_converter_factory.rs
-  - `node_converter.rs`全体を削除（試行錯誤型変換システム）
-- **TypedConverterシステムへの完全移行**
-  - すべてのトークン変換は型情報伝播システムを使用
-  - コンパイラは常にTypedCodeGeneratorを使用
-  - 後方互換性のためのコードをすべて削除
-- **コードベースの簡素化**
-  - 約2,000行のレガシーコードを削除
-  - より明確で保守しやすいアーキテクチャ
-  - 型安全性の完全保証
-
 ## 🚀 以前のアップデート (型情報伝播システムの実装)
 ### 実装内容
 - **TypedNodeConverterシステムの実装**
@@ -81,9 +62,7 @@
   - NumericMax/MinのarrayからCharacterHP/i32を判定
   - 型情報に基づく適切なノード選択（GreaterThanNode vs CharacterHpVsValueGreaterThanNode）
 - **コンパイラーパイプラインの統合**
-  - `use_typed_converters`オプション（デフォルトtrue）
   - TypedCodeGeneratorによる型情報を活用したコード生成
-  - 従来のCodeGeneratorとの切り替え可能
 - **全160テストが成功**
   - token-input: 56テスト
   - action-system: 54テスト
@@ -115,33 +94,6 @@
 
 ## 🚀 以前のアップデート (array_converters.rsのメタデータ駆動設計への改善)
 
-## 🚀 以前のアップデート (structured_to_node.rsの削除とCompiler統一)
-### 実装内容
-- **structured_to_node.rsを完全削除**
-  - 型チェックなしの直接変換は不要と判断
-  - すべての変換をCompiler経由に統一
-- **全てのコード変換をCompilerに移行**
-  - `battle_logic.rs`: 敵ルール変換もCompilerを使用
-  - `json-rule`クレート: テストでCompilerを使用
-  - `ui-core`統合テスト: すべてCompilerを使用
-- **エクスポート・インポートの整理**
-  - `convert_structured_to_node`, `ParsedResolver`, `convert_ruleset_to_nodes`を削除
-  - 各クレートからの不要なエクスポートを削除
-- **型安全性の完全保証**
-  - すべてのトークン変換で型チェックを実施
-  - 実行時エラーの可能性を大幅に削減
-
-## 🚀 以前のアップデート (後方互換性コードの削除)
-### 実装内容
-- **compiler/pipeline.rsから後方互換性コードを削除**
-  - `skip_type_check`フィールドをCompilerOptionsから削除
-  - 型チェックをスキップする条件分岐を削除
-  - `compile_token()`関数（後方互換用）を削除
-  - 関連するテストを更新
-- **常に型チェックを実行するコンパイラ**
-  - 型安全性を常に保証
-  - コンパイルパイプラインの簡素化
-
 ## 🚀 以前のアップデート (高度な型システムの実装とファイル整理)
 ### 実装内容
 - **Hindley-Milner型推論システムの実装**
@@ -170,9 +122,8 @@
   - MaxConverter<T: Numeric>, MinConverter<T: Numeric>: Numeric trait実装型に対応
 
 ### ファイル整理
-- `type_checker_v3.rs` → `advanced_type_checker.rs` にリネーム
-- `tests_v2.rs`と`tests_phase2.rs` → `type_checker_tests.rs`と`advanced_type_tests.rs`に統合
-- v2やphase2といったバージョン番号付きファイル名を廃止
+- 高度な型チェッカーを`advanced_type_checker.rs`として実装
+- テストを`type_checker_tests.rs`と`advanced_type_tests.rs`に整理
 
 ### テストの充実
 - 基本的な型チェッカーテスト（`type_checker_tests.rs`）
@@ -182,30 +133,12 @@
 - 高階型推論のテスト
 - **全160テストが成功**
 
-## 🚀 以前のアップデート (V2型チェッカーへの完全移行)
-### 実装内容
-- **メタデータ駆動型チェッカー（V2）への完全移行**
-  - V1型チェッカー（ハードコード実装）を完全削除
-  - `type_checker_v2.rs` → `type_checker.rs` にリネーム
-  - `type_registry.rs` を削除（V2ではTokenMetadataRegistryに統合）
-  - 全ての参照をV2型チェッカーに更新
-- **スケーラブルな型システムの実現**
-  - トークンごとのハードコード不要
-  - 新規トークン追加時はTokenMetadataの登録のみ
-  - 型推論エンジンによる高度な型解決
-- **TypeContext実装**
-  - FilterList/Map内でのElement型のコンテキスト管理
-  - `types.rs`にTypeContext構造体を追加
-- **テストの修正**
-  - V1/V2比較テストを削除
-  - 非Action型トークンのコンパイルテストを型チェックのみに修正
-
 ## 🚀 以前のアップデート (メタデータ駆動型システム)
 ### 実装内容
 - **3層コンパイラアーキテクチャの実装** (architecture-decision-records/language-core-system.md に基づく)
   - **Layer 1: 型システム** (`crates/token-input/src/type_system/`)
     - `types.rs`: 基本型、ゲーム固有型、抽象型(Numeric)、TypeContext定義
-    - `type_checker.rs`: メタデータ駆動型チェッカー（V2のみ）
+    - `type_checker.rs`: メタデータ駆動型チェッカー
     - `token_metadata.rs`: トークンメタデータ定義と登録
     - `type_inference.rs`: 型推論エンジン
     - `errors.rs`: 詳細な型エラー定義
@@ -223,11 +156,6 @@
   - TypeInferenceEngine: 型の統一化（unification）
   - コンテキスト依存の型推論（Element型など）
   - 配列操作・数値演算の出力型推論
-- **後方互換性の維持**
-  - 既存のConverterRegistryベースの変換も引き続き利用可能
-  - CompilerOptionsで型チェックのスキップ可能
-  - structured_to_node.rsは既存インターフェースを維持
-
 ## 🚀 以前のアップデート (コンパイラシステム実装)
 ### 設計変更サマリ
 - **型システムとコンパイラの実装**: token-inputクレートに3層コンパイラシステムを追加
@@ -243,7 +171,7 @@
   - 型安全な変換処理
 - **UI統合の改善**: CurrentRulesでCompilerを使用
   - `convert_to_rule_nodes()`メソッドでコンパイラ経由でRuleNode生成
-  - convert_structured_to_nodeの直接使用を廃止
+  - StructuredTokenInputからの直接変換を廃止
 
 ### ファイル変更箇所
 - 新規: `crates/token-input/src/type_system/types.rs` - 型定義とTypedAST
@@ -269,7 +197,7 @@
   - `greater_than_condition_node.rs` を削除（→ `greater_than_node.rs` に統合）
   - `character_hp_vs_value_condition_node.rs` を削除（→ `greater_than_node.rs` に統合）
   - `random_character_pick_node.rs` を削除（→ `CharacterRandomPickNode` に統合）
-  - 型エイリアスによる後方互換性を維持しつつ、より抽象的な実装に統一
+  - より抽象的な実装に統一
   - コードの重複を排除し、メンテナンス性を向上
 
 ## 🚀 以前のアップデート (Numeric trait統一化)
@@ -279,7 +207,6 @@
   - `crates/action-system/src/core/numeric.rs` に実装
   - **YAGNI原則適用**: 未使用の`from_i32()`メソッドを削除し、シンプルな設計に変更
 - **統一化ノード**: MaxNode, MinNode, GreaterThanNodeを追加
-  - 既存のMax/MinノードはAPI後方互換性を維持
   - CharacterHPとi32の両方を同じインターフェースで処理可能
 - **トークン拡張**: NumericMax, NumericMin トークンをUI入力システムに追加
   - FlatTokenInput, StructuredTokenInputの両方をサポート

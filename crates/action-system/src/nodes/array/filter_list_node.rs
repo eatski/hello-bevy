@@ -85,7 +85,7 @@ impl<'a, T: Clone + Send + Sync + 'static> Node<Vec<T>, EvaluationContext<'a>> f
 mod tests {
     use super::*;
     use crate::nodes::array::team_members_node::TeamMembersNode;
-    use crate::nodes::condition::GreaterThanConditionNode;
+    use crate::nodes::condition::GreaterThanNode;
     use crate::nodes::character::character_hp_value_node::CharacterHpValueNode;
     use crate::nodes::character::element_node::ElementNode;
     use crate::nodes::value::constant_value_node::ConstantValueNode;
@@ -113,7 +113,7 @@ mod tests {
         
         // Create FilterList that filters characters with HP > 50
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let hp_condition = Box::new(GreaterThanConditionNode::new(
+        let hp_condition = Box::new(GreaterThanNode::new(
             Box::new(CharacterHpValueNode::new(Box::new(ElementNode))), // Use Element node to reference current character being filtered
             Box::new(ConstantValueNode::new(50)),
         ));
@@ -146,7 +146,7 @@ mod tests {
         
         // Create FilterList that filters characters with HP > 90 (none should match)
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let hp_condition = Box::new(GreaterThanConditionNode::new(
+        let hp_condition = Box::new(GreaterThanNode::new(
             Box::new(CharacterHpValueNode::new(Box::new(ElementNode))),
             Box::new(ConstantValueNode::new(90)),
         ));

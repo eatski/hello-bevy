@@ -8,7 +8,7 @@ pub mod system;
 pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, RuleNode, NodeError, NodeResult, Numeric};
 // Export Node trait and related types for external crates
 pub use nodes::unified_node::{CoreNode as Node, BoxedNode};
-pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, GreaterThanConditionNode, TeamSideEqNode, CharacterTeamNode, CharacterHpVsValueConditionNode, ValueVsCharacterHpConditionNode, GreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
+pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, TeamSideEqNode, CharacterTeamNode, GreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
 pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
 pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode, MaxNodeCharacter, MinNodeCharacter};
 pub use nodes::evaluation_context::EvaluationContext;
@@ -164,7 +164,7 @@ mod tests {
         use crate::nodes::array::FilterListNode;
         use crate::nodes::character::ElementNode;
         use crate::nodes::character::character_hp_value_node::CharacterHpValueNode;
-        use crate::nodes::condition::GreaterThanConditionNode;
+        use crate::nodes::condition::GreaterThanNode;
         use crate::nodes::value::ConstantValueNode;
         
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
@@ -188,7 +188,7 @@ mod tests {
         
         // Create FilterList that filters characters with HP > 50
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let hp_condition = Box::new(GreaterThanConditionNode::new(
+        let hp_condition = Box::new(GreaterThanNode::new(
             Box::new(CharacterHpValueNode::new(Box::new(ElementNode::new()))), // Use Element to reference current character
             Box::new(ConstantValueNode::new(50)),
         ));
