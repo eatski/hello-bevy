@@ -28,8 +28,6 @@ pub enum TypeConstraint {
 
 /// 型推論エンジン
 pub struct TypeInferenceEngine {
-    /// 型変数の代入
-    substitutions: HashMap<TypeVariable, Type>,
     /// 型制約のリスト
     constraints: Vec<TypeConstraint>,
 }
@@ -37,7 +35,6 @@ pub struct TypeInferenceEngine {
 impl TypeInferenceEngine {
     pub fn new() -> Self {
         Self {
-            substitutions: HashMap::new(),
             constraints: Vec::new(),
         }
     }

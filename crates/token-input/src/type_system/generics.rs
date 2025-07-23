@@ -339,7 +339,7 @@ mod tests {
     #[test]
     fn test_kind_inference() {
         // Vec: * -> *
-        let vec_constructor = GenericType::Named("Vec".to_string(), vec![]);
+        let _vec_constructor = GenericType::Named("Vec".to_string(), vec![]);
         
         // Vec<Int>: *
         let vec_int = GenericType::Named(

@@ -128,7 +128,9 @@ macro_rules! impl_token_converter {
 
 /// 使用例（これはテスト用）
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
+    #[allow(unused_imports)]
     use crate::type_system::{Type, TokenMetadataRegistry};
     
     // 新しいトークンを定義

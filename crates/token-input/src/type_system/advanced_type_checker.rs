@@ -7,8 +7,6 @@ use crate::structured_token::StructuredTokenInput;
 use super::{
     Type, TokenMetadataRegistry, TypeError, CompileError, CompileResult, TypedAst, TypeContext,
     hindley_milner::{HindleyMilner, PolyType, TypeEnv},
-    traits::TraitSystem,
-    generics::GenericTypeRegistry,
 };
 
 /// Phase 2対応の型チェッカー
@@ -17,10 +15,6 @@ pub struct AdvancedTypeChecker {
     metadata_registry: TokenMetadataRegistry,
     /// Hindley-Milner型推論エンジン
     hm_engine: HindleyMilner,
-    /// Traitシステム
-    trait_system: TraitSystem,
-    /// ジェネリック型レジストリ
-    generic_registry: GenericTypeRegistry,
     /// 型環境
     type_env: TypeEnv,
 }
@@ -30,8 +24,6 @@ impl AdvancedTypeChecker {
         Self {
             metadata_registry: TokenMetadataRegistry::new(),
             hm_engine: HindleyMilner::new(),
-            trait_system: TraitSystem::new(),
-            generic_registry: GenericTypeRegistry::new(),
             type_env: TypeEnv::new(),
         }
     }

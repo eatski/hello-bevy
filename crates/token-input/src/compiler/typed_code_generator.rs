@@ -8,8 +8,6 @@ use crate::typed_converter_registry::TypedConverterRegistryImpl;
 use crate::typed_node_converter::convert_typed;
 use crate::type_system::{TypedAst, Type, CompileError, CompileResult, TypeError};
 
-// Type alias for Node trait with action-system's EvaluationContext
-type ActionSystemNode<T> = dyn for<'a> action_system::Node<T, action_system::EvaluationContext<'a>> + Send + Sync;
 
 /// 型情報を伝播させるコードジェネレータ
 pub struct TypedCodeGenerator {
