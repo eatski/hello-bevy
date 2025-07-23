@@ -42,7 +42,9 @@ impl TypedConverterRegistryImpl {
             TypedGreaterThanConverter, TypedEqConverter, TypedTrueOrFalseRandomConverter,
             TypedMapConverter, TypedRandomPickConverter, TypedFilterListCharacterConverter,
             TypedGenericFilterListConverter, TypedMaxConverter, TypedMinConverter, TypedMaxCharacterConverter,
-            TypedNumberConverter, TypedActingCharacterConverter, TypedElementConverter,
+            TypedMinCharacterConverter,
+            TypedNumberConverter, TypedActingCharacterConverter, 
+            TypedElementCharacterConverter, TypedElementI32Converter, TypedElementTeamSideConverter,
             TypedCharacterToHpConverter, TypedCharacterHpToCharacterConverter,
             TypedAllCharactersConverter, TypedTeamMembersConverter, TypedAllTeamSidesConverter,
             TypedEnemyConverter, TypedHeroConverter, TypedCharacterTeamConverter
@@ -83,6 +85,7 @@ impl TypedConverterRegistryImpl {
         self.register(Box::new(TypedMinConverter::<i32>::new()));
         self.register(Box::new(TypedMinConverter::<CharacterHP>::new()));
         self.register(Box::new(TypedMaxCharacterConverter)); // Max for Character type
+        self.register(Box::new(TypedMinCharacterConverter)); // Min for Character type
         // Note: Character doesn't implement Numeric trait
         
         // 値コンバーター
@@ -90,7 +93,9 @@ impl TypedConverterRegistryImpl {
         
         // キャラクターコンバーター
         self.register(Box::new(TypedActingCharacterConverter));
-        self.register(Box::new(TypedElementConverter));
+        self.register(Box::new(TypedElementCharacterConverter));
+        self.register(Box::new(TypedElementI32Converter));
+        self.register(Box::new(TypedElementTeamSideConverter));
         self.register(Box::new(TypedCharacterToHpConverter));
         self.register(Box::new(TypedCharacterHpToCharacterConverter));
         

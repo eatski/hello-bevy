@@ -1,5 +1,3 @@
-// 型情報を伝播させる値コンバーター
-
 use crate::{StructuredTokenInput, typed_node_converter::{TypedNodeConverter, TypedConverterRegistry}};
 use crate::type_system::{TypedAst, Type};
 use action_system::*;

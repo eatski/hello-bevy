@@ -1,16 +1,16 @@
-// Typed converters (type-propagating system)
-mod typed_action_converters;
-mod typed_condition_converters;
-mod typed_array_converters;
-mod typed_value_converters;
-mod typed_character_converters;
-mod typed_base_array_converters;
-mod typed_team_side_converters;
+pub mod action;
+pub mod array;
+pub mod base_array;
+pub mod character;
+pub mod condition;
+pub mod team_side;
+pub mod value;
 
-pub use typed_action_converters::*;
-pub use typed_condition_converters::*;
-pub use typed_array_converters::*;
-pub use typed_value_converters::*;
-pub use typed_character_converters::*;
-pub use typed_base_array_converters::*;
-pub use typed_team_side_converters::*;
+// Re-export all converters
+pub use action::*;
+pub use array::*;
+pub use base_array::*;
+pub use character::*;
+pub use condition::*;
+pub use team_side::*;
+pub use value::*;
