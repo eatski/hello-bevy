@@ -89,7 +89,7 @@ mod tests {
     
     #[test]
     fn test_numeric_type_compatibility() {
-        let compiler = Compiler::new();
+        let compiler = Compiler::with_options(CompilerOptions { debug: true });
         
         // NumericMax/Minトークンのテスト（配列形式）
         // このテストでは実際にはCharacterHPを返すノードを作成しているが、

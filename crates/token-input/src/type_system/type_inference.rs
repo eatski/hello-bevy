@@ -170,8 +170,16 @@ impl TypeInferenceEngine {
                 }
             }
             "NumericMax" | "NumericMin" => {
-                // 常にNumeric型を返す
-                Type::Numeric
+                // 配列要素の型に基づいて決定
+                match left_type {
+                    Type::Vec(elem) => match elem.as_ref() {
+                        Type::I32 => Type::I32,
+                        Type::CharacterHP => Type::CharacterHP,
+                        Type::Numeric => Type::Numeric,
+                        _ => Type::Numeric,
+                    },
+                    _ => Type::Numeric,
+                }
             }
             _ => Type::Any,
         }

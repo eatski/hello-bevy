@@ -44,6 +44,43 @@ impl<'a> Node<Vec<Character>, EvaluationContext<'a>> for FilterListNode {
     }
 }
 
+// Generic FilterListNode that works with any type
+pub struct GenericFilterListNode<T: Clone + Send + Sync + 'static> {
+    array: BoxedNode<Vec<T>>,
+    condition: BoxedNode<bool>,
+}
+
+impl<T: Clone + Send + Sync + 'static> GenericFilterListNode<T> {
+    pub fn new(
+        array: BoxedNode<Vec<T>>,
+        condition: BoxedNode<bool>,
+    ) -> Self {
+        Self { array, condition }
+    }
+}
+
+impl<'a, T: Clone + Send + Sync + 'static> Node<Vec<T>, EvaluationContext<'a>> for GenericFilterListNode<T> {
+    fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<Vec<T>> {
+        // Get the array to filter
+        let items = self.array.evaluate(eval_context)?;
+        
+        let mut filtered = Vec::new();
+        
+        // For generic types, we can't create element context as we don't know if T = Character
+        // So we just evaluate the condition in the current context
+        for item in items {
+            // Evaluate condition with the current context
+            let condition_result = self.condition.evaluate(eval_context)?;
+            
+            if condition_result {
+                filtered.push(item);
+            }
+        }
+        
+        Ok(filtered)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

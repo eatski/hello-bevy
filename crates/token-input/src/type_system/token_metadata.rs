@@ -19,7 +19,7 @@ pub struct ArgumentMetadata {
 }
 
 /// トークンのメタデータ
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TokenMetadata {
     /// トークンタイプ
     pub token_type: String,
@@ -31,6 +31,8 @@ pub struct TokenMetadata {
     pub custom_validator: Option<fn(&crate::structured_token::StructuredTokenInput) -> Result<(), String>>,
     /// 出力型の推論ロジック（オプション）
     pub output_type_inference: Option<fn(&HashMap<String, Type>) -> Type>,
+    /// 引数のコンテキストを準備するロジック（オプション）
+    pub argument_context_provider: Option<fn(&str, &HashMap<String, super::TypedAst>) -> Result<Option<Type>, super::CompileError>>,
 }
 
 impl TokenMetadata {
@@ -86,6 +88,7 @@ impl TokenMetadataRegistry {
             output_type: Action,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         self.register(TokenMetadata {
@@ -101,6 +104,7 @@ impl TokenMetadataRegistry {
             output_type: Action,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // 条件
@@ -123,6 +127,7 @@ impl TokenMetadataRegistry {
             output_type: Bool,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // 値取得
@@ -132,6 +137,7 @@ impl TokenMetadataRegistry {
             output_type: Character,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // 配列操作
@@ -156,6 +162,17 @@ impl TokenMetadataRegistry {
             output_type_inference: Some(|arg_types| {
                 // 配列の要素型を維持
                 arg_types.get("array").cloned().unwrap_or(Vec(Box::new(Any)))
+            }),
+            argument_context_provider: Some(|arg_name, args| {
+                if arg_name == "condition" {
+                    // condition引数では、配列の要素型をElementのコンテキストとして提供
+                    if let Some(array_ast) = args.get("array") {
+                        if let Type::Vec(elem_type) = &array_ast.ty {
+                            return Ok(Some((**elem_type).clone()));
+                        }
+                    }
+                }
+                Ok(None)
             }),
         });
         
@@ -185,6 +202,17 @@ impl TokenMetadataRegistry {
                     Vec(Box::new(Any))
                 }
             }),
+            argument_context_provider: Some(|arg_name, args| {
+                if arg_name == "transform" {
+                    // transform引数では、配列の要素型をElementのコンテキストとして提供
+                    if let Some(array_ast) = args.get("array") {
+                        if let Type::Vec(elem_type) = &array_ast.ty {
+                            return Ok(Some((**elem_type).clone()));
+                        }
+                    }
+                }
+                Ok(None)
+            }),
         });
         
         // 特殊なトークン
@@ -197,6 +225,7 @@ impl TokenMetadataRegistry {
                 // Element の型は TypeChecker で特殊処理される
                 Any
             }),
+            argument_context_provider: None,
         });
         
         self.register(TokenMetadata {
@@ -205,6 +234,7 @@ impl TokenMetadataRegistry {
             output_type: I32,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // 他のトークンも同様に登録...
@@ -235,6 +265,7 @@ impl TokenMetadataRegistry {
             output_type: Action,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // TrueOrFalseRandom
@@ -244,6 +275,7 @@ impl TokenMetadataRegistry {
             output_type: Bool,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // 比較演算
@@ -266,6 +298,7 @@ impl TokenMetadataRegistry {
             output_type: Bool,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // TrueOrFalseRandom
@@ -275,6 +308,7 @@ impl TokenMetadataRegistry {
             output_type: Bool,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // 配列操作
@@ -284,6 +318,7 @@ impl TokenMetadataRegistry {
             output_type: Vec(Box::new(Character)),
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         self.register(TokenMetadata {
@@ -292,6 +327,7 @@ impl TokenMetadataRegistry {
             output_type: Vec(Box::new(TeamSide)),
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         self.register(TokenMetadata {
@@ -307,6 +343,7 @@ impl TokenMetadataRegistry {
             output_type: Vec(Box::new(Character)),
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         self.register(TokenMetadata {
@@ -329,6 +366,7 @@ impl TokenMetadataRegistry {
                     Any
                 }
             }),
+            argument_context_provider: None,
         });
         
         // 数値演算
@@ -350,6 +388,7 @@ impl TokenMetadataRegistry {
                 output_type,
                 custom_validator: None,
                 output_type_inference: None,
+                argument_context_provider: None,
             });
         }
         
@@ -367,6 +406,7 @@ impl TokenMetadataRegistry {
             output_type: CharacterHP,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         self.register(TokenMetadata {
@@ -382,6 +422,7 @@ impl TokenMetadataRegistry {
             output_type: Character,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         self.register(TokenMetadata {
@@ -397,6 +438,7 @@ impl TokenMetadataRegistry {
             output_type: TeamSide,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // チーム関連
@@ -413,6 +455,7 @@ impl TokenMetadataRegistry {
             output_type: Vec(Box::new(Character)),
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         self.register(TokenMetadata {
@@ -421,6 +464,7 @@ impl TokenMetadataRegistry {
             output_type: Vec(Box::new(TeamSide)),
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // CharacterHpToCharacter
@@ -437,6 +481,7 @@ impl TokenMetadataRegistry {
             output_type: Character,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // 定数
@@ -446,6 +491,7 @@ impl TokenMetadataRegistry {
             output_type: TeamSide,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         self.register(TokenMetadata {
@@ -454,6 +500,7 @@ impl TokenMetadataRegistry {
             output_type: TeamSide,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
     }
     

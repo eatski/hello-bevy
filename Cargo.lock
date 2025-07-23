@@ -3963,6 +3963,8 @@ name = "token-input"
 version = "0.1.0"
 dependencies = [
  "action-system",
+ "node-core",
+ "paste",
  "rand",
  "serde",
 ]

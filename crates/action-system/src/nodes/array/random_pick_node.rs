@@ -48,6 +48,28 @@ impl<'a> Node<i32, EvaluationContext<'a>> for ValueRandomPickNode {
     }
 }
 
+// Add generic RandomPickNode that works with any cloneable type
+pub struct RandomPickNode<T: Clone + Send + Sync + 'static> {
+    array_node: BoxedNode<Vec<T>>,
+}
+
+impl<T: Clone + Send + Sync + 'static> RandomPickNode<T> {
+    pub fn new(array_node: BoxedNode<Vec<T>>) -> Self {
+        Self { array_node }
+    }
+}
+
+impl<'a, T: Clone + Send + Sync + 'static> Node<T, EvaluationContext<'a>> for RandomPickNode<T> {
+    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<T> {
+        let items = self.array_node.evaluate(eval_context)?;
+        if items.is_empty() {
+            return Err(NodeError::EvaluationError("Cannot pick from empty array".to_string()));
+        }
+        let index = eval_context.rng.gen_range(0..items.len());
+        Ok(items[index].clone())
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

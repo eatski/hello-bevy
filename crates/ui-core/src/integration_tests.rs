@@ -1718,6 +1718,9 @@ mod tests {
         // Convert and verify using Compiler
         let compiler = Compiler::new();
         let compiled = compiler.compile(&rule);
+        if let Err(ref e) = compiled {
+            eprintln!("Compilation failed: {:?}", e);
+        }
         assert!(compiled.is_ok());
         
         let ruleset = RuleSet { rules: vec![rule] };

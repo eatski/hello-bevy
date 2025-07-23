@@ -6,4 +6,6 @@ edition = "2021"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 action-system = { path = "../action-system" }
+node-core = { path = "../node-core" }
 rand = "0.8"
+paste = "1.0"

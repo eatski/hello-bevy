@@ -3,7 +3,7 @@
 //! StructuredTokenInput → 型検査 → 中間表現 → Node への変換パイプライン
 
 pub mod pipeline;
-pub mod code_generator;
+pub mod typed_code_generator;
 pub mod error_reporter;
 
 #[cfg(test)]

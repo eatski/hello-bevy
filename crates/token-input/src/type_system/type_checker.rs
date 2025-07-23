@@ -56,40 +56,23 @@ impl TypeChecker {
         let mut typed_children = HashMap::new();
         let mut arg_types = HashMap::new();
         
-        // FilterList/Mapの場合、最初にarrayを処理して要素型を取得
-        let mut element_context = None;
-        if matches!(token_type.as_str(), "FilterList" | "Map") {
-            if let Some(array_arg) = token_args.get("array") {
-                let typed_array = self.check_with_context(array_arg, context)?;
-                
-                // 配列の要素型を保存
-                if let Type::Vec(elem_type) = &typed_array.ty {
-                    element_context = Some((**elem_type).clone());
-                }
-                
-                arg_types.insert("array".to_string(), typed_array.ty.clone());
-                typed_children.insert("array".to_string(), typed_array);
-            }
-        }
-        
+        // メタデータで定義された順序で引数を処理
         for arg_meta in &metadata.arguments {
-            // 既に処理済みの引数はスキップ
-            if typed_children.contains_key(&arg_meta.name) {
-                continue;
-            }
-            
             if let Some(arg_token) = token_args.get(&arg_meta.name) {
-                // FilterList/Mapのcondition/transformには要素型のコンテキストを設定
-                let typed_arg = if matches!((token_type.as_str(), arg_meta.name.as_str()), 
-                                          ("FilterList", "condition") | 
-                                          ("Map", "transform")) 
-                                   && element_context.is_some() {
-                    // 新しいコンテキストを作成して要素型を設定
+                // 引数のコンテキストを準備
+                let arg_context = self.prepare_argument_context(
+                    context,
+                    &arg_meta.name,
+                    &typed_children,
+                    metadata,
+                )?;
+                
+                // 型チェック実行
+                let typed_arg = if let Some(ref ctx) = arg_context {
                     let mut new_context = context.clone();
-                    new_context.set_current_context(element_context.clone());
+                    new_context.set_current_context(Some(ctx.clone()));
                     self.check_with_context(arg_token, &mut new_context)?
                 } else {
-                    // 通常の型チェック
                     self.check_argument(
                         arg_token,
                         &arg_meta.expected_type,
@@ -185,6 +168,22 @@ impl TypeChecker {
             StructuredTokenInput::NumericMax { .. } => "NumericMax",
             StructuredTokenInput::NumericMin { .. } => "NumericMin",
         }.to_string()
+    }
+    
+    /// 引数のコンテキストを準備
+    fn prepare_argument_context(
+        &self,
+        _context: &TypeContext,
+        arg_name: &str,
+        typed_children: &HashMap<String, TypedAst>,
+        metadata: &super::TokenMetadata,
+    ) -> Result<Option<Type>, CompileError> {
+        // メタデータに定義されたコンテキスト準備ロジックを使用
+        if let Some(context_provider) = metadata.argument_context_provider {
+            context_provider(arg_name, typed_children)
+        } else {
+            Ok(None)
+        }
     }
     
     /// トークンから引数を抽出
@@ -289,6 +288,7 @@ mod tests {
             output_type: Type::String,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         let _checker = TypeChecker::with_registry(registry);

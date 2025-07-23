@@ -140,6 +140,7 @@ mod tests {
             output_type: Type::Numeric,
             custom_validator: None,
             output_type_inference: None,
+            argument_context_provider: None,
         });
         
         // レジストリに新しいトークンが登録されていることを確認
@@ -194,5 +195,79 @@ mod tests {
         // 深いネストでも問題なく型チェックできることを確認
         let result = type_checker.check(&token);
         assert!(result.is_ok());
+    }
+    
+    #[test]
+    fn test_element_in_filter_list_context() {
+        let type_checker = TypeChecker::new();
+        
+        // FilterList内でElementトークンを使用（Characterの配列をフィルタリング）
+        let token = StructuredTokenInput::FilterList {
+            array: Box::new(StructuredTokenInput::AllCharacters),
+            condition: Box::new(StructuredTokenInput::GreaterThan {
+                left: Box::new(StructuredTokenInput::CharacterToHp {
+                    character: Box::new(StructuredTokenInput::Element),
+                }),
+                right: Box::new(StructuredTokenInput::Number { value: 30 }),
+            }),
+        };
+        
+        let result = type_checker.check(&token);
+        assert!(result.is_ok());
+        
+        // 結果の型がVec<Character>であることを確認
+        if let Ok(typed_ast) = result {
+            assert_eq!(typed_ast.ty, Type::Vec(Box::new(Type::Character)));
+        }
+    }
+    
+    #[test]
+    fn test_element_in_map_context() {
+        let type_checker = TypeChecker::new();
+        
+        // Map内でElementトークンを使用（CharacterをCharacterHPに変換）
+        let token = StructuredTokenInput::Map {
+            array: Box::new(StructuredTokenInput::AllCharacters),
+            transform: Box::new(StructuredTokenInput::CharacterToHp {
+                character: Box::new(StructuredTokenInput::Element),
+            }),
+        };
+        
+        let result = type_checker.check(&token);
+        assert!(result.is_ok());
+        
+        // 結果の型がVec<CharacterHP>であることを確認
+        if let Ok(typed_ast) = result {
+            assert_eq!(typed_ast.ty, Type::Vec(Box::new(Type::CharacterHP)));
+        }
+    }
+    
+    #[test]
+    fn test_nested_filter_map_with_element() {
+        let type_checker = TypeChecker::new();
+        
+        // Map内のFilterList内でElementトークンを使用
+        let token = StructuredTokenInput::Map {
+            array: Box::new(StructuredTokenInput::FilterList {
+                array: Box::new(StructuredTokenInput::AllCharacters),
+                condition: Box::new(StructuredTokenInput::GreaterThan {
+                    left: Box::new(StructuredTokenInput::CharacterToHp {
+                        character: Box::new(StructuredTokenInput::Element),
+                    }),
+                    right: Box::new(StructuredTokenInput::Number { value: 20 }),
+                }),
+            }),
+            transform: Box::new(StructuredTokenInput::CharacterToHp {
+                character: Box::new(StructuredTokenInput::Element),
+            }),
+        };
+        
+        let result = type_checker.check(&token);
+        assert!(result.is_ok());
+        
+        // 結果の型がVec<CharacterHP>であることを確認
+        if let Ok(typed_ast) = result {
+            assert_eq!(typed_ast.ty, Type::Vec(Box::new(Type::CharacterHP)));
+        }
     }
 }

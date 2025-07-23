@@ -5,19 +5,27 @@
 use action_system::RuleNode;
 use crate::structured_token::StructuredTokenInput;
 use crate::type_system::{TypeChecker, CompileResult};
-use super::code_generator::CodeGenerator;
+use super::typed_code_generator::TypedCodeGenerator;
 
 /// コンパイラオプション
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CompilerOptions {
     /// デバッグ情報を出力するか
     pub debug: bool,
 }
 
+impl Default for CompilerOptions {
+    fn default() -> Self {
+        Self {
+            debug: false,
+        }
+    }
+}
+
 /// コンパイラ
 pub struct Compiler {
     type_checker: TypeChecker,
-    code_generator: CodeGenerator,
+    typed_code_generator: TypedCodeGenerator,
     options: CompilerOptions,
 }
 
@@ -31,11 +39,11 @@ impl Compiler {
     /// オプション指定でコンパイラを作成
     pub fn with_options(options: CompilerOptions) -> Self {
         let type_checker = TypeChecker::new();
-        let code_generator = CodeGenerator::new();
+        let typed_code_generator = TypedCodeGenerator::new();
         
         Self {
             type_checker,
-            code_generator,
+            typed_code_generator,
             options,
         }
     }
@@ -54,7 +62,10 @@ impl Compiler {
         }
         
         // Phase 2: コード生成
-        let node = self.code_generator.generate(&typed_ast)?;
+        if self.options.debug {
+            eprintln!("Using typed code generator (type-propagating system)");
+        }
+        let node = self.typed_code_generator.generate(&typed_ast)?;
         
         if self.options.debug {
             eprintln!("Generated node successfully");
