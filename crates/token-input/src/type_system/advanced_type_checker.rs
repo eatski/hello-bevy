@@ -1,18 +1,16 @@
-//! Phase 2対応の高度な型チェッカー
+//! 高度な型チェッカー
 //! 
 //! Hindley-Milner型推論、traitシステム、高度なジェネリクスを統合
 
 use std::collections::HashMap;
 use crate::structured_token::StructuredTokenInput;
 use super::{
-    Type, TokenMetadataRegistry, TypeError, CompileError, CompileResult, TypedAst, TypeContext,
+    Type, TypeError, CompileError, CompileResult, TypedAst, TypeContext,
     hindley_milner::{HindleyMilner, PolyType, TypeEnv},
 };
 
-/// Phase 2対応の型チェッカー
+/// 高度な型チェッカー
 pub struct AdvancedTypeChecker {
-    /// トークンメタデータ
-    metadata_registry: TokenMetadataRegistry,
     /// Hindley-Milner型推論エンジン
     hm_engine: HindleyMilner,
     /// 型環境
@@ -22,13 +20,12 @@ pub struct AdvancedTypeChecker {
 impl AdvancedTypeChecker {
     pub fn new() -> Self {
         Self {
-            metadata_registry: TokenMetadataRegistry::with_builtin_tokens(),
             hm_engine: HindleyMilner::new(),
             type_env: TypeEnv::new(),
         }
     }
     
-    /// トークンの型チェックを実行（Phase 2機能付き）
+    /// トークンの型チェックを実行
     pub fn check(&mut self, token: &StructuredTokenInput) -> CompileResult<TypedAst> {
         let mut context = TypeContext::new();
         self.check_with_inference(token, &mut context)
@@ -40,22 +37,8 @@ impl AdvancedTypeChecker {
         token: &StructuredTokenInput,
         context: &mut TypeContext,
     ) -> CompileResult<TypedAst> {
-        // トークンタイプを取得
-        let token_type = token.token_type().to_string();
-        
-        // メタデータを取得してクローン（借用を回避）
-        let metadata = self.metadata_registry.get(&token_type)
-            .ok_or_else(|| CompileError::new(TypeError::UndefinedToken {
-                token_type: token_type.clone(),
-            }))?
-            .clone();
-        
-        // カスタム検証
-        if let Some(validator) = metadata.custom_validator {
-            validator(token).map_err(|e| CompileError::new(TypeError::UnresolvedType {
-                context: e,
-            }))?;
-        }
+        // トークンから直接期待される引数の型を取得
+        let expected_args = token.expected_argument_types();
         
         // 引数の型推論
         let token_args: HashMap<String, &StructuredTokenInput> = token.arguments()
@@ -67,7 +50,7 @@ impl AdvancedTypeChecker {
         
         // FilterList/Map特殊処理
         let mut element_context = None;
-        if matches!(token_type.as_str(), "FilterList" | "Map") {
+        if matches!(token, StructuredTokenInput::FilterList { .. } | StructuredTokenInput::Map { .. }) {
             if let Some(array_arg) = token_args.get("array") {
                 let typed_array = self.check_with_inference(array_arg, context)?;
                 
@@ -81,34 +64,40 @@ impl AdvancedTypeChecker {
         }
         
         // 各引数の型推論
-        for arg_meta in &metadata.arguments {
-            if typed_children.contains_key(&arg_meta.name) {
+        for (arg_name, expected_type) in expected_args {
+            if typed_children.contains_key(arg_name) {
                 continue;
             }
             
-            if let Some(arg_token) = token_args.get(&arg_meta.name) {
-                let typed_arg = if matches!((token_type.as_str(), arg_meta.name.as_str()), 
-                                          ("FilterList", "condition") | 
-                                          ("Map", "transform")) 
-                                   && element_context.is_some() {
-                    let mut new_context = context.clone();
-                    new_context.set_current_context(element_context.clone());
-                    self.check_with_inference(arg_token, &mut new_context)?
+            if let Some(arg_token) = token_args.get(arg_name) {
+                let typed_arg = if (matches!(token, StructuredTokenInput::FilterList { .. }) && arg_name == "condition") ||
+                                   (matches!(token, StructuredTokenInput::Map { .. }) && arg_name == "transform") {
+                    if let Some(elem_ctx) = &element_context {
+                        let mut new_context = context.clone();
+                        new_context.set_current_context(Some(elem_ctx.clone()));
+                        self.check_with_inference(arg_token, &mut new_context)?
+                    } else {
+                        self.check_with_inference(arg_token, context)?
+                    }
                 } else {
                     self.check_with_inference(arg_token, context)?
                 };
                 
                 // 型の互換性をチェック
-                if !typed_arg.ty.is_compatible_with(&arg_meta.expected_type) {
+                if !typed_arg.ty.is_compatible_with(&expected_type) {
                     return Err(CompileError::new(TypeError::TypeMismatch {
-                        expected: arg_meta.expected_type.clone(),
+                        expected: expected_type.clone(),
                         actual: typed_arg.ty.clone(),
-                        context: format!("{}.{}", token_type, arg_meta.name),
+                        context: if cfg!(debug_assertions) {
+                            format!("{}.{}", token.debug_name(), arg_name)
+                        } else {
+                            format!("token.{}", arg_name)
+                        },
                     }));
                 }
                 
                 // 型推論制約を追加（Numeric型とAny型、Vec(Any)は特殊処理）
-                let should_add_constraint = match (&arg_meta.expected_type, &typed_arg.ty) {
+                let should_add_constraint = match (&expected_type, &typed_arg.ty) {
                     (Type::Numeric, _) => false,
                     (Type::Any, _) => false,
                     (_, Type::Any) => false,
@@ -120,29 +109,33 @@ impl AdvancedTypeChecker {
                 };
                 
                 if should_add_constraint {
-                    let expected_poly = PolyType::Concrete(arg_meta.expected_type.clone());
+                    let expected_poly = PolyType::Concrete(expected_type.clone());
                     let actual_poly = PolyType::Concrete(typed_arg.ty.clone());
                     self.hm_engine.add_constraint(expected_poly, actual_poly);
                 }
                 
                 // Trait境界チェック
-                if arg_meta.expected_type == Type::Numeric {
+                if expected_type == Type::Numeric {
                     // Numeric traitを要求 - I32とCharacterHPは互換性がある
                     if !matches!(typed_arg.ty, Type::I32 | Type::CharacterHP | Type::Numeric) {
                         return Err(CompileError::new(TypeError::TypeMismatch {
-                            expected: arg_meta.expected_type.clone(),
+                            expected: expected_type.clone(),
                             actual: typed_arg.ty.clone(),
                             context: format!("Type {} does not implement Numeric trait", typed_arg.ty),
                         }));
                     }
                 }
                 
-                arg_poly_types.insert(arg_meta.name.clone(), PolyType::Concrete(typed_arg.ty.clone()));
-                typed_children.insert(arg_meta.name.clone(), typed_arg);
-            } else if arg_meta.required {
+                arg_poly_types.insert(arg_name.to_string(), PolyType::Concrete(typed_arg.ty.clone()));
+                typed_children.insert(arg_name.to_string(), typed_arg);
+            } else {
                 return Err(CompileError::new(TypeError::MissingField {
-                    token_type: token_type.clone(),
-                    field_name: arg_meta.name.clone(),
+                    token_type: if cfg!(debug_assertions) {
+                        token.debug_name().to_string()
+                    } else {
+                        "token".to_string()
+                    },
+                    field_name: arg_name.to_string(),
                 }));
             }
         }
@@ -152,10 +145,10 @@ impl AdvancedTypeChecker {
             .map_err(|e| CompileError::new(TypeError::UnresolvedType { context: e }))?;
         
         // 出力型を推論
-        let output_type = self.infer_output_type(&token_type, &typed_children, context)?;
+        let output_type = self.infer_output_type(token, &typed_children, context)?;
         
         // 多相型の一般化（let多相性）
-        if self.is_value_binding(&token_type) {
+        if self.is_value_binding(token) {
             let poly_type = PolyType::Concrete(output_type.clone());
             let type_scheme = self.hm_engine.generalize(&self.type_env, &poly_type);
             
@@ -172,16 +165,16 @@ impl AdvancedTypeChecker {
         Ok(typed_ast)
     }
     
-    /// 出力型を推論（Phase 2対応）
+    /// 出力型を推論
     fn infer_output_type(
         &self,
-        token_type: &str,
+        token: &StructuredTokenInput,
         typed_args: &HashMap<String, TypedAst>,
         context: &TypeContext,
     ) -> Result<Type, CompileError> {
         // 特殊なケースの処理
-        match token_type {
-            "Element" => {
+        match token {
+            StructuredTokenInput::Element => {
                 context.current_context()
                     .and_then(|ty| match ty {
                         Type::Vec(elem_type) => Some(elem_type.as_ref().clone()),
@@ -191,19 +184,50 @@ impl AdvancedTypeChecker {
                         context: "Element used outside of list context".to_string(),
                     }))
             }
+            StructuredTokenInput::FilterList { .. } => {
+                // FilterListの出力型は入力配列の型と同じ
+                Ok(typed_args.get("array")
+                    .map(|ast| ast.ty.clone())
+                    .unwrap_or(Type::Vec(Box::new(Type::Any))))
+            }
+            StructuredTokenInput::Map { .. } => {
+                // Mapの出力型は変換後の要素型の配列
+                Ok(typed_args.get("transform")
+                    .map(|ast| Type::Vec(Box::new(ast.ty.clone())))
+                    .unwrap_or(Type::Vec(Box::new(Type::Any))))
+            }
+            StructuredTokenInput::RandomPick { .. } => {
+                // RandomPickの出力型は配列の要素型
+                Ok(typed_args.get("array")
+                    .and_then(|ast| match &ast.ty {
+                        Type::Vec(elem_type) => Some(elem_type.as_ref().clone()),
+                        _ => None,
+                    })
+                    .unwrap_or(Type::Any))
+            }
+            StructuredTokenInput::NumericMax { .. } | StructuredTokenInput::NumericMin { .. } => {
+                // Numeric型操作の出力は具体的な型に依存
+                Ok(typed_args.get("array")
+                    .and_then(|ast| match &ast.ty {
+                        Type::Vec(elem_type) => match elem_type.as_ref() {
+                            Type::I32 => Some(Type::I32),
+                            Type::CharacterHP => Some(Type::CharacterHP),
+                            Type::Numeric => Some(Type::Numeric),
+                            _ => None,
+                        },
+                        _ => None,
+                    })
+                    .unwrap_or(Type::Numeric))
+            }
             _ => {
-                // メタデータから推論
-                let metadata = self.metadata_registry.get(token_type).unwrap();
-                let arg_types: HashMap<String, Type> = typed_args.iter()
-                    .map(|(k, v)| (k.clone(), v.ty.clone()))
-                    .collect();
-                Ok(metadata.infer_output_type(&arg_types))
+                // その他のトークンは事前定義された出力型を使用
+                Ok(token.output_type())
             }
         }
     }
     
     /// 値束縛かどうか判定
-    fn is_value_binding(&self, _token_type: &str) -> bool {
+    fn is_value_binding(&self, _token: &StructuredTokenInput) -> bool {
         // 将来的にletバインディングを追加した場合に使用
         false
     }
@@ -227,7 +251,7 @@ mod tests {
     use super::*;
     
     #[test]
-    fn test_phase2_type_inference() {
+    fn test_numeric_type_inference() {
         let mut checker = AdvancedTypeChecker::new();
         
         // Numeric trait を活用した型推論
@@ -261,7 +285,7 @@ mod tests {
         
         let result = checker.check(&token);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().ty, Type::Numeric);
+        assert_eq!(result.unwrap().ty, Type::CharacterHP);
     }
     
     #[test]

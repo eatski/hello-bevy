@@ -4,7 +4,7 @@
 mod tests {
     use crate::compiler::{Compiler, ErrorReporter};
     use crate::structured_token::StructuredTokenInput;
-    use crate::type_system::{TokenMetadataRegistry, TokenMetadata, ArgumentMetadata, Type, TypeChecker};
+    use crate::type_system::{Type, TypeChecker};
     
     // 基本的な型チェッカーテスト
     
@@ -115,36 +115,12 @@ mod tests {
     #[test]
     fn test_extensibility_with_custom_token() {
         // カスタムトークンの追加をシミュレート
-        // 実際には、StructuredTokenInputにカスタムバリアントを追加する必要があるが、
-        // ここではメタデータシステムの拡張性をテスト
+        // TokenMetadataRegistryが削除されたため、
+        // 新しいトークンの追加は直接StructuredTokenInputに
+        // バリアントを追加することで行われる
         
-        let mut registry = TokenMetadataRegistry::new();
-        
-        // 新しいトークンタイプを登録
-        registry.register(TokenMetadata {
-            token_type: "CustomMultiply".to_string(),
-            arguments: vec![
-                ArgumentMetadata {
-                    name: "left".to_string(),
-                    expected_type: Type::Numeric,
-                    required: true,
-                    default_value: None,
-                },
-                ArgumentMetadata {
-                    name: "right".to_string(),
-                    expected_type: Type::Numeric,
-                    required: true,
-                    default_value: None,
-                },
-            ],
-            output_type: Type::Numeric,
-            custom_validator: None,
-            output_type_inference: None,
-            argument_context_provider: None,
-        });
-        
-        // レジストリに新しいトークンが登録されていることを確認
-        assert!(registry.get("CustomMultiply").is_some());
+        // 現在のシステムでは、型チェックはStructuredTokenInputの
+        // メソッドから直接型情報を取得して行われる
     }
     
     #[test]

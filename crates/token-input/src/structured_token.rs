@@ -83,8 +83,9 @@ pub enum StructuredTokenInput {
 }
 
 impl StructuredTokenInput {
-    /// トークンタイプ名を取得
-    pub fn token_type(&self) -> &'static str {
+    /// デバッグ用のトークン名を取得
+    #[cfg(debug_assertions)]
+    pub fn debug_name(&self) -> &'static str {
         match self {
             Self::Strike { .. } => "Strike",
             Self::Heal { .. } => "Heal",
@@ -113,25 +114,25 @@ impl StructuredTokenInput {
             Self::NumericMin { .. } => "NumericMin",
         }
     }
+
     
     /// トークンの出力型を取得
     pub fn output_type(&self) -> crate::type_system::Type {
         use crate::type_system::Type;
-        match self.token_type() {
-            "Strike" | "Heal" | "Check" => Type::Action,
-            "TrueOrFalseRandom" | "GreaterThan" | "LessThan" | "Eq" => Type::Bool,
-            "ActingCharacter" => Type::Character,
-            "AllCharacters" | "TeamMembers" => Type::Vec(Box::new(Type::Character)),
-            "AllTeamSides" => Type::Vec(Box::new(Type::TeamSide)),
-            "Enemy" | "Hero" => Type::TeamSide,
-            "Number" => Type::I32,
-            "CharacterToHp" => Type::CharacterHP,
-            "CharacterHpToCharacter" | "Max" | "Min" => Type::Character,
-            "NumericMax" | "NumericMin" => Type::Numeric,
-            "CharacterTeam" => Type::TeamSide,
+        match self {
+            Self::Strike { .. } | Self::Heal { .. } | Self::Check { .. } => Type::Action,
+            Self::TrueOrFalseRandom | Self::GreaterThan { .. } | Self::LessThan { .. } | Self::Eq { .. } => Type::Bool,
+            Self::ActingCharacter => Type::Character,
+            Self::AllCharacters | Self::TeamMembers { .. } => Type::Vec(Box::new(Type::Character)),
+            Self::AllTeamSides => Type::Vec(Box::new(Type::TeamSide)),
+            Self::Enemy | Self::Hero => Type::TeamSide,
+            Self::Number { .. } => Type::I32,
+            Self::CharacterToHp { .. } => Type::CharacterHP,
+            Self::CharacterHpToCharacter { .. } | Self::Max { .. } | Self::Min { .. } => Type::Character,
+            Self::NumericMax { .. } | Self::NumericMin { .. } => Type::Numeric,
+            Self::CharacterTeam { .. } => Type::TeamSide,
             // 動的な型は後で特殊処理
-            "RandomPick" | "FilterList" | "Map" | "Element" => Type::Any,
-            _ => Type::Any,
+            Self::RandomPick { .. } | Self::FilterList { .. } | Self::Map { .. } | Self::Element => Type::Any,
         }
     }
     

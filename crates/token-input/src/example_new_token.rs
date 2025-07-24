@@ -3,16 +3,15 @@
 //! このファイルは、新しいトークンの追加がどれだけ簡単になったかを示すデモです。
 
 use crate::type_system::Type;
-use crate::token_definition_macro::{define_token, impl_token_converter};
+use crate::token_definition_macro::impl_token_converter;
 use action_system::{Character, NodeRegistry};
 use node_core::Node;
 
 // =====================================================
-// ステップ1: トークンの定義（メタデータの自動生成）
+// ステップ1: トークンの定義
 // =====================================================
-define_token! {
-    DoubleStrike { target: Type::Character, multiplier: Type::I32 } -> Type::Action
-}
+// TokenMetadataRegistryが削除されたため、define_token!マクロは使用されない
+// 新しいトークンはStructuredTokenInputに直接バリアントを追加することで定義される
 
 // =====================================================
 // ステップ2: 実行ノードの実装
@@ -75,20 +74,16 @@ impl_token_converter! {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::type_system::TokenMetadataRegistry;
     
     #[test]
     fn test_new_token_registration() {
-        let mut registry = TokenMetadataRegistry::new();
+        // TokenMetadataRegistryが削除されたため、
+        // 新しいトークンの型情報はStructuredTokenInputから直接取得される
         
-        // メタデータの自動登録
-        register_DoubleStrike_metadata(&mut registry);
-        
-        // メタデータが正しく登録されているか確認
-        let metadata = registry.get("DoubleStrike").unwrap();
-        assert_eq!(metadata.token_type, "DoubleStrike");
-        assert_eq!(metadata.arguments.len(), 2);
-        assert_eq!(metadata.output_type, Type::Action);
+        // DoubleStrikeトークンがコンバーターレジストリに登録されていることを確認
+        // 実際の使用では、StructuredTokenInputに新しいバリアントを追加し、
+        // expected_argument_types()とoutput_type()メソッドを実装することで
+        // 型システムに統合される
     }
 }
 

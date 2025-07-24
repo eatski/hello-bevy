@@ -8,7 +8,6 @@
 pub mod types;
 pub mod advanced_type_checker;
 pub mod errors;
-pub mod token_metadata;
 pub mod type_inference;
 pub mod hindley_milner;
 pub mod traits;
@@ -16,7 +15,6 @@ pub mod generics;
 
 pub use types::*;
 pub use errors::*;
-pub use token_metadata::*;
 pub use type_inference::*;
 // TypeCheckerとしてAdvancedTypeCheckerをエクスポート
 pub use advanced_type_checker::AdvancedTypeChecker;

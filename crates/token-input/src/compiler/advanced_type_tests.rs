@@ -52,7 +52,7 @@ mod tests {
         
         let result = checker.check(&valid_token);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().ty, Type::Numeric);
+        assert_eq!(result.unwrap().ty, Type::CharacterHP);
         
         // 非Numeric型でNumericMaxを使うとエラー
         let invalid_token = StructuredTokenInput::NumericMax {
@@ -119,8 +119,8 @@ mod tests {
         assert!(result.is_ok());
         
         let typed_ast = result.unwrap();
-        // 最終的な型はNumeric（CharacterHPの抽象化）
-        assert_eq!(typed_ast.ty, Type::Numeric);
+        // 最終的な型はCharacterHP（Map<CharacterHP>からNumericMaxで推論）
+        assert_eq!(typed_ast.ty, Type::CharacterHP);
     }
     
     #[test]

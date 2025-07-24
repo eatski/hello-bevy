@@ -2,7 +2,7 @@
 //! 
 //! ジェネリック型の解決とコンテキスト依存の型推論
 
-use super::{Type, TypeContext};
+use super::Type;
 use std::collections::HashMap;
 
 /// 型変数（型推論で使用）
@@ -104,83 +104,8 @@ impl TypeInferenceEngine {
         Ok(())
     }
     
-    /// コンテキストから型を推論
-    pub fn infer_from_context(context: &TypeContext, token_type: &str) -> Option<Type> {
-        match token_type {
-            "Element" => {
-                // FilterList/Map内でのElement型
-                context.current_context().cloned()
-            }
-            _ => None,
-        }
-    }
     
-    /// 配列操作の出力型を推論
-    pub fn infer_array_operation_type(
-        operation: &str,
-        input_type: &Type,
-        transform_type: Option<&Type>,
-    ) -> Type {
-        match operation {
-            "FilterList" => {
-                // フィルタリングは入力型を維持
-                input_type.clone()
-            }
-            "Map" => {
-                // マッピングは変換関数の出力型のVecを返す
-                if let Some(transform) = transform_type {
-                    Type::Vec(Box::new(transform.clone()))
-                } else {
-                    input_type.clone()
-                }
-            }
-            "RandomPick" => {
-                // ランダム選択は要素型を返す
-                if let Type::Vec(elem_type) = input_type {
-                    (**elem_type).clone()
-                } else {
-                    Type::Any
-                }
-            }
-            _ => input_type.clone(),
-        }
-    }
     
-    /// 数値演算の出力型を推論
-    pub fn infer_numeric_operation_type(
-        operation: &str,
-        left_type: &Type,
-        _right_type: Option<&Type>,
-    ) -> Type {
-        match operation {
-            "Max" | "Min" => {
-                // 入力型に基づいて出力型を決定
-                match left_type {
-                    Type::Vec(elem) => match elem.as_ref() {
-                        Type::I32 => Type::I32,
-                        Type::CharacterHP => Type::CharacterHP,
-                        Type::Character => Type::Character,
-                        Type::Numeric => Type::Numeric,
-                        _ => Type::Any,
-                    }
-                    _ => Type::Any,
-                }
-            }
-            "NumericMax" | "NumericMin" => {
-                // 配列要素の型に基づいて決定
-                match left_type {
-                    Type::Vec(elem) => match elem.as_ref() {
-                        Type::I32 => Type::I32,
-                        Type::CharacterHP => Type::CharacterHP,
-                        Type::Numeric => Type::Numeric,
-                        _ => Type::Numeric,
-                    },
-                    _ => Type::Numeric,
-                }
-            }
-            _ => Type::Any,
-        }
-    }
 }
 
 impl Default for TypeInferenceEngine {
@@ -257,27 +182,4 @@ mod tests {
         );
     }
     
-    #[test]
-    fn test_array_operation_inference() {
-        let vec_char = Type::Vec(Box::new(Type::Character));
-        
-        // FilterListは型を維持
-        assert_eq!(
-            TypeInferenceEngine::infer_array_operation_type("FilterList", &vec_char, None),
-            vec_char
-        );
-        
-        // Mapは変換型を適用
-        let hp_type = Type::CharacterHP;
-        assert_eq!(
-            TypeInferenceEngine::infer_array_operation_type("Map", &vec_char, Some(&hp_type)),
-            Type::Vec(Box::new(Type::CharacterHP))
-        );
-        
-        // RandomPickは要素型を返す
-        assert_eq!(
-            TypeInferenceEngine::infer_array_operation_type("RandomPick", &vec_char, None),
-            Type::Character
-        );
-    }
 }

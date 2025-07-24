@@ -65,7 +65,11 @@ impl ErrorReporter {
         let mut output = String::new();
         let indent_str = " ".repeat(indent);
         
-        let token_type = token.token_type();
+        let token_type = if cfg!(debug_assertions) {
+            token.debug_name()
+        } else {
+            "token"
+        };
         let args = token.arguments();
         
         // 引数がない場合はシンプルな表示
