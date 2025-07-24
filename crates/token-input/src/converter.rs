@@ -12,7 +12,7 @@ use action_system::{
     AllCharactersNode, TeamMembersNode, AllTeamSidesNode,
     CharacterRandomPickNode, FilterListNode,
     CharacterToHpNode, CharacterHpToCharacterNode, CharacterTeamNode,
-    EnemyNode, HeroNode,
+    EnemyNode, HeroNode, ElementNode,
     MaxNode, MinNode, MaxNodeI32, MinNodeI32,
     Character, CharacterHP, TeamSide, Action,
     ConstantValueNode,
@@ -152,8 +152,8 @@ fn convert_to_character_node(token: &StructuredTokenInput) -> Option<Box<dyn for
             Some(Box::new(MinNodeCharacter::new(array_node)))
         }
         StructuredTokenInput::Element => {
-            // Elementは配列操作の中でのみ有効
-            None
+            // ElementはFilterListのcontext内で使用される
+            Some(Box::new(ElementNode::new()))
         }
         _ => None,
     }

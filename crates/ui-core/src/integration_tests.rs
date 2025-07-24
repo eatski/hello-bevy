@@ -1951,4 +1951,171 @@ mod tests {
         );
     }
     */
+
+    #[test]
+    fn test_json_rules_loading_integration() {
+        // Test loading and using rules from JSON file (enemy_rules.json)
+        use json_rule::{load_rules_from_file};
+        use std::path::Path;
+        
+        // Load rules from JSON file
+        let json_path = Path::new("../../rules/enemy_rules.json");
+        let enemy_rules = load_rules_from_file(&json_path)
+            .expect("Failed to load enemy_rules.json");
+        
+        // Verify loaded rules structure
+        assert_eq!(enemy_rules.rules.len(), 3, "Should have loaded 3 rules from enemy_rules.json");
+        
+        // Setup battle with player and enemy
+        let player_team = Team::new("Heroes".to_string(), vec![
+            GameCharacter::new(1, "Fighter".to_string(), 100, 50, 25),
+        ]);
+        
+        let mut enemy1 = GameCharacter::new(2, "Strong Enemy".to_string(), 120, 60, 30);
+        enemy1.hp = 80; // Above 50 HP threshold
+        let mut enemy2 = GameCharacter::new(3, "Weak Enemy".to_string(), 80, 40, 20);
+        enemy2.hp = 30; // Below 50 HP threshold
+        
+        let enemy_team = Team::new("Enemies".to_string(), vec![enemy1, enemy2]);
+        
+        // Player has a simple strike rule
+        let flat_rule = vec![FlatTokenInput::Strike, FlatTokenInput::RandomPick, FlatTokenInput::AllCharacters];
+        let current_rules = CurrentRules::with_rules(vec![flat_rule]);
+        
+        let mut battle = BattleOrchestrator::create_battle(
+            &current_rules,
+            player_team,
+            enemy_team,
+            &enemy_rules,
+            create_test_rng(),
+        );
+        
+        // Execute multiple turns to see enemy JSON rules in action
+        let initial_player_hp = battle.player_team.members[0].hp;
+        let initial_enemy1_hp = battle.enemy_team.members[0].hp;
+        let initial_enemy2_hp = battle.enemy_team.members[1].hp;
+        
+        // Execute 4 turns (player -> enemy1 -> enemy2 -> player)
+        for _ in 0..4 {
+            if !battle.battle_over {
+                battle.execute_turn();
+            }
+        }
+        
+        // Verify that battles occurred
+        assert!(!battle.battle_log.is_empty(), "Battle log should contain actions from JSON rules");
+        
+        // Check if any HP changes occurred
+        let player_hp_changed = battle.player_team.members[0].hp != initial_player_hp;
+        let enemy1_hp_changed = battle.enemy_team.members[0].hp != initial_enemy1_hp;
+        let enemy2_hp_changed = battle.enemy_team.members[1].hp != initial_enemy2_hp;
+        
+        assert!(
+            player_hp_changed || enemy1_hp_changed || enemy2_hp_changed,
+            "Some HP changes should have occurred from JSON rules. Player: {} -> {}, Enemy1: {} -> {}, Enemy2: {} -> {}",
+            initial_player_hp, battle.player_team.members[0].hp,
+            initial_enemy1_hp, battle.enemy_team.members[0].hp,
+            initial_enemy2_hp, battle.enemy_team.members[1].hp
+        );
+        
+        // Strong enemy (HP > 50) should have used conditional strike or fallback strike
+        // Weak enemy (HP < 50) should have used heal or fallback strike
+        println!("JSON rules test: Player HP: {} -> {}, Enemy1 HP: {} -> {}, Enemy2 HP: {} -> {}",
+                 initial_player_hp, battle.player_team.members[0].hp,
+                 initial_enemy1_hp, battle.enemy_team.members[0].hp,
+                 initial_enemy2_hp, battle.enemy_team.members[1].hp);
+    }
+
+    #[test]
+    fn test_json_rules_complex_battle_integration() {
+        // Test a more complex battle scenario using JSON rules
+        use json_rule::{load_rules_from_file};
+        use std::path::Path;
+        
+        // Load enemy rules from JSON
+        let json_path = Path::new("../../rules/enemy_rules.json");
+        let enemy_rules = load_rules_from_file(&json_path)
+            .expect("Failed to load enemy_rules.json");
+        
+        // Setup player team with multiple characters
+        let mut hero1 = GameCharacter::new(1, "Knight".to_string(), 150, 80, 35);
+        hero1.hp = 100; // Mid HP
+        let mut hero2 = GameCharacter::new(2, "Mage".to_string(), 100, 120, 25);
+        hero2.hp = 40; // Low HP, needs healing
+        
+        let player_team = Team::new("Heroes".to_string(), vec![hero1, hero2]);
+        
+        // Setup enemy team
+        let mut enemy1 = GameCharacter::new(3, "Boss".to_string(), 200, 100, 40);
+        enemy1.hp = 150; // High HP - will use conditional strike
+        let mut enemy2 = GameCharacter::new(4, "Minion".to_string(), 80, 50, 20);
+        enemy2.hp = 25; // Low HP - will likely heal
+        
+        let enemy_team = Team::new("Enemies".to_string(), vec![enemy1, enemy2]);
+        
+        // Player rules: Heal if low HP, else strike
+        let player_rule1 = vec![
+            FlatTokenInput::Check,
+            FlatTokenInput::LessThan,
+            FlatTokenInput::CharacterToHp,
+            FlatTokenInput::ActingCharacter,
+            FlatTokenInput::Number(50),
+            FlatTokenInput::Heal,
+            FlatTokenInput::ActingCharacter,
+        ];
+        let player_rule2 = vec![
+            FlatTokenInput::Strike,
+            FlatTokenInput::RandomPick,
+            FlatTokenInput::TeamMembers,
+            FlatTokenInput::Enemy,
+        ];
+        
+        let current_rules = CurrentRules::with_rules(vec![player_rule1, player_rule2]);
+        
+        let mut battle = BattleOrchestrator::create_battle(
+            &current_rules,
+            player_team,
+            enemy_team,
+            &enemy_rules,
+            create_test_rng(),
+        );
+        
+        // Track initial state
+        let initial_hero2_hp = battle.player_team.members[1].hp;
+        let initial_enemy2_hp = battle.enemy_team.members[1].hp;
+        
+        // Execute turns until Mage acts
+        // We need Mage to act, which happens in turn 2
+        for _i in 0..2 {
+            if !battle.battle_over {
+                battle.execute_turn();
+            }
+        }
+        
+        // Verify JSON rules worked correctly:
+        // 1. Low HP player (Mage) should have healed
+        assert!(
+            battle.player_team.members[1].hp > initial_hero2_hp,
+            "Low HP Mage should have healed. HP: {} -> {}",
+            initial_hero2_hp,
+            battle.player_team.members[1].hp
+        );
+        
+        // 2. Low HP enemy might have healed (50% chance due to TrueOrFalseRandom)
+        let enemy2_healed = battle.enemy_team.members[1].hp > initial_enemy2_hp;
+        if enemy2_healed {
+            println!("Low HP enemy healed from {} to {}", initial_enemy2_hp, battle.enemy_team.members[1].hp);
+        } else {
+            println!("Low HP enemy did not heal (50% chance)");
+        }
+        
+        // 3. Battle log should show various actions
+        assert!(
+            battle.battle_log.len() >= 2,
+            "Battle log should contain at least 2 actions, found: {}",
+            battle.battle_log.len()
+        );
+        
+        println!("Complex JSON battle completed with {} log entries", battle.battle_log.len());
+    }
 }
