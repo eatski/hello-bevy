@@ -1819,4 +1819,126 @@ mod tests {
             final_total_player_hp
         );
     }
+
+    #[test]
+    fn test_less_than_condition_ui_to_battle_integration() {
+        // Test LessThan condition: Only act if HP < 50
+        use token_input::FlatTokenInput;
+        
+        let tokens = vec![
+            FlatTokenInput::Check,
+            FlatTokenInput::LessThan,
+            FlatTokenInput::CharacterToHp,
+            FlatTokenInput::ActingCharacter,
+            FlatTokenInput::Number(50),
+            FlatTokenInput::Heal,
+            FlatTokenInput::ActingCharacter,
+        ];
+        
+        let mut rules = CurrentRules::new();
+        rules.clear_current_row();
+        for token in tokens {
+            rules.add_token_to_current_row(token);
+        }
+        
+        let _rule_nodes = rules.convert_to_rule_nodes();
+        
+        // Setup battle
+        let mut low_hp_hero = GameCharacter::new(1, "Low HP Hero".to_string(), 100, 50, 25);
+        low_hp_hero.hp = 30; // HP < 50, should trigger healing
+        let mut high_hp_hero = GameCharacter::new(2, "High HP Hero".to_string(), 100, 50, 25);
+        high_hp_hero.hp = 80; // HP > 50, should NOT trigger healing
+        
+        let player_team = Team::new("Heroes".to_string(), vec![low_hp_hero, high_hp_hero]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            GameCharacter::new(3, "Enemy".to_string(), 80, 30, 20),
+        ]);
+        
+        // Enemy has no rules
+        let enemy_rule_set = RuleSet { rules: vec![] };
+        
+        let mut battle = BattleOrchestrator::create_battle(
+            &rules,
+            player_team.clone(),
+            enemy_team.clone(),
+            &enemy_rule_set,
+            create_test_rng(),
+        );
+        
+        // Execute turn for low HP hero (should heal)
+        let initial_low_hp = battle.player_team.members[0].hp;
+        battle.execute_turn();
+        
+        // Low HP hero should have healed themselves
+        assert!(
+            battle.player_team.members[0].hp > initial_low_hp,
+            "Low HP hero should have healed. HP: {} -> {}",
+            initial_low_hp,
+            battle.player_team.members[0].hp
+        );
+        
+        // Continue to high HP hero's turn
+        battle.execute_turn(); // Enemy turn (no action)
+        battle.execute_turn(); // High HP hero's turn
+        
+        let hero2_hp_before = battle.player_team.members[1].hp;
+        
+        // High HP hero should NOT have healed (HP > 50)
+        assert_eq!(
+            battle.player_team.members[1].hp,
+            hero2_hp_before,
+            "High HP hero should NOT have healed since HP > 50"
+        );
+    }
+
+    #[test]
+    fn test_less_than_with_numeric_values_integration() {
+        // Test LessThan with mixed numeric types
+        use token_input::compiler::Compiler;
+        
+        let rule = StructuredTokenInput::Check {
+            condition: Box::new(StructuredTokenInput::LessThan {
+                left: Box::new(StructuredTokenInput::Number { value: 30 }),
+                right: Box::new(StructuredTokenInput::CharacterToHp {
+                    character: Box::new(StructuredTokenInput::ActingCharacter),
+                }),
+            }),
+            then_action: Box::new(StructuredTokenInput::Strike {
+                target: Box::new(StructuredTokenInput::ActingCharacter),
+            }),
+        };
+        
+        // Convert using Compiler
+        let compiler = Compiler::new();
+        let compiled = compiler.compile(&rule).unwrap();
+        
+        // Setup battle
+        let mut hero = GameCharacter::new(1, "Hero".to_string(), 100, 50, 25);
+        hero.hp = 40; // 30 < 40, so condition is true
+        
+        let player_team = Team::new("Heroes".to_string(), vec![hero]);
+        let enemy_team = Team::new("Enemies".to_string(), vec![
+            GameCharacter::new(2, "Enemy".to_string(), 80, 30, 20),
+        ]);
+        
+        let mut battle = TeamBattle::new(
+            player_team.clone(),
+            enemy_team.clone(),
+            vec![vec![compiled]],
+            vec![vec![]],
+            create_test_rng(),
+        );
+        
+        // Execute turn
+        let initial_hp = battle.player_team.members[0].hp;
+        battle.execute_turn();
+        
+        // Hero should have damaged themselves
+        assert!(
+            battle.player_team.members[0].hp < initial_hp,
+            "Hero should have damaged themselves. HP: {} -> {}",
+            initial_hp,
+            battle.player_team.members[0].hp
+        );
+    }
 }

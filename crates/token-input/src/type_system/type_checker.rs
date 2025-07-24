@@ -148,6 +148,7 @@ impl TypeChecker {
             StructuredTokenInput::Check { .. } => "Check",
             StructuredTokenInput::TrueOrFalseRandom => "TrueOrFalseRandom",
             StructuredTokenInput::GreaterThan { .. } => "GreaterThan",
+            StructuredTokenInput::LessThan { .. } => "LessThan",
             StructuredTokenInput::Eq { .. } => "Eq",
             StructuredTokenInput::ActingCharacter => "ActingCharacter",
             StructuredTokenInput::AllCharacters => "AllCharacters",
@@ -200,6 +201,7 @@ impl TypeChecker {
                 args.insert("then_action".to_string(), then_action.as_ref());
             }
             StructuredTokenInput::GreaterThan { left, right } |
+            StructuredTokenInput::LessThan { left, right } |
             StructuredTokenInput::Eq { left, right } => {
                 args.insert("left".to_string(), left.as_ref());
                 args.insert("right".to_string(), right.as_ref());

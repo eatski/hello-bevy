@@ -55,6 +55,19 @@ Bevy Engineで開発されたRustベースのターンベースRPGバトルゲ�
 - それ以外の場合、50%の確率で攻撃を実行
 - 各行でアクションが決定されない場合は「何もしない」となる
 
+### 🩺 LessThanを使った設定例
+
+```javascript
+[
+    [Check(LessThanToken(CharacterHP(ActingCharacter), Number(50))), Heal, ActingCharacter],  // HPが50未満なら自分を回復
+    [Strike, RandomPick, AllCharacters]                                                       // それ以外はランダムな敵を攻撃
+]
+```
+
+この設定により：
+- HPが50未満の場合、自分を回復
+- HPが50以上の場合、ランダムな敵を攻撃
+
 ### 🎯 標的指定の設定例
 
 ```javascript
@@ -89,6 +102,7 @@ Bevy Engineで開発されたRustベースのターンベースRPGバトルゲ�
 - **Check**: 引数が`True`なら`continue`、`False`なら`break`
 - **TrueOrFalseRandom**: ランダムで`True`または`False`を返す
 - **GreaterThanToken**: 2つの引数（数値）を比較して、最初が大きい（`>`） であれば `True` を返す
+- **LessThanToken**: 2つの引数（数値）を比較して、最初が小さい（`<`） であれば `True` を返す
 
 #### 固定値系
 - **Number**: 特定の数値を返す（1~100）

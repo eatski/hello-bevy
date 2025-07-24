@@ -130,6 +130,28 @@ impl TokenMetadataRegistry {
             argument_context_provider: None,
         });
         
+        self.register(TokenMetadata {
+            token_type: "LessThan".to_string(),
+            arguments: vec![
+                ArgumentMetadata {
+                    name: "left".to_string(),
+                    expected_type: Numeric,
+                    required: true,
+                    default_value: None,
+                },
+                ArgumentMetadata {
+                    name: "right".to_string(),
+                    expected_type: Numeric,
+                    required: true,
+                    default_value: None,
+                },
+            ],
+            output_type: Bool,
+            custom_validator: None,
+            output_type_inference: None,
+            argument_context_provider: None,
+        });
+        
         // 値取得
         self.register(TokenMetadata {
             token_type: "ActingCharacter".to_string(),

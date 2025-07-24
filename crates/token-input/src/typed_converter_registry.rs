@@ -39,7 +39,7 @@ impl TypedConverterRegistryImpl {
     fn register_default_converters(&mut self) {
         use crate::node_converters::{
             TypedStrikeActionConverter, TypedHealActionConverter, TypedCheckActionConverter,
-            TypedGreaterThanConverter, TypedEqConverter, TypedTrueOrFalseRandomConverter,
+            TypedGreaterThanConverter, TypedLessThanConverter, TypedEqConverter, TypedTrueOrFalseRandomConverter,
             TypedMapConverter, TypedRandomPickConverter, TypedFilterListCharacterConverter,
             TypedGenericFilterListConverter, TypedMaxConverter, TypedMinConverter, TypedMaxCharacterConverter,
             TypedMinCharacterConverter,
@@ -57,6 +57,7 @@ impl TypedConverterRegistryImpl {
         
         // 条件コンバーター
         self.register(Box::new(TypedGreaterThanConverter));
+        self.register(Box::new(TypedLessThanConverter));
         self.register(Box::new(TypedEqConverter));
         self.register(Box::new(TypedTrueOrFalseRandomConverter));
         

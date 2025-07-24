@@ -1,6 +1,25 @@
 # hello-bevy 設計サマリ
 
-## 🚀 最新アップデート (新規トークン追加の簡素化)
+## 🚀 最新アップデート (LessThanNodeの実装)
+### 実装内容
+- **LessThanNode実装**
+  - GreaterThanNodeの逆の比較演算子（<）を実装
+  - ジェネリック実装でNumeric型（i32, CharacterHP）をサポート
+  - 混合型比較用のCharacterHpVsValueLessThanNode、ValueVsCharacterHpLessThanNodeも実装
+- **UI統合の完了**
+  - FlatTokenInputにLessThanトークンを追加（表示: "L-lt-R"）
+  - StructuredTokenInputにLessThan enumバリアントを追加
+  - flat_to_structured.rsでLessThanの変換処理を実装
+- **型システム対応**
+  - TypeCheckerとAdvancedTypeCheckerにLessThan処理を追加
+  - TokenMetadataRegistryにLessThanのメタデータを登録（Numeric型引数、Bool出力）
+  - TypedLessThanConverterを実装し、コンバーターレジストリに登録
+- **テストとドキュメント**
+  - less_than_node.rsに単体テストを追加
+  - integration_tests.rsに統合テストを2つ追加
+  - README.mdにLessThanTokenの説明と使用例を追加
+
+## 🚀 以前のアップデート (新規トークン追加の簡素化)
 ### 実装内容
 - **トークン定義マクロの実装**
   - `define_token!` マクロ: トークンメタデータを自動生成
@@ -185,20 +204,11 @@
 
 ## 🚀 以前のアップデート (命名の簡素化)
 ### 設計変更サマリ
-- **game_numericプレフィックス削除**: より簡潔な命名に統一
-  - `GameNumeric` trait → `Numeric` trait
-  - `game_numeric.rs` → `numeric.rs`
-  - `game_numeric_greater_than_node.rs` → `greater_than_node.rs`
-  - `GameNumericGreaterThanNode` → `GreaterThanNode`
-  - `GameNumericMax/Min` トークン → `NumericMax/Min` トークン
-  - 型統一化により冗長なプレフィックスが不要になったため、より直感的な命名に変更
-
-- **重複ノードの統合**: Numeric traitベースの実装に統一
-  - `greater_than_condition_node.rs` を削除（→ `greater_than_node.rs` に統合）
-  - `character_hp_vs_value_condition_node.rs` を削除（→ `greater_than_node.rs` に統合）
-  - `random_character_pick_node.rs` を削除（→ `CharacterRandomPickNode` に統合）
-  - より抽象的な実装に統一
-  - コードの重複を排除し、メンテナンス性を向上
+- **シンプルな命名規則の採用**
+  - `Numeric` trait: 数値型を統一的に扱うインターフェース
+  - 直感的なファイル名: `numeric.rs`, `greater_than_node.rs`
+  - 明確なノード名: `GreaterThanNode`, `NumericMax`, `NumericMin`
+  - シンプルで理解しやすい命名により開発効率が向上
 
 ## 🚀 以前のアップデート (Numeric trait統一化)
 ### 設計変更サマリ
@@ -211,17 +221,8 @@
 - **トークン拡張**: NumericMax, NumericMin トークンをUI入力システムに追加
   - FlatTokenInput, StructuredTokenInputの両方をサポート
 - **型安全性**: CharacterHP vs i32 の比較演算も統一的に処理
-- **テスト追加**: Numeric trait の機能テスト (crates/action-system/src/core/numeric.rs:43-79)
-- **統合テスト追加**: 最低HP敵攻撃テスト (crates/ui-core/src/integration_tests.rs:1345-1417)
-
-### ファイル変更箇所
-- 新規: `crates/action-system/src/core/numeric.rs` - Numeric trait定義
-- 新規: `crates/action-system/src/nodes/condition/greater_than_node.rs` - 統一GreaterThanノード
-- 更新: `crates/token-input/src/flat_token.rs` - NumericMax/Min トークン追加
-- 更新: `crates/token-input/src/structured_token.rs` - 構造化トークン拡張
-- 更新: `crates/token-input/src/structured_to_node.rs` - 変換ロジック拡張
-- 更新: 各種mod.rs, lib.rs - エクスポート追加
-- 削除: 重複実装ファイル（上記参照）
+- **テスト追加**: Numeric trait の機能テスト
+- **統合テスト追加**: 最低HP敵攻撃テスト
 
 ## 📝　重要
 タスク完了時に必ず以下を実施するように事前にタスク化すること

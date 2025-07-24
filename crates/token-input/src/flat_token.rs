@@ -13,6 +13,7 @@ pub enum FlatTokenInput {
     CharacterToHp, // CharacterからCharacterHP型の値を取得
     CharacterHpToCharacter, // CharacterHPからCharacterを取得
     GreaterThan,
+    LessThan,
     TrueOrFalse,
     FilterList,       // リストフィルタリング
     Map,              // 配列マッピング
@@ -45,6 +46,7 @@ impl FlatTokenInput {
             FlatTokenInput::CharacterToHp => "CharToHp".to_string(),
             FlatTokenInput::CharacterHpToCharacter => "CharHpToChar".to_string(),
             FlatTokenInput::GreaterThan => "L-gt-R".to_string(),
+            FlatTokenInput::LessThan => "L-lt-R".to_string(),
             FlatTokenInput::TrueOrFalse => "50/50".to_string(),
             FlatTokenInput::FilterList => "FilterList".to_string(),
             FlatTokenInput::Map => "Map".to_string(),

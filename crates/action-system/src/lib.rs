@@ -8,7 +8,7 @@ pub mod system;
 pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, RuleNode, NodeError, NodeResult, Numeric};
 // Export Node trait and related types for external crates
 pub use nodes::unified_node::{CoreNode as Node, BoxedNode};
-pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, TeamSideEqNode, CharacterTeamNode, GreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode};
+pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, TeamSideEqNode, CharacterTeamNode, GreaterThanNode, CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode, LessThanNode, CharacterHpVsValueLessThanNode, ValueVsCharacterHpLessThanNode};
 pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
 pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode, MaxNodeCharacter, MinNodeCharacter};
 pub use nodes::evaluation_context::EvaluationContext;

@@ -88,6 +88,12 @@ impl ErrorReporter {
                 writeln!(&mut output, "{}  right: {}", indent_str, Self::format_token(right, indent + 4).trim()).unwrap();
                 write!(&mut output, "{}}}", indent_str).unwrap();
             }
+            StructuredTokenInput::LessThan { left, right } => {
+                writeln!(&mut output, "{}LessThan {{", indent_str).unwrap();
+                writeln!(&mut output, "{}  left: {}", indent_str, Self::format_token(left, indent + 4).trim()).unwrap();
+                writeln!(&mut output, "{}  right: {}", indent_str, Self::format_token(right, indent + 4).trim()).unwrap();
+                write!(&mut output, "{}}}", indent_str).unwrap();
+            }
             StructuredTokenInput::Eq { left, right } => {
                 writeln!(&mut output, "{}Eq {{", indent_str).unwrap();
                 writeln!(&mut output, "{}  left: {}", indent_str, Self::format_token(left, indent + 4).trim()).unwrap();

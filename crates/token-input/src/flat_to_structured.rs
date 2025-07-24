@@ -58,6 +58,17 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
                 right: Box::new(right) 
             }, 1 + left_consumed + right_consumed))
         }
+        FlatTokenInput::LessThan => {
+            if index + 2 >= tokens.len() {
+                return Err("LessThan requires two operands".to_string());
+            }
+            let (left, left_consumed) = parse_flat_token(tokens, index + 1)?;
+            let (right, right_consumed) = parse_flat_token(tokens, index + 1 + left_consumed)?;
+            Ok((StructuredTokenInput::LessThan { 
+                left: Box::new(left), 
+                right: Box::new(right) 
+            }, 1 + left_consumed + right_consumed))
+        }
         FlatTokenInput::CharacterToHp => {
             if index + 1 >= tokens.len() {
                 return Err("HP requires a character".to_string());

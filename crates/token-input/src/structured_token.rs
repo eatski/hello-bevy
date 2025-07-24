@@ -25,6 +25,10 @@ pub enum StructuredTokenInput {
         left: Box<StructuredTokenInput>,
         right: Box<StructuredTokenInput>,
     },
+    LessThan {
+        left: Box<StructuredTokenInput>,
+        right: Box<StructuredTokenInput>,
+    },
     Number {
         value: i32,
     },
