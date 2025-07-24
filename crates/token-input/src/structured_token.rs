@@ -82,12 +82,3 @@ pub enum StructuredTokenInput {
     },
 }
 
-impl StructuredTokenInput {
-    /// 数値フィールドを取得（Numberトークン用）
-    pub fn get_number_value(&self) -> Option<i32> {
-        match self {
-            Self::Number { value } => Some(*value),
-            _ => None,
-        }
-    }
-}
