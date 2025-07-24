@@ -1,7 +1,7 @@
 // Battle logic and orchestration without Bevy dependencies
 use battle::{TeamBattle, Team};
 use json_rule::RuleSet;
-use token_input::compiler::Compiler;
+use token_input::convert_to_rule_node;
 use crate::{CurrentRules, GameMode, GameState};
 
 pub struct BattleOrchestrator;
@@ -12,7 +12,7 @@ impl BattleOrchestrator {
         current_rules: &CurrentRules,
         player_team: Team,
         enemy_team: Team,
-        enemy_rule_set: &RuleSet,
+        _enemy_rule_set: &RuleSet,
         rng: rand::rngs::StdRng,
     ) -> TeamBattle {
         // Convert UI rules for player characters
@@ -20,12 +20,11 @@ impl BattleOrchestrator {
             .map(|_| current_rules.convert_to_rule_nodes())
             .collect();
         
-        // Convert enemy rule set for each enemy character using Compiler
-        let mut compiler = Compiler::new();
+        // Convert enemy rule set for each enemy character
         let enemy_rules_per_character: Vec<_> = (0..enemy_team.members.len())
             .map(|_| {
-                enemy_rule_set.rules.iter()
-                    .filter_map(|token| compiler.compile(token).ok())
+                _enemy_rule_set.rules.iter()
+                    .filter_map(|token| convert_to_rule_node(token))
                     .collect::<Vec<_>>()
             })
             .collect();

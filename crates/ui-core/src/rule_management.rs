@@ -1,7 +1,7 @@
 // Rule management logic - independent of Bevy
 
 use action_system::RuleNode;
-use token_input::{FlatTokenInput, convert_flat_to_structured, compiler::Compiler};
+use token_input::{FlatTokenInput, convert_flat_to_structured, convert_to_rule_node};
 
 #[derive(Default, Clone, Debug)]
 pub struct CurrentRules {
@@ -33,8 +33,6 @@ impl CurrentRules {
 
     // UIのFlatTokenInputからtoken-inputを経由してaction-systemのRuleNodeに変換
     pub fn convert_to_rule_nodes(&self) -> Vec<RuleNode> {
-        let mut compiler = Compiler::new();
-        
         self.rules
             .iter()
             .filter(|rule_row| !rule_row.is_empty())
@@ -45,11 +43,8 @@ impl CurrentRules {
                             return None;
                         }
                         
-                        // コンパイラを使用してStructuredTokenInputをRuleNodeに変換
-                        match compiler.compile(&structured_tokens[0]) {
-                            Ok(rule_node) => Some(rule_node),
-                            Err(_) => None,
-                        }
+                        // StructuredTokenInputをRuleNodeに変換
+                        convert_to_rule_node(&structured_tokens[0])
                     }
                     Err(_) => None,
                 }
