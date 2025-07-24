@@ -88,11 +88,7 @@ impl AdvancedTypeChecker {
                     return Err(CompileError::new(TypeError::TypeMismatch {
                         expected: expected_type.clone(),
                         actual: typed_arg.ty.clone(),
-                        context: if cfg!(debug_assertions) {
-                            format!("{}.{}", token.debug_name(), arg_name)
-                        } else {
-                            format!("token.{}", arg_name)
-                        },
+                        context: format!("{:?}.{}", token, arg_name),
                     }));
                 }
                 
@@ -130,11 +126,7 @@ impl AdvancedTypeChecker {
                 typed_children.insert(arg_name.to_string(), typed_arg);
             } else {
                 return Err(CompileError::new(TypeError::MissingField {
-                    token_type: if cfg!(debug_assertions) {
-                        token.debug_name().to_string()
-                    } else {
-                        "token".to_string()
-                    },
+                    token_type: format!("{:?}", token),
                     field_name: arg_name.to_string(),
                 }));
             }

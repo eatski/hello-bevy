@@ -83,38 +83,6 @@ pub enum StructuredTokenInput {
 }
 
 impl StructuredTokenInput {
-    /// デバッグ用のトークン名を取得
-    #[cfg(debug_assertions)]
-    pub fn debug_name(&self) -> &'static str {
-        match self {
-            Self::Strike { .. } => "Strike",
-            Self::Heal { .. } => "Heal",
-            Self::Check { .. } => "Check",
-            Self::TrueOrFalseRandom => "TrueOrFalseRandom",
-            Self::GreaterThan { .. } => "GreaterThan",
-            Self::LessThan { .. } => "LessThan",
-            Self::Eq { .. } => "Eq",
-            Self::ActingCharacter => "ActingCharacter",
-            Self::AllCharacters => "AllCharacters",
-            Self::CharacterToHp { .. } => "CharacterToHp",
-            Self::CharacterHpToCharacter { .. } => "CharacterHpToCharacter",
-            Self::RandomPick { .. } => "RandomPick",
-            Self::FilterList { .. } => "FilterList",
-            Self::Map { .. } => "Map",
-            Self::Element => "Element",
-            Self::CharacterTeam { .. } => "CharacterTeam",
-            Self::TeamMembers { .. } => "TeamMembers",
-            Self::AllTeamSides => "AllTeamSides",
-            Self::Enemy => "Enemy",
-            Self::Hero => "Hero",
-            Self::Number { .. } => "Number",
-            Self::Max { .. } => "Max",
-            Self::Min { .. } => "Min",
-            Self::NumericMax { .. } => "NumericMax",
-            Self::NumericMin { .. } => "NumericMin",
-        }
-    }
-
     
     /// トークンの出力型を取得
     pub fn output_type(&self) -> crate::type_system::Type {
