@@ -1635,7 +1635,7 @@ mod tests {
         };
         
         // Convert using Compiler and verify
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         let compiled = compiler.compile(&complex_rule);
         assert!(compiled.is_ok());
         
@@ -1689,7 +1689,7 @@ mod tests {
         // This is a hypothetical test since AllTeamSides isn't directly used in UI
         // but demonstrates how it would work in token compilation
         let all_sides_token = StructuredTokenInput::AllTeamSides;
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         // AllTeamSides returns Vec<TeamSide>, not an Action, so compilation will fail
         let result = compiler.compile(&all_sides_token);
         assert!(result.is_err());
@@ -1716,7 +1716,7 @@ mod tests {
         };
         
         // Convert and verify using Compiler
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         let compiled = compiler.compile(&rule);
         if let Err(ref e) = compiled {
             eprintln!("Compilation failed: {:?}", e);
@@ -1779,7 +1779,7 @@ mod tests {
         };
         
         // Convert to nodes using Compiler
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         let compiled = compiler.compile(&rule);
         assert!(compiled.is_ok());
         
@@ -1909,7 +1909,7 @@ mod tests {
         };
         
         // Convert using Compiler
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         let compiled = compiler.compile(&rule).unwrap();
         
         // Setup battle

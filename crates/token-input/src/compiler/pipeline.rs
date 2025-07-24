@@ -49,7 +49,7 @@ impl Compiler {
     }
     
     /// StructuredTokenInputをコンパイル
-    pub fn compile(&self, token: &StructuredTokenInput) -> CompileResult<RuleNode> {
+    pub fn compile(&mut self, token: &StructuredTokenInput) -> CompileResult<RuleNode> {
         if self.options.debug {
             eprintln!("Compiling token: {:?}", token);
         }
@@ -75,7 +75,7 @@ impl Compiler {
     }
     
     /// 複数のトークンをコンパイル
-    pub fn compile_many(&self, tokens: &[StructuredTokenInput]) -> CompileResult<Vec<RuleNode>> {
+    pub fn compile_many(&mut self, tokens: &[StructuredTokenInput]) -> CompileResult<Vec<RuleNode>> {
         tokens.iter()
             .map(|token| self.compile(token))
             .collect()
@@ -105,7 +105,7 @@ mod tests {
     
     #[test]
     fn test_compile_simple_token() {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         let token = create_simple_token();
         
         // 型チェックありでコンパイル - ActingCharacterはAction型ではないのでエラーになるはず
@@ -115,7 +115,7 @@ mod tests {
     
     #[test]
     fn test_compile_strike_token() {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         let token = create_strike_token();
         
         // Strikeトークンは正常にコンパイルできるはず
@@ -126,7 +126,7 @@ mod tests {
     
     #[test]
     fn test_compile_complex_token() {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         
         let token = StructuredTokenInput::Check {
             condition: Box::new(StructuredTokenInput::TrueOrFalseRandom),

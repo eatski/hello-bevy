@@ -21,7 +21,7 @@ impl BattleOrchestrator {
             .collect();
         
         // Convert enemy rule set for each enemy character using Compiler
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         let enemy_rules_per_character: Vec<_> = (0..enemy_team.members.len())
             .map(|_| {
                 enemy_rule_set.rules.iter()

@@ -22,7 +22,7 @@ pub struct AdvancedTypeChecker {
 impl AdvancedTypeChecker {
     pub fn new() -> Self {
         Self {
-            metadata_registry: TokenMetadataRegistry::new(),
+            metadata_registry: TokenMetadataRegistry::with_builtin_tokens(),
             hm_engine: HindleyMilner::new(),
             type_env: TypeEnv::new(),
         }
@@ -41,7 +41,7 @@ impl AdvancedTypeChecker {
         context: &mut TypeContext,
     ) -> CompileResult<TypedAst> {
         // トークンタイプを取得
-        let token_type = self.get_token_type(token);
+        let token_type = token.token_type().to_string();
         
         // メタデータを取得してクローン（借用を回避）
         let metadata = self.metadata_registry.get(&token_type)
@@ -58,7 +58,10 @@ impl AdvancedTypeChecker {
         }
         
         // 引数の型推論
-        let token_args = self.extract_arguments(token);
+        let token_args: HashMap<String, &StructuredTokenInput> = token.arguments()
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect();
         let mut typed_children = HashMap::new();
         let mut arg_poly_types = HashMap::new();
         
@@ -94,6 +97,15 @@ impl AdvancedTypeChecker {
                 } else {
                     self.check_with_inference(arg_token, context)?
                 };
+                
+                // 型の互換性をチェック
+                if !typed_arg.ty.is_compatible_with(&arg_meta.expected_type) {
+                    return Err(CompileError::new(TypeError::TypeMismatch {
+                        expected: arg_meta.expected_type.clone(),
+                        actual: typed_arg.ty.clone(),
+                        context: format!("{}.{}", token_type, arg_meta.name),
+                    }));
+                }
                 
                 // 型推論制約を追加（Numeric型とAny型、Vec(Any)は特殊処理）
                 let should_add_constraint = match (&arg_meta.expected_type, &typed_arg.ty) {
@@ -202,86 +214,6 @@ impl AdvancedTypeChecker {
         None
     }
     
-    /// トークンタイプを取得（既存の実装を流用）
-    fn get_token_type(&self, token: &StructuredTokenInput) -> String {
-        match token {
-            StructuredTokenInput::Strike { .. } => "Strike",
-            StructuredTokenInput::Heal { .. } => "Heal",
-            StructuredTokenInput::Check { .. } => "Check",
-            StructuredTokenInput::TrueOrFalseRandom => "TrueOrFalseRandom",
-            StructuredTokenInput::GreaterThan { .. } => "GreaterThan",
-            StructuredTokenInput::LessThan { .. } => "LessThan",
-            StructuredTokenInput::Eq { .. } => "Eq",
-            StructuredTokenInput::ActingCharacter => "ActingCharacter",
-            StructuredTokenInput::AllCharacters => "AllCharacters",
-            StructuredTokenInput::CharacterToHp { .. } => "CharacterToHp",
-            StructuredTokenInput::CharacterHpToCharacter { .. } => "CharacterHpToCharacter",
-            StructuredTokenInput::RandomPick { .. } => "RandomPick",
-            StructuredTokenInput::FilterList { .. } => "FilterList",
-            StructuredTokenInput::Map { .. } => "Map",
-            StructuredTokenInput::Element => "Element",
-            StructuredTokenInput::CharacterTeam { .. } => "CharacterTeam",
-            StructuredTokenInput::TeamMembers { .. } => "TeamMembers",
-            StructuredTokenInput::AllTeamSides => "AllTeamSides",
-            StructuredTokenInput::Enemy => "Enemy",
-            StructuredTokenInput::Hero => "Hero",
-            StructuredTokenInput::Number { .. } => "Number",
-            StructuredTokenInput::Max { .. } => "Max",
-            StructuredTokenInput::Min { .. } => "Min",
-            StructuredTokenInput::NumericMax { .. } => "NumericMax",
-            StructuredTokenInput::NumericMin { .. } => "NumericMin",
-        }.to_string()
-    }
-    
-    /// 引数を抽出（既存の実装を流用）
-    fn extract_arguments<'a>(&self, token: &'a StructuredTokenInput) -> HashMap<String, &'a StructuredTokenInput> {
-        let mut args = HashMap::new();
-        
-        match token {
-            StructuredTokenInput::Strike { target } |
-            StructuredTokenInput::Heal { target } => {
-                args.insert("target".to_string(), target.as_ref());
-            }
-            StructuredTokenInput::Check { condition, then_action } => {
-                args.insert("condition".to_string(), condition.as_ref());
-                args.insert("then_action".to_string(), then_action.as_ref());
-            }
-            StructuredTokenInput::GreaterThan { left, right } |
-            StructuredTokenInput::LessThan { left, right } |
-            StructuredTokenInput::Eq { left, right } => {
-                args.insert("left".to_string(), left.as_ref());
-                args.insert("right".to_string(), right.as_ref());
-            }
-            StructuredTokenInput::CharacterToHp { character } |
-            StructuredTokenInput::CharacterTeam { character } => {
-                args.insert("character".to_string(), character.as_ref());
-            }
-            StructuredTokenInput::CharacterHpToCharacter { character_hp } => {
-                args.insert("character_hp".to_string(), character_hp.as_ref());
-            }
-            StructuredTokenInput::TeamMembers { team_side } => {
-                args.insert("team_side".to_string(), team_side.as_ref());
-            }
-            StructuredTokenInput::RandomPick { array } |
-            StructuredTokenInput::Max { array } |
-            StructuredTokenInput::Min { array } |
-            StructuredTokenInput::NumericMax { array } |
-            StructuredTokenInput::NumericMin { array } => {
-                args.insert("array".to_string(), array.as_ref());
-            }
-            StructuredTokenInput::FilterList { array, condition } => {
-                args.insert("array".to_string(), array.as_ref());
-                args.insert("condition".to_string(), condition.as_ref());
-            }
-            StructuredTokenInput::Map { array, transform } => {
-                args.insert("array".to_string(), array.as_ref());
-                args.insert("transform".to_string(), transform.as_ref());
-            }
-            _ => {}
-        }
-        
-        args
-    }
 }
 
 impl Default for AdvancedTypeChecker {

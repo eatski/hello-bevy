@@ -8,7 +8,7 @@ mod tests {
     
     #[test]
     fn test_compile_with_type_checking() {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         
         // 正しい型のトークン
         let valid_token = StructuredTokenInput::Strike {
@@ -40,7 +40,7 @@ mod tests {
     
     #[test]
     fn test_error_reporting() {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         
         // 未定義のトークンを作成（テスト用に無効なトークンを作成）
         let invalid_token = StructuredTokenInput::Check {
@@ -66,7 +66,7 @@ mod tests {
     
     #[test]
     fn test_complex_token_compilation() {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         
         // 複雑なトークンツリー
         let complex_token = StructuredTokenInput::Check {
@@ -89,7 +89,7 @@ mod tests {
     
     #[test]
     fn test_numeric_type_compatibility() {
-        let compiler = Compiler::with_options(CompilerOptions { debug: true });
+        let mut compiler = Compiler::with_options(CompilerOptions { debug: true });
         
         // NumericMax/Minトークンのテスト（配列形式）
         // このテストでは実際にはCharacterHPを返すノードを作成しているが、
@@ -134,7 +134,7 @@ mod tests {
     
     #[test]
     fn test_multiple_errors() {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         
         // 複数のエラーを含むトークン
         let tokens = vec![
@@ -162,7 +162,7 @@ mod tests {
     
     #[test]
     fn test_debug_mode() {
-        let compiler = Compiler::with_options(CompilerOptions {
+        let mut compiler = Compiler::with_options(CompilerOptions {
             debug: true,
         });
         

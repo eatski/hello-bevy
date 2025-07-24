@@ -65,122 +65,24 @@ impl ErrorReporter {
         let mut output = String::new();
         let indent_str = " ".repeat(indent);
         
-        match token {
-            StructuredTokenInput::Strike { target } => {
-                writeln!(&mut output, "{}Strike {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  target: {}", indent_str, Self::format_token(target, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
+        let token_type = token.token_type();
+        let args = token.arguments();
+        
+        // 引数がない場合はシンプルな表示
+        if args.is_empty() {
+            // 特殊なフィールドがあるトークン（Number）の処理
+            if let Some(value) = token.get_number_value() {
+                write!(&mut output, "{}{} {{ value: {} }}", indent_str, token_type, value).unwrap();
+            } else {
+                write!(&mut output, "{}{}", indent_str, token_type).unwrap();
             }
-            StructuredTokenInput::Heal { target } => {
-                writeln!(&mut output, "{}Heal {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  target: {}", indent_str, Self::format_token(target, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
+        } else {
+            // 引数がある場合は構造化表示
+            writeln!(&mut output, "{}{} {{", indent_str, token_type).unwrap();
+            for (arg_name, arg_value) in args {
+                writeln!(&mut output, "{}  {}: {}", indent_str, arg_name, Self::format_token(arg_value, indent + 4).trim()).unwrap();
             }
-            StructuredTokenInput::Check { condition, then_action } => {
-                writeln!(&mut output, "{}Check {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  condition: {}", indent_str, Self::format_token(condition, indent + 4).trim()).unwrap();
-                writeln!(&mut output, "{}  then_action: {}", indent_str, Self::format_token(then_action, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::GreaterThan { left, right } => {
-                writeln!(&mut output, "{}GreaterThan {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  left: {}", indent_str, Self::format_token(left, indent + 4).trim()).unwrap();
-                writeln!(&mut output, "{}  right: {}", indent_str, Self::format_token(right, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::LessThan { left, right } => {
-                writeln!(&mut output, "{}LessThan {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  left: {}", indent_str, Self::format_token(left, indent + 4).trim()).unwrap();
-                writeln!(&mut output, "{}  right: {}", indent_str, Self::format_token(right, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::Eq { left, right } => {
-                writeln!(&mut output, "{}Eq {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  left: {}", indent_str, Self::format_token(left, indent + 4).trim()).unwrap();
-                writeln!(&mut output, "{}  right: {}", indent_str, Self::format_token(right, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::Number { value } => {
-                write!(&mut output, "{}Number {{ value: {} }}", indent_str, value).unwrap();
-            }
-            StructuredTokenInput::CharacterToHp { character } => {
-                writeln!(&mut output, "{}CharacterToHp {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  character: {}", indent_str, Self::format_token(character, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::CharacterHpToCharacter { character_hp } => {
-                writeln!(&mut output, "{}CharacterHpToCharacter {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  character_hp: {}", indent_str, Self::format_token(character_hp, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::ActingCharacter => {
-                write!(&mut output, "{}ActingCharacter", indent_str).unwrap();
-            }
-            StructuredTokenInput::AllCharacters => {
-                write!(&mut output, "{}AllCharacters", indent_str).unwrap();
-            }
-            StructuredTokenInput::TeamMembers { team_side } => {
-                writeln!(&mut output, "{}TeamMembers {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  team_side: {}", indent_str, Self::format_token(team_side, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::AllTeamSides => {
-                write!(&mut output, "{}AllTeamSides", indent_str).unwrap();
-            }
-            StructuredTokenInput::RandomPick { array } => {
-                writeln!(&mut output, "{}RandomPick {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  array: {}", indent_str, Self::format_token(array, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::FilterList { array, condition } => {
-                writeln!(&mut output, "{}FilterList {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  array: {}", indent_str, Self::format_token(array, indent + 4).trim()).unwrap();
-                writeln!(&mut output, "{}  condition: {}", indent_str, Self::format_token(condition, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::Map { array, transform } => {
-                writeln!(&mut output, "{}Map {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  array: {}", indent_str, Self::format_token(array, indent + 4).trim()).unwrap();
-                writeln!(&mut output, "{}  transform: {}", indent_str, Self::format_token(transform, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::CharacterTeam { character } => {
-                writeln!(&mut output, "{}CharacterTeam {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  character: {}", indent_str, Self::format_token(character, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::Element => {
-                write!(&mut output, "{}Element", indent_str).unwrap();
-            }
-            StructuredTokenInput::Enemy => {
-                write!(&mut output, "{}Enemy", indent_str).unwrap();
-            }
-            StructuredTokenInput::Hero => {
-                write!(&mut output, "{}Hero", indent_str).unwrap();
-            }
-            StructuredTokenInput::Max { array } => {
-                writeln!(&mut output, "{}Max {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  array: {}", indent_str, Self::format_token(array, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::Min { array } => {
-                writeln!(&mut output, "{}Min {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  array: {}", indent_str, Self::format_token(array, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::NumericMax { array } => {
-                writeln!(&mut output, "{}NumericMax {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  array: {}", indent_str, Self::format_token(array, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::NumericMin { array } => {
-                writeln!(&mut output, "{}NumericMin {{", indent_str).unwrap();
-                writeln!(&mut output, "{}  array: {}", indent_str, Self::format_token(array, indent + 4).trim()).unwrap();
-                write!(&mut output, "{}}}", indent_str).unwrap();
-            }
-            StructuredTokenInput::TrueOrFalseRandom => {
-                write!(&mut output, "{}TrueOrFalseRandom", indent_str).unwrap();
-            }
+            write!(&mut output, "{}}}", indent_str).unwrap();
         }
         
         output

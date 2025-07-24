@@ -10,7 +10,7 @@ mod tests {
     
     #[test]
     fn test_compiler_basic() {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         
         // 基本的なトークンのコンパイル
         let token = StructuredTokenInput::Strike {
@@ -23,7 +23,7 @@ mod tests {
     
     #[test]
     fn test_metadata_driven_validation() {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         
         // メタデータ駆動の検証
         let invalid_token = StructuredTokenInput::Strike {
@@ -43,7 +43,7 @@ mod tests {
     
     #[test]
     fn test_complex_type_inference() {
-        let type_checker = TypeChecker::new();
+        let mut type_checker = TypeChecker::new();
         
         // FilterListでのElement型推論
         let token = StructuredTokenInput::FilterList {
@@ -67,7 +67,7 @@ mod tests {
     
     #[test]
     fn test_array_operation_type_inference() {
-        let type_checker = TypeChecker::new();
+        let mut type_checker = TypeChecker::new();
         
         // Map操作での型推論
         let token = StructuredTokenInput::Map {
@@ -87,7 +87,7 @@ mod tests {
     
     #[test]
     fn test_numeric_type_compatibility() {
-        let type_checker = TypeChecker::new();
+        let mut type_checker = TypeChecker::new();
         
         // Numeric型の互換性テスト
         let token1 = StructuredTokenInput::GreaterThan {
@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn test_compilation() {
         // コンパイラのテスト
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         
         let token = StructuredTokenInput::Check {
             condition: Box::new(StructuredTokenInput::GreaterThan {
@@ -172,7 +172,7 @@ mod tests {
     
     #[test]
     fn test_performance_on_deeply_nested_tokens() {
-        let type_checker = TypeChecker::new();
+        let mut type_checker = TypeChecker::new();
         
         // 深くネストしたトークン構造
         let mut token = StructuredTokenInput::ActingCharacter;
@@ -199,7 +199,7 @@ mod tests {
     
     #[test]
     fn test_element_in_filter_list_context() {
-        let type_checker = TypeChecker::new();
+        let mut type_checker = TypeChecker::new();
         
         // FilterList内でElementトークンを使用（Characterの配列をフィルタリング）
         let token = StructuredTokenInput::FilterList {
@@ -223,7 +223,7 @@ mod tests {
     
     #[test]
     fn test_element_in_map_context() {
-        let type_checker = TypeChecker::new();
+        let mut type_checker = TypeChecker::new();
         
         // Map内でElementトークンを使用（CharacterをCharacterHPに変換）
         let token = StructuredTokenInput::Map {
@@ -244,7 +244,7 @@ mod tests {
     
     #[test]
     fn test_nested_filter_map_with_element() {
-        let type_checker = TypeChecker::new();
+        let mut type_checker = TypeChecker::new();
         
         // Map内のFilterList内でElementトークンを使用
         let token = StructuredTokenInput::Map {

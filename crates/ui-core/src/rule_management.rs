@@ -33,7 +33,7 @@ impl CurrentRules {
 
     // UIのFlatTokenInputからtoken-inputを経由してaction-systemのRuleNodeに変換
     pub fn convert_to_rule_nodes(&self) -> Vec<RuleNode> {
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         
         self.rules
             .iter()

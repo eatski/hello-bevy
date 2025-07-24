@@ -71,7 +71,7 @@ mod tests {
             ],
         };
         
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         let node_rules: Vec<_> = rule_set.rules.iter()
             .filter_map(|token| compiler.compile(token).ok())
             .collect();
@@ -92,7 +92,7 @@ mod tests {
             ],
         };
         
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
         let node_rules: Vec<_> = rule_set.rules.iter()
             .filter_map(|token| compiler.compile(token).ok())
             .collect();
