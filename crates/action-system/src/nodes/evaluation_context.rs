@@ -1,5 +1,4 @@
 // Evaluation context - manages the context for node evaluation including current element being processed
-use crate::Character;
 use crate::nodes::character::BattleContext;
 use crate::nodes::unknown_value::UnknownValue;
 
@@ -23,42 +22,6 @@ impl<'a> EvaluationContext<'a> {
         }
     }
     
-    /// Creates a new EvaluationContext with both battle context and current element
-    pub fn with_element(battle_context: &'a BattleContext<'a>, current_element: &'a Character, rng: &'a mut dyn rand::RngCore) -> Self {
-        Self {
-            battle_context,
-            current_element: Some(UnknownValue::Character(current_element.clone())),
-            rng,
-        }
-    }
-    
-    /// Creates a new EvaluationContext with a character element
-    pub fn with_character_element(battle_context: &'a BattleContext<'a>, character: Character, rng: &'a mut dyn rand::RngCore) -> Self {
-        Self {
-            battle_context,
-            current_element: Some(UnknownValue::Character(character)),
-            rng,
-        }
-    }
-    
-    /// Creates a new EvaluationContext with a value element
-    pub fn with_value_element(battle_context: &'a BattleContext<'a>, value: i32, rng: &'a mut dyn rand::RngCore) -> Self {
-        Self {
-            battle_context,
-            current_element: Some(UnknownValue::Value(value)),
-            rng,
-        }
-    }
-    
-    /// Creates a new EvaluationContext with a team side element
-    pub fn with_team_side_element(battle_context: &'a BattleContext<'a>, team_side: crate::TeamSide, rng: &'a mut dyn rand::RngCore) -> Self {
-        Self {
-            battle_context,
-            current_element: Some(UnknownValue::TeamSide(team_side)),
-            rng,
-        }
-    }
-    
     
     /// Gets the battle context
     pub fn get_battle_context(&self) -> &'a BattleContext<'a> {
@@ -66,16 +29,6 @@ impl<'a> EvaluationContext<'a> {
     }
     
     /// Creates a new EvaluationContext with a different current element
-    /// This method takes ownership of the RNG to avoid borrowing issues
-    pub fn with_element_from_context(&mut self, element: &Character) -> EvaluationContext<'_> {
-        EvaluationContext {
-            battle_context: self.battle_context,
-            current_element: Some(UnknownValue::Character(element.clone())),
-            rng: &mut *self.rng,
-        }
-    }
-    
-    /// Creates a new EvaluationContext with a different current element (any type)
     /// This method takes ownership of the RNG to avoid borrowing issues
     pub fn with_current_element_from_context(&mut self, element: UnknownValue) -> EvaluationContext<'_> {
         EvaluationContext {
@@ -89,7 +42,7 @@ impl<'a> EvaluationContext<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Team, TeamSide};
+    use crate::{Character, Team, TeamSide};
 
     
     #[test]
@@ -103,7 +56,8 @@ mod tests {
         let team = Team::new("Test Team".to_string(), vec![acting_character.clone(), element1.clone(), element2.clone()]);
         let battle_context = BattleContext::new(&acting_character, TeamSide::Player, &team, &team);
         
-        let mut eval_context1 = EvaluationContext::with_element(&battle_context, &element1, &mut rng1);
+        let mut eval_context1 = EvaluationContext::new(&battle_context, &mut rng1);
+        eval_context1.current_element = Some(UnknownValue::Character(element1.clone()));
         
         // Check the original context first
         if let Some(UnknownValue::Character(character)) = &eval_context1.current_element {
@@ -113,7 +67,7 @@ mod tests {
         }
         
         // Now create the new context with a different element
-        let eval_context2 = eval_context1.with_element_from_context(&element2);
+        let eval_context2 = eval_context1.with_current_element_from_context(UnknownValue::Character(element2.clone()));
         
         if let Some(UnknownValue::Character(character)) = &eval_context2.current_element {
             assert_eq!(character.id, 3);
@@ -128,6 +82,7 @@ mod tests {
         let mut rng1 = rand::rngs::StdRng::seed_from_u64(12345);
         let mut rng2 = rand::rngs::StdRng::seed_from_u64(12345);
         let mut rng3 = rand::rngs::StdRng::seed_from_u64(12345);
+        let mut rng4 = rand::rngs::StdRng::seed_from_u64(12345);
         
         let acting_character = Character::new(1, "Acting".to_string(), 100, 100, 20);
         let team = Team::new("Test Team".to_string(), vec![acting_character.clone()]);
@@ -135,7 +90,8 @@ mod tests {
         
         // Test with character element
         let character_element = Character::new(2, "Element".to_string(), 80, 100, 15);
-        let eval_context_char = EvaluationContext::with_character_element(&battle_context, character_element, &mut rng1);
+        let mut eval_context_char = EvaluationContext::new(&battle_context, &mut rng1);
+        eval_context_char.current_element = Some(UnknownValue::Character(character_element));
         if let Some(UnknownValue::Character(character)) = &eval_context_char.current_element {
             assert_eq!(character.id, 2);
         } else {
@@ -143,7 +99,8 @@ mod tests {
         }
         
         // Test with value element
-        let eval_context_value = EvaluationContext::with_value_element(&battle_context, 42, &mut rng2);
+        let mut eval_context_value = EvaluationContext::new(&battle_context, &mut rng2);
+        eval_context_value.current_element = Some(UnknownValue::Value(42));
         if let Some(UnknownValue::Value(value)) = &eval_context_value.current_element {
             assert_eq!(*value, 42);
         } else {
@@ -151,11 +108,23 @@ mod tests {
         }
         
         // Test with team side element
-        let eval_context_team = EvaluationContext::with_team_side_element(&battle_context, TeamSide::Enemy, &mut rng3);
+        let mut eval_context_team = EvaluationContext::new(&battle_context, &mut rng3);
+        eval_context_team.current_element = Some(UnknownValue::TeamSide(TeamSide::Enemy));
         if let Some(UnknownValue::TeamSide(side)) = &eval_context_team.current_element {
             assert_eq!(*side, TeamSide::Enemy);
         } else {
             panic!("Expected TeamSide element");
+        }
+        
+        // Test with character HP element
+        let character_for_hp = Character::new(3, "HP Element".to_string(), 70, 100, 18);
+        let character_hp = crate::core::character_hp::CharacterHP::new(character_for_hp);
+        let mut eval_context_hp = EvaluationContext::new(&battle_context, &mut rng4);
+        eval_context_hp.current_element = Some(UnknownValue::CharacterHP(character_hp.clone()));
+        if let Some(UnknownValue::CharacterHP(hp)) = &eval_context_hp.current_element {
+            assert_eq!(hp.hp_value, 70);
+        } else {
+            panic!("Expected CharacterHP element");
         }
     }
 }

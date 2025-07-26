@@ -2,6 +2,7 @@
 use crate::core::NodeResult;
 use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unknown_value::UnknownValue;
 use crate::Character;
 
 /// Node that filters an array of characters based on a condition
@@ -30,7 +31,7 @@ impl<'a> Node<Vec<Character>, EvaluationContext<'a>> for FilterListNode {
         for character in characters {
             // Create an evaluation context with the current character as the element being processed
             // This allows the Element node to reference the current character being evaluated
-            let mut element_eval_context = eval_context.with_element_from_context(&character);
+            let mut element_eval_context = eval_context.with_current_element_from_context(UnknownValue::Character(character.clone()));
             
             // Evaluate condition with the element-specific context
             let condition_result = self.condition.evaluate(&mut element_eval_context)?;
@@ -114,7 +115,7 @@ mod tests {
         // Create FilterList that filters characters with HP > 50
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
         let hp_condition = Box::new(GreaterThanNode::new(
-            Box::new(CharacterHpValueNode::new(Box::new(ElementNode))), // Use Element node to reference current character being filtered
+            Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new()))), // Use Element node to reference current character being filtered
             Box::new(ConstantValueNode::new(50)),
         ));
         
@@ -147,7 +148,7 @@ mod tests {
         // Create FilterList that filters characters with HP > 90 (none should match)
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
         let hp_condition = Box::new(GreaterThanNode::new(
-            Box::new(CharacterHpValueNode::new(Box::new(ElementNode))),
+            Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new()))),
             Box::new(ConstantValueNode::new(90)),
         ));
         

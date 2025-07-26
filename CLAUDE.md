@@ -15,6 +15,19 @@
 - **AsCurrentElementトレイトをAsUnknownValueに改名**
   - より一貫性のある命名で、UnknownValueへの変換を表現
   - Character、i32、TeamSide、CharacterHPに実装
+- **UnknownValueに型安全な変換を実装**
+  - TryFromトレイトを使用した各型への変換
+  - UnknownValueConversionErrorで詳細なエラー情報を提供
+  - ElementNodeがTryIntoを使用してより簡潔に実装
+- **ElementNodeをジェネリック化**
+  - `ElementNode<T>`として真のジェネリック実装
+  - 型ごとの個別Node実装を削除し、単一の汎用実装に統一
+  - PhantomDataを使用して型パラメータを保持
+  - TryFromトレイトを活用した型安全な変換
+- **EvaluationContextのヘルパーメソッドを簡素化**
+  - `with_current_element_from_context`のみを残し、他の個別メソッドを削除
+  - with_element、with_character_element、with_value_element等は不要
+  - 統一的なインターフェースで全ての型を処理
 - **全テストが成功（111テスト）**
   - action-system: 59テスト
   - token-input: 9テスト

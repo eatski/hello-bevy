@@ -345,7 +345,7 @@ mod tests {
         // Create the node chain:
         // TeamMembersNode(Enemy) -> CharacterToHpMappingNode -> MinNode -> HpCharacterNode
         let team_members_node = TeamMembersNode::new(TeamSide::Enemy);
-        let character_to_hp_transform = CharacterToHpNode::new(Box::new(ElementNode::new()));
+        let character_to_hp_transform = CharacterToHpNode::new(Box::new(ElementNode::<Character>::new()));
         let character_to_hp_mapping = CharacterToHpMappingNode::new(Box::new(team_members_node), Box::new(character_to_hp_transform));
         let min_hp_node = MinNode::new(Box::new(character_to_hp_mapping));
         let hp_to_character_node = CharacterHpToCharacterNode::new(Box::new(min_hp_node));
@@ -1514,7 +1514,7 @@ mod tests {
                 MinNode::new(Box::new(
                     CharacterToHpMappingNode::new(
                         Box::new(TeamMembersNode::new(TeamSide::Enemy)),
-                        Box::new(CharacterToHpNode::new(Box::new(ElementNode::new())))
+                        Box::new(CharacterToHpNode::new(Box::new(ElementNode::<GameCharacter>::new())))
                     )
                 ))
             ))

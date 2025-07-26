@@ -189,7 +189,7 @@ mod tests {
         // Create FilterList that filters characters with HP > 50
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
         let hp_condition = Box::new(GreaterThanNode::new(
-            Box::new(CharacterHpValueNode::new(Box::new(ElementNode::new()))), // Use Element to reference current character
+            Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new()))), // Use Element to reference current character
             Box::new(ConstantValueNode::new(50)),
         ));
         
@@ -209,6 +209,7 @@ mod tests {
     #[test]
     fn test_element_node_integration() {
         use crate::nodes::character::ElementNode;
+        use crate::nodes::unknown_value::UnknownValue;
         
         let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
         
@@ -217,8 +218,9 @@ mod tests {
         let team = Team::new("Test Team".to_string(), vec![character.clone(), current_element.clone()]);
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
         
-        let element_node = ElementNode::new();
-        let mut eval_context = EvaluationContext::with_element(&battle_context, &current_element, &mut rng);
+        let element_node = ElementNode::<Character>::new();
+        let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
+        eval_context.current_element = Some(UnknownValue::Character(current_element.clone()));
         let result: Character = element_node.evaluate(&mut eval_context).unwrap();
         
         // Should return the current element
@@ -253,7 +255,7 @@ mod tests {
         
         // Create a mapping from team members to their HP values
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let hp_mapping = Box::new(CharacterHpValueNode::new(Box::new(ElementNode::new())));
+        let hp_mapping = Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new())));
         let mapping_node = MappingNode::new(team_array, hp_mapping);
         
         // Find the maximum HP using MaxNode
