@@ -124,8 +124,6 @@ impl MenuState {
                 FlatTokenInput::Hero,
                 FlatTokenInput::Max,
                 FlatTokenInput::Min,
-                FlatTokenInput::NumericMax,
-                FlatTokenInput::NumericMin,
             ],
         }
     }

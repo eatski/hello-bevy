@@ -192,33 +192,6 @@ fn convert_to_character_hp_node(token: &StructuredTokenInput) -> Option<Box<dyn 
             let char_node = convert_to_character_node(character)?;
             Some(Box::new(CharacterToHpNode::new(char_node)))
         }
-        StructuredTokenInput::NumericMax { array } => {
-            // 配列の要素を見て型を判定
-            if let Some(hp_array) = convert_to_character_hp_array_node(array) {
-                Some(Box::new(MaxNode::new(hp_array)))
-            } else {
-                None
-            }
-        }
-        StructuredTokenInput::NumericMin { array } => {
-            // 配列の要素を見て型を判定
-            if let Some(hp_array) = convert_to_character_hp_array_node(array) {
-                Some(Box::new(MinNode::new(hp_array)))
-            } else {
-                None
-            }
-        }
-        _ => None,
-    }
-}
-
-/// CharacterHP配列ノードへの変換
-fn convert_to_character_hp_array_node(token: &StructuredTokenInput) -> Option<Box<dyn for<'a> CoreNode<Vec<CharacterHP>, EvaluationContext<'a>> + Send + Sync>> {
-    match token {
-        StructuredTokenInput::Map { .. } => {
-            // Mapは現在サポートされていない
-            None
-        }
         _ => None,
     }
 }
@@ -229,30 +202,8 @@ fn convert_to_i32_node(token: &StructuredTokenInput) -> Option<Box<dyn for<'a> C
         StructuredTokenInput::Number { value } => {
             Some(Box::new(ConstantValueNode::new(*value)))
         }
-        StructuredTokenInput::NumericMax { array } => {
-            // 配列の要素を見て型を判定
-            if let Some(i32_array) = convert_to_i32_array_node(array) {
-                Some(Box::new(MaxNode::<i32>::new(i32_array)))
-            } else {
-                None
-            }
-        }
-        StructuredTokenInput::NumericMin { array } => {
-            // 配列の要素を見て型を判定
-            if let Some(i32_array) = convert_to_i32_array_node(array) {
-                Some(Box::new(MinNode::<i32>::new(i32_array)))
-            } else {
-                None
-            }
-        }
         _ => None,
     }
-}
-
-/// i32配列ノードへの変換
-fn convert_to_i32_array_node(_token: &StructuredTokenInput) -> Option<Box<dyn for<'a> CoreNode<Vec<i32>, EvaluationContext<'a>> + Send + Sync>> {
-    // 現在、i32配列を生成する方法は実装されていない
-    None
 }
 
 /// TeamSideノードへの変換

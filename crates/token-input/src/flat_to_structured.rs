@@ -160,20 +160,6 @@ fn parse_flat_token(tokens: &[FlatTokenInput], index: usize) -> Result<(Structur
             let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
             Ok((StructuredTokenInput::Min { array: Box::new(array_token) }, 1 + array_consumed))
         }
-        FlatTokenInput::NumericMax => {
-            if index + 1 >= tokens.len() {
-                return Err("NumericMax requires an array argument".to_string());
-            }
-            let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
-            Ok((StructuredTokenInput::NumericMax { array: Box::new(array_token) }, 1 + array_consumed))
-        }
-        FlatTokenInput::NumericMin => {
-            if index + 1 >= tokens.len() {
-                return Err("NumericMin requires an array argument".to_string());
-            }
-            let (array_token, array_consumed) = parse_flat_token(tokens, index + 1)?;
-            Ok((StructuredTokenInput::NumericMin { array: Box::new(array_token) }, 1 + array_consumed))
-        }
     }
 }
 

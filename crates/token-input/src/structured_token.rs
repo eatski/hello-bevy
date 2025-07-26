@@ -73,12 +73,5 @@ pub enum StructuredTokenInput {
     Min {
         array: Box<StructuredTokenInput>,
     },
-    // Unified Numeric operations
-    NumericMax {
-        array: Box<StructuredTokenInput>,
-    },
-    NumericMin {
-        array: Box<StructuredTokenInput>,
-    },
 }
 
