@@ -13,7 +13,7 @@ pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
 pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
-pub use nodes::array::{AllCharactersNode, TeamMembersNode, TeamMembersNodeWithNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, MappingNode, AllTeamSidesNode, MaxNode, MinNode, MaxNodeI32, MinNodeI32};
+pub use nodes::array::{AllCharactersNode, TeamMembersNode, TeamMembersNodeWithNode, CountArrayNode, RandomPickNode, FilterListNode, MappingNode, AllTeamSidesNode, MaxNode, MinNode, MaxNodeI32, MinNodeI32};
 pub use system::ActionCalculationSystem;
 
 #[cfg(test)]
@@ -113,7 +113,7 @@ mod tests {
         
         // Test random pick from character array
         let team_members_node = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let random_pick_node = CharacterRandomPickNode::new(team_members_node);
+        let random_pick_node = RandomPickNode::<Character>::new(team_members_node);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         let result_character = random_pick_node.evaluate(&mut eval_context).unwrap();
         
@@ -147,7 +147,7 @@ mod tests {
         
         // Test random pick from team (including dead members)
         let team_members_node = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let random_pick_node = CharacterRandomPickNode::new(team_members_node);
+        let random_pick_node = RandomPickNode::<Character>::new(team_members_node);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         let result = random_pick_node.evaluate(&mut eval_context);
         

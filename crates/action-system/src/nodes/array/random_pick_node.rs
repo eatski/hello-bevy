@@ -3,62 +3,21 @@
 use crate::core::{NodeError, NodeResult};
 use crate::nodes::evaluation_context::EvaluationContext;
 use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
-use crate::Character;
 use rand::Rng;
 
 /// Generic RandomPickNode that can pick from arrays of any type
-pub struct GenericRandomPickNode<T> {
+pub struct RandomPickNode<T> {
     array_node: BoxedNode<Vec<T>>,
 }
 
-impl<T> GenericRandomPickNode<T> {
+impl<T> RandomPickNode<T> {
     pub fn new(array_node: BoxedNode<Vec<T>>) -> Self {
         Self { array_node }
     }
 }
 
-/// Character-specific RandomPickNode (returns character ID)
-pub type CharacterRandomPickNode = GenericRandomPickNode<Character>;
 
-/// Value-specific RandomPickNode (returns picked value)
-pub type ValueRandomPickNode = GenericRandomPickNode<i32>;
-
-
-// Unified implementations
-
-impl<'a> Node<Character, EvaluationContext<'a>> for CharacterRandomPickNode {
-    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<Character> {
-        let characters = self.array_node.evaluate(eval_context)?;
-        if characters.is_empty() {
-            return Err(NodeError::EvaluationError("Cannot pick from empty character array".to_string()));
-        }
-        let index = eval_context.rng.gen_range(0..characters.len());
-        Ok(characters[index].clone())
-    }
-}
-
-impl<'a> Node<i32, EvaluationContext<'a>> for ValueRandomPickNode {
-    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<i32> {
-        let values = self.array_node.evaluate(eval_context)?;
-        if values.is_empty() {
-            return Err(NodeError::EvaluationError("Cannot pick from empty value array".to_string()));
-        }
-        let index = eval_context.rng.gen_range(0..values.len());
-        Ok(values[index])
-    }
-}
-
-// Add generic RandomPickNode that works with any cloneable type
-pub struct RandomPickNode<T: Clone + Send + Sync + 'static> {
-    array_node: BoxedNode<Vec<T>>,
-}
-
-impl<T: Clone + Send + Sync + 'static> RandomPickNode<T> {
-    pub fn new(array_node: BoxedNode<Vec<T>>) -> Self {
-        Self { array_node }
-    }
-}
-
+// Generic implementation for all cloneable types
 impl<'a, T: Clone + Send + Sync + 'static> Node<T, EvaluationContext<'a>> for RandomPickNode<T> {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<T> {
         let items = self.array_node.evaluate(eval_context)?;
@@ -76,7 +35,7 @@ mod tests {
     use super::*;
     use crate::nodes::array::team_members_node::TeamMembersNode;
     // ConstantArrayNode removed - using team members in tests
-    use crate::{BattleContext, Team, TeamSide};
+    use crate::{BattleContext, Character, Team, TeamSide};
     use rand::SeedableRng;
 
 
@@ -92,14 +51,14 @@ mod tests {
         
         // Create empty team array
         let empty_array = Box::new(TeamMembersNode::new(TeamSide::Enemy)); // Enemy team is empty
-        let pick_node = CharacterRandomPickNode::new(empty_array);
+        let pick_node = RandomPickNode::<Character>::new(empty_array);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         let result = pick_node.evaluate(&mut eval_context);
         
         // Should return error for empty array
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cannot pick from empty character array"));
+        assert!(result.unwrap_err().to_string().contains("Cannot pick from empty array"));
     }
 
     // Removed test_value_random_pick_node - ConstantArrayNode deleted
@@ -126,7 +85,7 @@ mod tests {
         
         // Create CharacterRandomPickNode
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
-        let pick_node = CharacterRandomPickNode::new(team_array);
+        let pick_node = RandomPickNode::<Character>::new(team_array);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         let picked_character = pick_node.evaluate(&mut eval_context).unwrap();

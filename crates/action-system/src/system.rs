@@ -423,7 +423,7 @@ mod tests {
     #[test]
     fn test_character_selection_combinations() {
         // 異なるキャラクター選択ノードの組み合わせテスト
-        use crate::{AllCharactersNode, CharacterRandomPickNode};
+        use crate::{AllCharactersNode, RandomPickNode};
         
         let acting_char = Character::new(28, "Actor".to_string(), 100, 50, 25);
         let player = Character::new(29, "Player".to_string(), 80, 40, 20);
@@ -434,7 +434,7 @@ mod tests {
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
                     Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))),
-                    Box::new(CharacterHpValueNode::new(Box::new(CharacterRandomPickNode::new(Box::new(AllCharactersNode::new()))))),
+                    Box::new(CharacterHpValueNode::new(Box::new(RandomPickNode::<Character>::new(Box::new(AllCharactersNode::new()))))),
                 )),
                 Box::new(StrikeActionNode::new(Box::new(ActingCharacterNode))),
             )),

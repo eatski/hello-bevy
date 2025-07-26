@@ -8,7 +8,7 @@ use action_system::{
     nodes::condition::EqConditionNode,
     ActingCharacterNode,
     AllCharactersNode, TeamMembersNode, AllTeamSidesNode,
-    CharacterRandomPickNode, FilterListNode,
+    RandomPickNode, FilterListNode,
     CharacterToHpNode, CharacterHpToCharacterNode, CharacterTeamNode,
     EnemyNode, HeroNode, ElementNode,
     MaxNode, MinNode, MaxNodeI32, MinNodeI32,
@@ -135,7 +135,7 @@ fn convert_to_character_node(token: &StructuredTokenInput) -> Option<Box<dyn for
         }
         StructuredTokenInput::RandomPick { array } => {
             let array_node = convert_to_character_array_node(array)?;
-            Some(Box::new(CharacterRandomPickNode::new(array_node)))
+            Some(Box::new(RandomPickNode::new(array_node)))
         }
         StructuredTokenInput::CharacterHpToCharacter { character_hp } => {
             let hp_node = convert_to_character_hp_node(character_hp)?;
@@ -174,7 +174,7 @@ fn convert_to_character_array_node(token: &StructuredTokenInput) -> Option<Box<d
         StructuredTokenInput::FilterList { array, condition } => {
             let array_node = convert_to_character_array_node(array)?;
             let condition_node = convert_to_bool_node(condition)?;
-            Some(Box::new(FilterListNode::<Character>::new(array_node, condition_node)))
+            Some(Box::new(FilterListNode::new(array_node, condition_node)))
         }
         StructuredTokenInput::Map { array: _, transform: _ } => {
             // キャラクター配列からキャラクター配列へのMapは現在サポートされていない
