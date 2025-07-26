@@ -6,8 +6,6 @@ use action_system::{
     StrikeActionNode, HealActionNode, ConditionCheckNode,
     RandomConditionNode, GreaterThanNode, LessThanNode,
     nodes::condition::EqConditionNode,
-    CharacterHpVsValueGreaterThanNode, ValueVsCharacterHpGreaterThanNode,
-    CharacterHpVsValueLessThanNode, ValueVsCharacterHpLessThanNode,
     ActingCharacterNode, MaxNodeCharacter, MinNodeCharacter,
     AllCharactersNode, TeamMembersNode, AllTeamSidesNode,
     CharacterRandomPickNode, FilterListNode,
@@ -90,12 +88,12 @@ fn convert_greater_than(
     
     // CharacterHP vs i32
     if let (Some(hp), Some(value)) = (convert_to_character_hp_node(left), convert_to_i32_node(right)) {
-        return Some(Box::new(CharacterHpVsValueGreaterThanNode::new(hp, value)));
+        return Some(Box::new(GreaterThanNode::new(hp, value)));
     }
     
     // i32 vs CharacterHP
     if let (Some(value), Some(hp)) = (convert_to_i32_node(left), convert_to_character_hp_node(right)) {
-        return Some(Box::new(ValueVsCharacterHpGreaterThanNode::new(value, hp)));
+        return Some(Box::new(GreaterThanNode::new(value, hp)));
     }
     
     None
@@ -118,12 +116,12 @@ fn convert_less_than(
     
     // CharacterHP vs i32
     if let (Some(hp), Some(value)) = (convert_to_character_hp_node(left), convert_to_i32_node(right)) {
-        return Some(Box::new(CharacterHpVsValueLessThanNode::new(hp, value)));
+        return Some(Box::new(LessThanNode::new(hp, value)));
     }
     
     // i32 vs CharacterHP
     if let (Some(value), Some(hp)) = (convert_to_i32_node(left), convert_to_character_hp_node(right)) {
-        return Some(Box::new(ValueVsCharacterHpLessThanNode::new(value, hp)));
+        return Some(Box::new(LessThanNode::new(value, hp)));
     }
     
     None

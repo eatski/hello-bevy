@@ -2,19 +2,19 @@ use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::core::{NodeResult, Numeric};
 use crate::nodes::evaluation_context::EvaluationContext;
 
-/// Generic LessThan node that works with any Numeric type
-pub struct LessThanNode<T: Numeric> {
-    left_node: BoxedNode<T>,
-    right_node: BoxedNode<T>,
+/// Generic LessThan node that works with different Numeric types on left and right
+pub struct LessThanNode<L: Numeric, R: Numeric> {
+    left_node: BoxedNode<L>,
+    right_node: BoxedNode<R>,
 }
 
-impl<T: Numeric> LessThanNode<T> {
-    pub fn new(left_node: BoxedNode<T>, right_node: BoxedNode<T>) -> Self {
+impl<L: Numeric, R: Numeric> LessThanNode<L, R> {
+    pub fn new(left_node: BoxedNode<L>, right_node: BoxedNode<R>) -> Self {
         Self { left_node, right_node }
     }
 }
 
-impl<'a, T: Numeric> Node<bool, EvaluationContext<'a>> for LessThanNode<T> {
+impl<'a, L: Numeric, R: Numeric> Node<bool, EvaluationContext<'a>> for LessThanNode<L, R> {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
         let left_value = self.left_node.evaluate(eval_context)?;
         let right_value = self.right_node.evaluate(eval_context)?;
@@ -23,47 +23,6 @@ impl<'a, T: Numeric> Node<bool, EvaluationContext<'a>> for LessThanNode<T> {
     }
 }
 
-/// Mixed type LessThan node for CharacterHP vs i32
-pub struct CharacterHpVsValueLessThanNode {
-    left_node: BoxedNode<crate::core::CharacterHP>,
-    right_node: BoxedNode<i32>,
-}
-
-impl CharacterHpVsValueLessThanNode {
-    pub fn new(left_node: BoxedNode<crate::core::CharacterHP>, right_node: BoxedNode<i32>) -> Self {
-        Self { left_node, right_node }
-    }
-}
-
-impl<'a> Node<bool, EvaluationContext<'a>> for CharacterHpVsValueLessThanNode {
-    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
-        let left_value = self.left_node.evaluate(eval_context)?;
-        let right_value = self.right_node.evaluate(eval_context)?;
-        
-        Ok(left_value.to_i32() < right_value)
-    }
-}
-
-/// Mixed type LessThan node for i32 vs CharacterHP
-pub struct ValueVsCharacterHpLessThanNode {
-    left_node: BoxedNode<i32>,
-    right_node: BoxedNode<crate::core::CharacterHP>,
-}
-
-impl ValueVsCharacterHpLessThanNode {
-    pub fn new(left_node: BoxedNode<i32>, right_node: BoxedNode<crate::core::CharacterHP>) -> Self {
-        Self { left_node, right_node }
-    }
-}
-
-impl<'a> Node<bool, EvaluationContext<'a>> for ValueVsCharacterHpLessThanNode {
-    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
-        let left_value = self.left_node.evaluate(eval_context)?;
-        let right_value = self.right_node.evaluate(eval_context)?;
-        
-        Ok(left_value < right_value.to_i32())
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -103,7 +62,7 @@ mod tests {
         
         let left_node = Box::new(ConstantValueNode::new(30));
         let right_node = Box::new(ConstantValueNode::new(50));
-        let lt_node = LessThanNode::<i32>::new(left_node, right_node);
+        let lt_node = LessThanNode::<i32, i32>::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -120,7 +79,7 @@ mod tests {
         
         let left_node = Box::new(ConstantValueNode::new(50));
         let right_node = Box::new(ConstantValueNode::new(30));
-        let lt_node = LessThanNode::<i32>::new(left_node, right_node);
+        let lt_node = LessThanNode::<i32, i32>::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, false);
@@ -140,7 +99,7 @@ mod tests {
         
         let left_node = Box::new(ConstantCharacterHPNode::new(char_hp));
         let right_node = Box::new(ConstantValueNode::new(50));
-        let lt_node = CharacterHpVsValueLessThanNode::new(left_node, right_node);
+        let lt_node = LessThanNode::<CharacterHP, i32>::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -160,7 +119,7 @@ mod tests {
         
         let left_node = Box::new(ConstantValueNode::new(50));
         let right_node = Box::new(ConstantCharacterHPNode::new(char_hp));
-        let lt_node = ValueVsCharacterHpLessThanNode::new(left_node, right_node);
+        let lt_node = LessThanNode::<i32, CharacterHP>::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -182,7 +141,7 @@ mod tests {
         
         let left_node = Box::new(ConstantCharacterHPNode::new(char_hp1));
         let right_node = Box::new(ConstantCharacterHPNode::new(char_hp2));
-        let lt_node = LessThanNode::<CharacterHP>::new(left_node, right_node);
+        let lt_node = LessThanNode::<CharacterHP, CharacterHP>::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);

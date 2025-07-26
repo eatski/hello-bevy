@@ -1,23 +1,24 @@
 # hello-bevy 設計サマリ
 
-## 🚀 最新アップデート (LessThanNodeの実装)
+## 🚀 最新アップデート (比較演算子ノードのジェネリック化)
 ### 実装内容
-- **LessThanNode実装**
-  - GreaterThanNodeの逆の比較演算子（<）を実装
-  - ジェネリック実装でNumeric型（i32, CharacterHP）をサポート
-  - 混合型比較用のCharacterHpVsValueLessThanNode、ValueVsCharacterHpLessThanNodeも実装
-- **UI統合の完了**
-  - FlatTokenInputにLessThanトークンを追加（表示: "L-lt-R"）
-  - StructuredTokenInputにLessThan enumバリアントを追加
-  - flat_to_structured.rsでLessThanの変換処理を実装
-- **型システム対応**
-  - TypeCheckerとAdvancedTypeCheckerにLessThan処理を追加
-  - TokenMetadataRegistryにLessThanのメタデータを登録（Numeric型引数、Bool出力）
-  - TypedLessThanConverterを実装し、コンバーターレジストリに登録
-- **テストとドキュメント**
-  - less_than_node.rsに単体テストを追加
-  - integration_tests.rsに統合テストを2つ追加
-  - README.mdにLessThanTokenの説明と使用例を追加
+- **GreaterThanNodeとLessThanNodeのジェネリック化**
+  - 左右で異なる型を取れるジェネリックstruct `GreaterThanNode<L: Numeric, R: Numeric>` に再定義
+  - 同様に `LessThanNode<L: Numeric, R: Numeric>` もジェネリック化
+  - i32同士、CharacterHP同士、異なる型の混合比較を単一のstructで実現
+- **特殊ノードの削除**
+  - CharacterHpVsValueGreaterThanNode、ValueVsCharacterHpGreaterThanNodeを削除
+  - CharacterHpVsValueLessThanNode、ValueVsCharacterHpLessThanNodeを削除
+  - すべての比較はジェネリックなGreaterThanNode/LessThanNodeで統一的に処理
+- **コンバーターの更新**
+  - converter.rsで型推論に基づいて適切な型パラメータを持つノードを生成
+  - `GreaterThanNode::new(left_i32, right_i32)` → `GreaterThanNode::<i32, i32>::new(...)`
+  - `GreaterThanNode::new(hp, value)` → `GreaterThanNode::<CharacterHP, i32>::new(...)`
+- **全テストが成功（111テスト）**
+  - action-system: 59テスト
+  - token-input: 9テスト
+  - ui-core: 35テスト
+  - その他: 8テスト
 
 ## 🚀 以前のアップデート (新規トークン追加の簡素化)
 ### 実装内容

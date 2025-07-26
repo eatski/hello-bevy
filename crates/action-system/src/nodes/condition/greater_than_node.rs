@@ -2,19 +2,19 @@ use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::core::{NodeResult, Numeric};
 use crate::nodes::evaluation_context::EvaluationContext;
 
-/// Generic GreaterThan node that works with any Numeric type
-pub struct GreaterThanNode<T: Numeric> {
-    left_node: BoxedNode<T>,
-    right_node: BoxedNode<T>,
+/// Generic GreaterThan node that works with different Numeric types on left and right
+pub struct GreaterThanNode<L: Numeric, R: Numeric> {
+    left_node: BoxedNode<L>,
+    right_node: BoxedNode<R>,
 }
 
-impl<T: Numeric> GreaterThanNode<T> {
-    pub fn new(left_node: BoxedNode<T>, right_node: BoxedNode<T>) -> Self {
+impl<L: Numeric, R: Numeric> GreaterThanNode<L, R> {
+    pub fn new(left_node: BoxedNode<L>, right_node: BoxedNode<R>) -> Self {
         Self { left_node, right_node }
     }
 }
 
-impl<'a, T: Numeric> Node<bool, EvaluationContext<'a>> for GreaterThanNode<T> {
+impl<'a, L: Numeric, R: Numeric> Node<bool, EvaluationContext<'a>> for GreaterThanNode<L, R> {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
         let left_value = self.left_node.evaluate(eval_context)?;
         let right_value = self.right_node.evaluate(eval_context)?;
@@ -23,47 +23,6 @@ impl<'a, T: Numeric> Node<bool, EvaluationContext<'a>> for GreaterThanNode<T> {
     }
 }
 
-/// Mixed type GreaterThan node for CharacterHP vs i32
-pub struct CharacterHpVsValueGreaterThanNode {
-    left_node: BoxedNode<crate::core::CharacterHP>,
-    right_node: BoxedNode<i32>,
-}
-
-impl CharacterHpVsValueGreaterThanNode {
-    pub fn new(left_node: BoxedNode<crate::core::CharacterHP>, right_node: BoxedNode<i32>) -> Self {
-        Self { left_node, right_node }
-    }
-}
-
-impl<'a> Node<bool, EvaluationContext<'a>> for CharacterHpVsValueGreaterThanNode {
-    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
-        let left_value = self.left_node.evaluate(eval_context)?;
-        let right_value = self.right_node.evaluate(eval_context)?;
-        
-        Ok(left_value.to_i32() > right_value)
-    }
-}
-
-/// Mixed type GreaterThan node for i32 vs CharacterHP
-pub struct ValueVsCharacterHpGreaterThanNode {
-    left_node: BoxedNode<i32>,
-    right_node: BoxedNode<crate::core::CharacterHP>,
-}
-
-impl ValueVsCharacterHpGreaterThanNode {
-    pub fn new(left_node: BoxedNode<i32>, right_node: BoxedNode<crate::core::CharacterHP>) -> Self {
-        Self { left_node, right_node }
-    }
-}
-
-impl<'a> Node<bool, EvaluationContext<'a>> for ValueVsCharacterHpGreaterThanNode {
-    fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
-        let left_value = self.left_node.evaluate(eval_context)?;
-        let right_value = self.right_node.evaluate(eval_context)?;
-        
-        Ok(left_value > right_value.to_i32())
-    }
-}
 
 
 #[cfg(test)]
@@ -141,7 +100,7 @@ mod tests {
         
         let left_node = Box::new(ConstantCharacterHPNode::new(char_hp));
         let right_node = Box::new(ConstantValueNode::new(50));
-        let gt_node = CharacterHpVsValueGreaterThanNode::new(left_node, right_node);
+        let gt_node = GreaterThanNode::<CharacterHP, i32>::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -161,7 +120,7 @@ mod tests {
         
         let left_node = Box::new(ConstantValueNode::new(50));
         let right_node = Box::new(ConstantCharacterHPNode::new(char_hp));
-        let gt_node = ValueVsCharacterHpGreaterThanNode::new(left_node, right_node);
+        let gt_node = GreaterThanNode::<i32, CharacterHP>::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -183,7 +142,7 @@ mod tests {
         
         let left_node = Box::new(ConstantCharacterHPNode::new(char_hp1));
         let right_node = Box::new(ConstantCharacterHPNode::new(char_hp2));
-        let gt_node = GreaterThanNode::<CharacterHP>::new(left_node, right_node);
+        let gt_node = GreaterThanNode::<CharacterHP, CharacterHP>::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
