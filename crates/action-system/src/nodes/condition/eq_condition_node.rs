@@ -23,8 +23,6 @@ impl<'a, T: PartialEq + fmt::Debug + Clone + Send + Sync + 'static> Node<bool, E
     }
 }
 
-// Specialized for TeamSide comparison
-pub type TeamSideEqNode = EqConditionNode<TeamSide>;
 
 pub struct CharacterTeamNode {
     character_node: BoxedNode<crate::Character>,

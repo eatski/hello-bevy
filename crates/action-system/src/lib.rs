@@ -8,12 +8,12 @@ pub mod system;
 pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, RuleNode, NodeError, NodeResult, Numeric};
 // Export Node trait and related types for external crates
 pub use nodes::unified_node::{CoreNode as Node, BoxedNode};
-pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, TeamSideEqNode, CharacterTeamNode, GreaterThanNode, LessThanNode};
+pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, CharacterTeamNode, GreaterThanNode, LessThanNode};
 pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
 pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
-pub use nodes::array::{AllCharactersNode, TeamMembersNode, TeamMembersNodeWithNode, CountArrayNode, RandomPickNode, FilterListNode, MappingNode, AllTeamSidesNode, MaxNode, MinNode, MaxNodeI32, MinNodeI32};
+pub use nodes::array::{AllCharactersNode, TeamMembersNode, TeamMembersNodeWithNode, CountArrayNode, RandomPickNode, FilterListNode, MappingNode, AllTeamSidesNode, MaxNode, MinNode};
 pub use system::ActionCalculationSystem;
 
 #[cfg(test)]
@@ -227,8 +227,6 @@ mod tests {
         assert_eq!(result.id, 42);
     }
 
-    // Removed test_max_node_integration - ConstantArrayNode deleted
-
     #[test]
     fn test_max_node_with_character_hp_integration() {
         use crate::nodes::array::{MaxNode, MappingNode, TeamMembersNode};
@@ -266,7 +264,5 @@ mod tests {
         // Should return the maximum HP value (80)
         assert_eq!(result, 80);
     }
-
-    // Removed test_max_node_empty_array_integration - ConstantArrayNode deleted
 
 }

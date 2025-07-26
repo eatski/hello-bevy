@@ -16,5 +16,5 @@ pub use random_pick_node::RandomPickNode;
 pub use filter_list_node::FilterListNode;
 pub use mapping_node::{MappingNode, AsUnknownValue};
 pub use all_team_sides_node::AllTeamSidesNode;
-pub use max_node::{MaxNode, MaxNodeI32};
-pub use min_node::{MinNode, MinNodeI32};
+pub use max_node::MaxNode;
+pub use min_node::MinNode;

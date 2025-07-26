@@ -27,18 +27,3 @@ impl<'a, T: Numeric> Node<T, EvaluationContext<'a>> for MaxNode<T> {
     }
 }
 
-// 後方互換性のための型エイリアス
-pub type MaxNodeI32 = MaxNode<i32>;
-
-#[cfg(test)]
-mod tests {
-    // ConstantArrayNode removed - all tests deleted due to dependency
-
-    // Removed test_max_node_basic - ConstantArrayNode deleted
-    
-    // Removed test_max_node_single_element - ConstantArrayNode deleted
-    
-    // Removed test_max_node_negative_values - ConstantArrayNode deleted
-    
-    // Removed test_max_node_empty_array - ConstantArrayNode deleted
-}

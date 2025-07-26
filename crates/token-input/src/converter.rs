@@ -11,7 +11,7 @@ use action_system::{
     RandomPickNode, FilterListNode,
     CharacterToHpNode, CharacterHpToCharacterNode, CharacterTeamNode,
     EnemyNode, HeroNode, ElementNode,
-    MaxNode, MinNode, MaxNodeI32, MinNodeI32,
+    MaxNode, MinNode,
     Character, CharacterHP, TeamSide, Action,
     ConstantValueNode,
 };
@@ -232,7 +232,7 @@ fn convert_to_i32_node(token: &StructuredTokenInput) -> Option<Box<dyn for<'a> C
         StructuredTokenInput::NumericMax { array } => {
             // 配列の要素を見て型を判定
             if let Some(i32_array) = convert_to_i32_array_node(array) {
-                Some(Box::new(MaxNodeI32::new(i32_array)))
+                Some(Box::new(MaxNode::<i32>::new(i32_array)))
             } else {
                 None
             }
@@ -240,7 +240,7 @@ fn convert_to_i32_node(token: &StructuredTokenInput) -> Option<Box<dyn for<'a> C
         StructuredTokenInput::NumericMin { array } => {
             // 配列の要素を見て型を判定
             if let Some(i32_array) = convert_to_i32_array_node(array) {
-                Some(Box::new(MinNodeI32::new(i32_array)))
+                Some(Box::new(MinNode::<i32>::new(i32_array)))
             } else {
                 None
             }

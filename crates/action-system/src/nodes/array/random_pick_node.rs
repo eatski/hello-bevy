@@ -34,10 +34,8 @@ impl<'a, T: Clone + Send + Sync + 'static> Node<T, EvaluationContext<'a>> for Ra
 mod tests {
     use super::*;
     use crate::nodes::array::team_members_node::TeamMembersNode;
-    // ConstantArrayNode removed - using team members in tests
     use crate::{BattleContext, Character, Team, TeamSide};
     use rand::SeedableRng;
-
 
     #[test]
     fn test_character_random_pick_empty_array() {
@@ -60,14 +58,6 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Cannot pick from empty array"));
     }
-
-    // Removed test_value_random_pick_node - ConstantArrayNode deleted
-
-    // Removed test_value_random_pick_empty_array - ConstantArrayNode deleted
-
-    // Unified Node<T> tests
-
-    // Removed test_value_random_pick_node_unified - ConstantArrayNode deleted
 
     #[test]
     fn test_character_random_pick_node_returns_character() {

@@ -27,18 +27,3 @@ impl<'a, T: Numeric> Node<T, EvaluationContext<'a>> for MinNode<T> {
     }
 }
 
-// 後方互換性のための型エイリアス
-pub type MinNodeI32 = MinNode<i32>;
-
-#[cfg(test)]
-mod tests {
-    // ConstantArrayNode removed - all tests deleted due to dependency
-
-    // Removed test_min_node_basic - ConstantArrayNode deleted
-    
-    // Removed test_min_node_single_element - ConstantArrayNode deleted
-    
-    // Removed test_min_node_negative_values - ConstantArrayNode deleted
-    
-    // Removed test_min_node_empty_array - ConstantArrayNode deleted
-}
