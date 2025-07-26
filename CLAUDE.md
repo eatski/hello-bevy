@@ -28,6 +28,10 @@
   - `with_current_element_from_context`のみを残し、他の個別メソッドを削除
   - with_element、with_character_element、with_value_element等は不要
   - 統一的なインターフェースで全ての型を処理
+- **FilterListNodeをジェネリック化**
+  - 古いCharacter専用のFilterListNodeを削除
+  - `FilterListNode<T>`として真のジェネリック実装に統一
+  - AsUnknownValueトレイト制約により、Element要素へのアクセスをサポート
 - **全テストが成功（111テスト）**
   - action-system: 59テスト
   - token-input: 9テスト

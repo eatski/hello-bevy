@@ -193,7 +193,7 @@ mod tests {
             Box::new(ConstantValueNode::new(50)),
         ));
         
-        let filter_node = FilterListNode::new(team_array, hp_condition);
+        let filter_node = FilterListNode::<Character>::new(team_array, hp_condition);
         
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         let result = filter_node.evaluate(&mut eval_context).unwrap();

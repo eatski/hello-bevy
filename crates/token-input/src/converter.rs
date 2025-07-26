@@ -174,7 +174,7 @@ fn convert_to_character_array_node(token: &StructuredTokenInput) -> Option<Box<d
         StructuredTokenInput::FilterList { array, condition } => {
             let array_node = convert_to_character_array_node(array)?;
             let condition_node = convert_to_bool_node(condition)?;
-            Some(Box::new(FilterListNode::new(array_node, condition_node)))
+            Some(Box::new(FilterListNode::<Character>::new(array_node, condition_node)))
         }
         StructuredTokenInput::Map { array: _, transform: _ } => {
             // キャラクター配列からキャラクター配列へのMapは現在サポートされていない

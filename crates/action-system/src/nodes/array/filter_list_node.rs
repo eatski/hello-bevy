@@ -2,56 +2,15 @@
 use crate::core::NodeResult;
 use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::nodes::evaluation_context::EvaluationContext;
-use crate::nodes::unknown_value::UnknownValue;
-use crate::Character;
+use crate::nodes::array::mapping_node::AsUnknownValue;
 
-/// Node that filters an array of characters based on a condition
-pub struct FilterListNode {
-    array: BoxedNode<Vec<Character>>,
-    condition: BoxedNode<bool>,
-}
-
-impl FilterListNode {
-    pub fn new(
-        array: BoxedNode<Vec<Character>>,
-        condition: BoxedNode<bool>,
-    ) -> Self {
-        Self { array, condition }
-    }
-}
-
-impl<'a> Node<Vec<Character>, EvaluationContext<'a>> for FilterListNode {
-    fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<Vec<Character>> {
-        // Get the array to filter
-        let characters = self.array.evaluate(eval_context)?;
-        
-        let mut filtered = Vec::new();
-        
-        // For each character in the array, evaluate the condition
-        for character in characters {
-            // Create an evaluation context with the current character as the element being processed
-            // This allows the Element node to reference the current character being evaluated
-            let mut element_eval_context = eval_context.with_current_element_from_context(UnknownValue::Character(character.clone()));
-            
-            // Evaluate condition with the element-specific context
-            let condition_result = self.condition.evaluate(&mut element_eval_context)?;
-            
-            if condition_result {
-                filtered.push(character);
-            }
-        }
-        
-        Ok(filtered)
-    }
-}
-
-// Generic FilterListNode that works with any type
-pub struct GenericFilterListNode<T: Clone + Send + Sync + 'static> {
+/// Generic FilterListNode that works with any type
+pub struct FilterListNode<T: Clone + Send + Sync + 'static> {
     array: BoxedNode<Vec<T>>,
     condition: BoxedNode<bool>,
 }
 
-impl<T: Clone + Send + Sync + 'static> GenericFilterListNode<T> {
+impl<T: Clone + Send + Sync + 'static> FilterListNode<T> {
     pub fn new(
         array: BoxedNode<Vec<T>>,
         condition: BoxedNode<bool>,
@@ -60,18 +19,24 @@ impl<T: Clone + Send + Sync + 'static> GenericFilterListNode<T> {
     }
 }
 
-impl<'a, T: Clone + Send + Sync + 'static> Node<Vec<T>, EvaluationContext<'a>> for GenericFilterListNode<T> {
+impl<'a, T> Node<Vec<T>, EvaluationContext<'a>> for FilterListNode<T>
+where
+    T: Clone + Send + Sync + AsUnknownValue + 'static,
+{
     fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<Vec<T>> {
         // Get the array to filter
         let items = self.array.evaluate(eval_context)?;
         
         let mut filtered = Vec::new();
         
-        // For generic types, we can't create element context as we don't know if T = Character
-        // So we just evaluate the condition in the current context
+        // For each item in the array, evaluate the condition
         for item in items {
-            // Evaluate condition with the current context
-            let condition_result = self.condition.evaluate(eval_context)?;
+            // Create an evaluation context with the current item as the element being processed
+            // This allows the Element node to reference the current item being evaluated
+            let mut element_eval_context = eval_context.with_current_element_from_context(item.as_unknown_value());
+            
+            // Evaluate condition with the element-specific context
+            let condition_result = self.condition.evaluate(&mut element_eval_context)?;
             
             if condition_result {
                 filtered.push(item);
@@ -82,6 +47,7 @@ impl<'a, T: Clone + Send + Sync + 'static> Node<Vec<T>, EvaluationContext<'a>> f
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,7 +56,7 @@ mod tests {
     use crate::nodes::character::character_hp_value_node::CharacterHpValueNode;
     use crate::nodes::character::element_node::ElementNode;
     use crate::nodes::value::constant_value_node::ConstantValueNode;
-    use crate::{BattleContext};
+    use crate::{BattleContext, Character};
     use crate::nodes::evaluation_context::EvaluationContext;
     use crate::{Team, TeamSide};
     use rand::SeedableRng;

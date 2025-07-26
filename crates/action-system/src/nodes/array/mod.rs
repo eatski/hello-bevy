@@ -13,7 +13,7 @@ pub use all_characters_node::AllCharactersNode;
 pub use team_members_node::{TeamMembersNode, TeamMembersNodeWithNode};
 pub use count_array_node::CountArrayNode;
 pub use random_pick_node::{GenericRandomPickNode, CharacterRandomPickNode, ValueRandomPickNode, RandomPickNode};
-pub use filter_list_node::{FilterListNode, GenericFilterListNode};
+pub use filter_list_node::FilterListNode;
 pub use mapping_node::{MappingNode, AsUnknownValue};
 pub use all_team_sides_node::AllTeamSidesNode;
 pub use max_node::{MaxNode, MaxNodeI32};
