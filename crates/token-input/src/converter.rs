@@ -6,7 +6,7 @@ use action_system::{
     StrikeActionNode, HealActionNode, ConditionCheckNode,
     RandomConditionNode, GreaterThanNode, LessThanNode,
     nodes::condition::EqConditionNode,
-    ActingCharacterNode, MaxNodeCharacter, MinNodeCharacter,
+    ActingCharacterNode,
     AllCharactersNode, TeamMembersNode, AllTeamSidesNode,
     CharacterRandomPickNode, FilterListNode,
     CharacterToHpNode, CharacterHpToCharacterNode, CharacterTeamNode,
@@ -143,11 +143,11 @@ fn convert_to_character_node(token: &StructuredTokenInput) -> Option<Box<dyn for
         }
         StructuredTokenInput::Max { array } => {
             let array_node = convert_to_character_array_node(array)?;
-            Some(Box::new(MaxNodeCharacter::new(array_node)))
+            Some(Box::new(MaxNode::new(array_node)))
         }
         StructuredTokenInput::Min { array } => {
             let array_node = convert_to_character_array_node(array)?;
-            Some(Box::new(MinNodeCharacter::new(array_node)))
+            Some(Box::new(MinNode::new(array_node)))
         }
         StructuredTokenInput::Element => {
             // ElementはFilterListのcontext内で使用される

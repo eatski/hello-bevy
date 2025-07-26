@@ -10,7 +10,7 @@ pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, Rule
 pub use nodes::unified_node::{CoreNode as Node, BoxedNode};
 pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, TeamSideEqNode, CharacterTeamNode, GreaterThanNode, LessThanNode};
 pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
-pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode, MaxNodeCharacter, MinNodeCharacter};
+pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
 pub use nodes::array::{AllCharactersNode, TeamMembersNode, TeamMembersNodeWithNode, CountArrayNode, CharacterRandomPickNode, FilterListNode, MappingNode, AllTeamSidesNode, MaxNode, MinNode, MaxNodeI32, MinNodeI32};

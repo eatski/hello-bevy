@@ -1,19 +1,23 @@
 # hello-bevy 設計サマリ
 
-## 🚀 最新アップデート (比較演算子ノードのジェネリック化)
+## 🚀 最新アップデート (ノードのジェネリック化とNumericトレイト拡張)
 ### 実装内容
-- **GreaterThanNodeとLessThanNodeのジェネリック化**
-  - 左右で異なる型を取れるジェネリックstruct `GreaterThanNode<L: Numeric, R: Numeric>` に再定義
-  - 同様に `LessThanNode<L: Numeric, R: Numeric>` もジェネリック化
-  - i32同士、CharacterHP同士、異なる型の混合比較を単一のstructで実現
-- **特殊ノードの削除**
-  - CharacterHpVsValueGreaterThanNode、ValueVsCharacterHpGreaterThanNodeを削除
-  - CharacterHpVsValueLessThanNode、ValueVsCharacterHpLessThanNodeを削除
-  - すべての比較はジェネリックなGreaterThanNode/LessThanNodeで統一的に処理
-- **コンバーターの更新**
-  - converter.rsで型推論に基づいて適切な型パラメータを持つノードを生成
-  - `GreaterThanNode::new(left_i32, right_i32)` → `GreaterThanNode::<i32, i32>::new(...)`
-  - `GreaterThanNode::new(hp, value)` → `GreaterThanNode::<CharacterHP, i32>::new(...)`
+- **Numericトレイトの拡張とCharacter対応**
+  - CharacterにNumericトレイトを実装（HPで比較）
+  - CharacterにPartialOrdも実装（HPベースの順序付け）
+  - i32、CharacterHP、Characterが統一的にNumericトレイトを使用
+- **MaxNode/MinNodeの統合**
+  - `MaxNode<T: Numeric>`と`MinNode<T: Numeric>`に統一
+  - MaxNodeCharacter/MinNodeCharacterを削除
+  - すべてのNumeric型（i32、CharacterHP、Character）で動作
+- **比較演算子ノードのジェネリック化**
+  - `GreaterThanNode<L: Numeric, R: Numeric>` - 左右で異なる型を取れる
+  - `LessThanNode<L: Numeric, R: Numeric>` - 同様にジェネリック化
+  - 特殊ノード（CharacterHpVsValue系）を削除
+- **コードの削減と一貫性向上**
+  - 特殊化されたノードの削除により、コードベースがシンプルに
+  - Numericトレイトによる統一的な数値操作
+  - 新しい型はNumericトレイトを実装するだけで、すべての数値演算に対応
 - **全テストが成功（111テスト）**
   - action-system: 59テスト
   - token-input: 9テスト

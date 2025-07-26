@@ -21,6 +21,7 @@ impl<'a, T: Numeric> Node<T, EvaluationContext<'a>> for MaxNode<T> {
             return Err(crate::NodeError::EvaluationError("Cannot find max of empty array".to_string()));
         }
         
+        // Use Numeric trait's max method
         let max_value = array.into_iter().reduce(|a, b| a.max(b)).unwrap();
         Ok(max_value)
     }

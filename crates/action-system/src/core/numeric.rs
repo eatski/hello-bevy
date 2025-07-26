@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 
 /// Trait for numeric values that can be compared and used in game calculations
 /// This allows CharacterHP and i32 to be used uniformly in Max, Min, GreaterThan operations
-pub trait Numeric: Clone + PartialEq + PartialOrd + Send + Sync + 'static {
+pub trait Numeric: Clone + PartialEq + Send + Sync + 'static {
     /// Convert to i32 for comparison operations
     fn to_i32(&self) -> i32;
     
@@ -32,6 +32,12 @@ impl Numeric for i32 {
 impl Numeric for CharacterHP {
     fn to_i32(&self) -> i32 {
         self.get_hp()
+    }
+}
+
+impl Numeric for crate::Character {
+    fn to_i32(&self) -> i32 {
+        self.hp
     }
 }
 
