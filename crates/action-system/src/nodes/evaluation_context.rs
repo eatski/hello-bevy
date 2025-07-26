@@ -1,27 +1,14 @@
 // Evaluation context - manages the context for node evaluation including current element being processed
 use crate::Character;
-use crate::core::character_hp::CharacterHP;
 use crate::nodes::character::BattleContext;
-
-/// Represents different types of values that can be used as current elements
-#[derive(Debug, Clone)]
-pub enum CurrentElement {
-    /// A character value
-    Character(Character),
-    /// A numeric value
-    Value(i32),
-    /// A team side
-    TeamSide(crate::TeamSide),
-    /// A character HP value
-    CharacterHP(CharacterHP),
-}
+use crate::nodes::unknown_value::UnknownValue;
 
 /// Context for evaluating nodes, includes battle context, current element, and RNG
 pub struct EvaluationContext<'a> {
     /// The battle context containing teams and acting character
     pub battle_context: &'a BattleContext<'a>,
     /// The current element being processed (used by Element node in array operations)
-    pub current_element: Option<CurrentElement>,
+    pub current_element: Option<UnknownValue>,
     /// Random number generator for node evaluation
     pub rng: &'a mut dyn rand::RngCore,
 }
@@ -40,7 +27,7 @@ impl<'a> EvaluationContext<'a> {
     pub fn with_element(battle_context: &'a BattleContext<'a>, current_element: &'a Character, rng: &'a mut dyn rand::RngCore) -> Self {
         Self {
             battle_context,
-            current_element: Some(CurrentElement::Character(current_element.clone())),
+            current_element: Some(UnknownValue::Character(current_element.clone())),
             rng,
         }
     }
@@ -49,7 +36,7 @@ impl<'a> EvaluationContext<'a> {
     pub fn with_character_element(battle_context: &'a BattleContext<'a>, character: Character, rng: &'a mut dyn rand::RngCore) -> Self {
         Self {
             battle_context,
-            current_element: Some(CurrentElement::Character(character)),
+            current_element: Some(UnknownValue::Character(character)),
             rng,
         }
     }
@@ -58,7 +45,7 @@ impl<'a> EvaluationContext<'a> {
     pub fn with_value_element(battle_context: &'a BattleContext<'a>, value: i32, rng: &'a mut dyn rand::RngCore) -> Self {
         Self {
             battle_context,
-            current_element: Some(CurrentElement::Value(value)),
+            current_element: Some(UnknownValue::Value(value)),
             rng,
         }
     }
@@ -67,7 +54,7 @@ impl<'a> EvaluationContext<'a> {
     pub fn with_team_side_element(battle_context: &'a BattleContext<'a>, team_side: crate::TeamSide, rng: &'a mut dyn rand::RngCore) -> Self {
         Self {
             battle_context,
-            current_element: Some(CurrentElement::TeamSide(team_side)),
+            current_element: Some(UnknownValue::TeamSide(team_side)),
             rng,
         }
     }
@@ -83,14 +70,14 @@ impl<'a> EvaluationContext<'a> {
     pub fn with_element_from_context(&mut self, element: &Character) -> EvaluationContext<'_> {
         EvaluationContext {
             battle_context: self.battle_context,
-            current_element: Some(CurrentElement::Character(element.clone())),
+            current_element: Some(UnknownValue::Character(element.clone())),
             rng: &mut *self.rng,
         }
     }
     
     /// Creates a new EvaluationContext with a different current element (any type)
     /// This method takes ownership of the RNG to avoid borrowing issues
-    pub fn with_current_element_from_context(&mut self, element: CurrentElement) -> EvaluationContext<'_> {
+    pub fn with_current_element_from_context(&mut self, element: UnknownValue) -> EvaluationContext<'_> {
         EvaluationContext {
             battle_context: self.battle_context,
             current_element: Some(element),
@@ -119,7 +106,7 @@ mod tests {
         let mut eval_context1 = EvaluationContext::with_element(&battle_context, &element1, &mut rng1);
         
         // Check the original context first
-        if let Some(CurrentElement::Character(character)) = &eval_context1.current_element {
+        if let Some(UnknownValue::Character(character)) = &eval_context1.current_element {
             assert_eq!(character.id, 2);
         } else {
             panic!("Expected Character element");
@@ -128,7 +115,7 @@ mod tests {
         // Now create the new context with a different element
         let eval_context2 = eval_context1.with_element_from_context(&element2);
         
-        if let Some(CurrentElement::Character(character)) = &eval_context2.current_element {
+        if let Some(UnknownValue::Character(character)) = &eval_context2.current_element {
             assert_eq!(character.id, 3);
         } else {
             panic!("Expected Character element");
@@ -149,7 +136,7 @@ mod tests {
         // Test with character element
         let character_element = Character::new(2, "Element".to_string(), 80, 100, 15);
         let eval_context_char = EvaluationContext::with_character_element(&battle_context, character_element, &mut rng1);
-        if let Some(CurrentElement::Character(character)) = &eval_context_char.current_element {
+        if let Some(UnknownValue::Character(character)) = &eval_context_char.current_element {
             assert_eq!(character.id, 2);
         } else {
             panic!("Expected Character element");
@@ -157,7 +144,7 @@ mod tests {
         
         // Test with value element
         let eval_context_value = EvaluationContext::with_value_element(&battle_context, 42, &mut rng2);
-        if let Some(CurrentElement::Value(value)) = &eval_context_value.current_element {
+        if let Some(UnknownValue::Value(value)) = &eval_context_value.current_element {
             assert_eq!(*value, 42);
         } else {
             panic!("Expected Value element");
@@ -165,7 +152,7 @@ mod tests {
         
         // Test with team side element
         let eval_context_team = EvaluationContext::with_team_side_element(&battle_context, TeamSide::Enemy, &mut rng3);
-        if let Some(CurrentElement::TeamSide(side)) = &eval_context_team.current_element {
+        if let Some(UnknownValue::TeamSide(side)) = &eval_context_team.current_element {
             assert_eq!(*side, TeamSide::Enemy);
         } else {
             panic!("Expected TeamSide element");

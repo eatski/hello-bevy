@@ -2,6 +2,7 @@
 use crate::core::NodeResult;
 use crate::nodes::unified_node::CoreNode as Node;
 use crate::nodes::evaluation_context::EvaluationContext;
+use crate::nodes::unknown_value::UnknownValue;
 
 /// Node that returns the current character being processed in array operations
 /// This is typically used within FilterList conditions to reference the element being evaluated
@@ -25,7 +26,7 @@ impl<'a> Node<crate::Character, EvaluationContext<'a>> for ElementNode {
     fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<crate::Character> {
         // Return the current character being processed (current element in array operations)
         match &eval_context.current_element {
-            Some(crate::nodes::evaluation_context::CurrentElement::Character(character)) => {
+            Some(UnknownValue::Character(character)) => {
                 Ok(character.clone())
             }
             Some(_) => Err(crate::core::NodeError::EvaluationError("Current element is not a Character".to_string())),
@@ -38,7 +39,7 @@ impl<'a> Node<crate::Character, EvaluationContext<'a>> for ElementNode {
 impl<'a> Node<i32, EvaluationContext<'a>> for ElementNode {
     fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<i32> {
         match &eval_context.current_element {
-            Some(crate::nodes::evaluation_context::CurrentElement::Value(value)) => {
+            Some(UnknownValue::Value(value)) => {
                 Ok(*value)
             }
             Some(_) => Err(crate::core::NodeError::EvaluationError("Current element is not a Value".to_string())),
@@ -51,7 +52,7 @@ impl<'a> Node<i32, EvaluationContext<'a>> for ElementNode {
 impl<'a> Node<crate::TeamSide, EvaluationContext<'a>> for ElementNode {
     fn evaluate(&self, eval_context: &mut crate::nodes::evaluation_context::EvaluationContext) -> NodeResult<crate::TeamSide> {
         match &eval_context.current_element {
-            Some(crate::nodes::evaluation_context::CurrentElement::TeamSide(team_side)) => {
+            Some(UnknownValue::TeamSide(team_side)) => {
                 Ok(*team_side)
             }
             Some(_) => Err(crate::core::NodeError::EvaluationError("Current element is not a TeamSide".to_string())),

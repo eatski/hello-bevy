@@ -1,6 +1,27 @@
 # hello-bevy 設計サマリ
 
-## 🚀 最新アップデート (ノードのジェネリック化とNumericトレイト拡張)
+## 🚀 最新アップデート (CurrentElementをUnknownValueに改名)
+### 実装内容
+- **CurrentElement型をUnknownValue型に改名**
+  - より明確な命名により、評価コンテキストから独立した値であることを示す
+  - `crates/action-system/src/nodes/unknown_value.rs`に独立したモジュールとして配置
+  - Character、i32、TeamSide、CharacterHPを統一的に扱う列挙型
+- **EvaluationContextの責務を明確化**
+  - EvaluationContextは評価に必要なコンテキスト（BattleContext、RNG、current_element）を管理
+  - UnknownValueは配列操作での現在の要素を表す独立した型
+- **関連ノードの更新**
+  - ElementNode: UnknownValueから適切な型を取り出す
+  - MappingNode: AsUnknownValueトレイトでUnknownValueへの変換を提供
+- **AsCurrentElementトレイトをAsUnknownValueに改名**
+  - より一貫性のある命名で、UnknownValueへの変換を表現
+  - Character、i32、TeamSide、CharacterHPに実装
+- **全テストが成功（111テスト）**
+  - action-system: 59テスト
+  - token-input: 9テスト
+  - ui-core: 35テスト
+  - その他: 8テスト
+
+## 🚀 以前のアップデート (ノードのジェネリック化とNumericトレイト拡張)
 ### 実装内容
 - **Numericトレイトの拡張とCharacter対応**
   - CharacterにNumericトレイトを実装（HPで比較）
