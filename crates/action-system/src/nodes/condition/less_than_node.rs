@@ -2,19 +2,19 @@ use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::core::{NodeResult, Numeric};
 use crate::nodes::evaluation_context::EvaluationContext;
 
-/// Generic LessThan node that works with different Numeric types on left and right
-pub struct LessThanNode<L: Numeric, R: Numeric> {
-    left_node: BoxedNode<L>,
-    right_node: BoxedNode<R>,
+/// LessThan node that compares two Numeric values using dynamic dispatch
+pub struct LessThanNode {
+    left_node: BoxedNode<Box<dyn Numeric>>,
+    right_node: BoxedNode<Box<dyn Numeric>>,
 }
 
-impl<L: Numeric, R: Numeric> LessThanNode<L, R> {
-    pub fn new(left_node: BoxedNode<L>, right_node: BoxedNode<R>) -> Self {
+impl LessThanNode {
+    pub fn new(left_node: BoxedNode<Box<dyn Numeric>>, right_node: BoxedNode<Box<dyn Numeric>>) -> Self {
         Self { left_node, right_node }
     }
 }
 
-impl<'a, L: Numeric, R: Numeric> Node<bool, EvaluationContext<'a>> for LessThanNode<L, R> {
+impl<'a> Node<bool, EvaluationContext<'a>> for LessThanNode {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
         let left_value = self.left_node.evaluate(eval_context)?;
         let right_value = self.right_node.evaluate(eval_context)?;
@@ -34,6 +34,8 @@ mod tests {
     use crate::Team;
     use rand::SeedableRng;
 
+    use crate::nodes::value::NumericNode;
+    
     // Test helper for constant CharacterHP
     struct ConstantCharacterHPNode {
         character_hp: CharacterHP,
@@ -60,9 +62,9 @@ mod tests {
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
-        let left_node = Box::new(ConstantValueNode::new(30));
-        let right_node = Box::new(ConstantValueNode::new(50));
-        let lt_node = LessThanNode::<i32, i32>::new(left_node, right_node);
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(30))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50))));
+        let lt_node = LessThanNode::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -77,9 +79,9 @@ mod tests {
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
-        let left_node = Box::new(ConstantValueNode::new(50));
-        let right_node = Box::new(ConstantValueNode::new(30));
-        let lt_node = LessThanNode::<i32, i32>::new(left_node, right_node);
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(30))));
+        let lt_node = LessThanNode::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, false);
@@ -97,9 +99,9 @@ mod tests {
         let test_char = Character::new(1, "TestChar".to_string(), 100, 100, 10);
         let char_hp = CharacterHP::from_character_with_hp(test_char, 30);
         
-        let left_node = Box::new(ConstantCharacterHPNode::new(char_hp));
-        let right_node = Box::new(ConstantValueNode::new(50));
-        let lt_node = LessThanNode::<CharacterHP, i32>::new(left_node, right_node);
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantCharacterHPNode::new(char_hp))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50))));
+        let lt_node = LessThanNode::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -117,9 +119,9 @@ mod tests {
         let test_char = Character::new(1, "TestChar".to_string(), 100, 100, 10);
         let char_hp = CharacterHP::from_character_with_hp(test_char, 80);
         
-        let left_node = Box::new(ConstantValueNode::new(50));
-        let right_node = Box::new(ConstantCharacterHPNode::new(char_hp));
-        let lt_node = LessThanNode::<i32, CharacterHP>::new(left_node, right_node);
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantCharacterHPNode::new(char_hp))));
+        let lt_node = LessThanNode::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -139,9 +141,9 @@ mod tests {
         let char_hp1 = CharacterHP::from_character_with_hp(test_char1, 60);
         let char_hp2 = CharacterHP::from_character_with_hp(test_char2, 80);
         
-        let left_node = Box::new(ConstantCharacterHPNode::new(char_hp1));
-        let right_node = Box::new(ConstantCharacterHPNode::new(char_hp2));
-        let lt_node = LessThanNode::<CharacterHP, CharacterHP>::new(left_node, right_node);
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantCharacterHPNode::new(char_hp1))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantCharacterHPNode::new(char_hp2))));
+        let lt_node = LessThanNode::new(left_node, right_node);
         
         let result = lt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);

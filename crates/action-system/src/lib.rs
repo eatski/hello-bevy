@@ -9,7 +9,7 @@ pub use core::{Character, Team, TeamSide, CharacterHP, Action, BattleState, Rule
 // Export Node trait and related types for external crates
 pub use nodes::unified_node::{CoreNode as Node, BoxedNode};
 pub use nodes::condition::{ConditionCheckNode, RandomConditionNode, CharacterTeamNode, GreaterThanNode, LessThanNode};
-pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode};
+pub use nodes::value::{ConstantValueNode, EnemyNode, HeroNode, NumericNode};
 pub use nodes::character::{BattleContext, ActingCharacterNode, CharacterToHpNode, CharacterHpValueNode, CharacterHpToCharacterNode, ElementNode};
 pub use nodes::evaluation_context::EvaluationContext;
 pub use nodes::action::{StrikeActionNode, HealActionNode};
@@ -189,8 +189,8 @@ mod tests {
         // Create FilterList that filters characters with HP > 50
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
         let hp_condition = Box::new(GreaterThanNode::new(
-            Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new()))), // Use Element to reference current character
-            Box::new(ConstantValueNode::new(50)),
+            Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new()))))), // Use Element to reference current character
+            Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50)))),
         ));
         
         let filter_node = FilterListNode::<Character>::new(team_array, hp_condition);

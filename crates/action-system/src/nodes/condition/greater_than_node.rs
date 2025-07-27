@@ -2,19 +2,19 @@ use crate::nodes::unified_node::{CoreNode as Node, BoxedNode};
 use crate::core::{NodeResult, Numeric};
 use crate::nodes::evaluation_context::EvaluationContext;
 
-/// Generic GreaterThan node that works with different Numeric types on left and right
-pub struct GreaterThanNode<L: Numeric, R: Numeric> {
-    left_node: BoxedNode<L>,
-    right_node: BoxedNode<R>,
+/// GreaterThan node that compares two Numeric values using dynamic dispatch
+pub struct GreaterThanNode {
+    left_node: BoxedNode<Box<dyn Numeric>>,
+    right_node: BoxedNode<Box<dyn Numeric>>,
 }
 
-impl<L: Numeric, R: Numeric> GreaterThanNode<L, R> {
-    pub fn new(left_node: BoxedNode<L>, right_node: BoxedNode<R>) -> Self {
+impl GreaterThanNode {
+    pub fn new(left_node: BoxedNode<Box<dyn Numeric>>, right_node: BoxedNode<Box<dyn Numeric>>) -> Self {
         Self { left_node, right_node }
     }
 }
 
-impl<'a, L: Numeric, R: Numeric> Node<bool, EvaluationContext<'a>> for GreaterThanNode<L, R> {
+impl<'a> Node<bool, EvaluationContext<'a>> for GreaterThanNode {
     fn evaluate(&self, eval_context: &mut EvaluationContext) -> NodeResult<bool> {
         let left_value = self.left_node.evaluate(eval_context)?;
         let right_value = self.right_node.evaluate(eval_context)?;
@@ -35,6 +35,8 @@ mod tests {
     use crate::Team;
     use rand::SeedableRng;
 
+    use crate::nodes::value::NumericNode;
+    
     // Test helper for constant CharacterHP
     struct ConstantCharacterHPNode {
         character_hp: CharacterHP,
@@ -61,8 +63,8 @@ mod tests {
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
-        let left_node = Box::new(ConstantValueNode::new(50));
-        let right_node = Box::new(ConstantValueNode::new(30));
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(30))));
         let gt_node = GreaterThanNode::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
@@ -78,8 +80,8 @@ mod tests {
         let battle_context = BattleContext::new(&character, TeamSide::Player, &team, &team);
         let mut eval_context = EvaluationContext::new(&battle_context, &mut rng);
         
-        let left_node = Box::new(ConstantValueNode::new(20));
-        let right_node = Box::new(ConstantValueNode::new(30));
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(20))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(30))));
         let gt_node = GreaterThanNode::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
@@ -98,9 +100,9 @@ mod tests {
         let test_char = Character::new(1, "TestChar".to_string(), 100, 100, 10);
         let char_hp = CharacterHP::from_character_with_hp(test_char, 80);
         
-        let left_node = Box::new(ConstantCharacterHPNode::new(char_hp));
-        let right_node = Box::new(ConstantValueNode::new(50));
-        let gt_node = GreaterThanNode::<CharacterHP, i32>::new(left_node, right_node);
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantCharacterHPNode::new(char_hp))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50))));
+        let gt_node = GreaterThanNode::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -118,9 +120,9 @@ mod tests {
         let test_char = Character::new(1, "TestChar".to_string(), 100, 100, 10);
         let char_hp = CharacterHP::from_character_with_hp(test_char, 30);
         
-        let left_node = Box::new(ConstantValueNode::new(50));
-        let right_node = Box::new(ConstantCharacterHPNode::new(char_hp));
-        let gt_node = GreaterThanNode::<i32, CharacterHP>::new(left_node, right_node);
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantCharacterHPNode::new(char_hp))));
+        let gt_node = GreaterThanNode::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);
@@ -140,9 +142,9 @@ mod tests {
         let char_hp1 = CharacterHP::from_character_with_hp(test_char1, 80);
         let char_hp2 = CharacterHP::from_character_with_hp(test_char2, 60);
         
-        let left_node = Box::new(ConstantCharacterHPNode::new(char_hp1));
-        let right_node = Box::new(ConstantCharacterHPNode::new(char_hp2));
-        let gt_node = GreaterThanNode::<CharacterHP, CharacterHP>::new(left_node, right_node);
+        let left_node = Box::new(NumericNode::new(Box::new(ConstantCharacterHPNode::new(char_hp1))));
+        let right_node = Box::new(NumericNode::new(Box::new(ConstantCharacterHPNode::new(char_hp2))));
+        let gt_node = GreaterThanNode::new(left_node, right_node);
         
         let result = gt_node.evaluate(&mut eval_context).unwrap();
         assert_eq!(result, true);

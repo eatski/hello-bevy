@@ -1,6 +1,26 @@
 # hello-bevy 設計サマリ
 
-## 🚀 最新アップデート (CurrentElementをUnknownValueに改名)
+## 🚀 最新アップデート (GreaterThanNode/LessThanNodeのdyn対応)
+### 実装内容
+- **GreaterThanNode/LessThanNodeをdyn Numericベースに変更**
+  - ジェネリック型パラメータからNumericValueベースの実装に移行
+  - `NumericValue`列挙型を導入し、i32/CharacterHP/Characterを統一的に保持
+  - より柔軟な動的ディスパッチが可能に
+- **NumericValue列挙型の実装**
+  - `crates/action-system/src/core/numeric.rs`に定義
+  - I32、CharacterHP、Characterのバリアントを持つ
+  - to_i32()メソッドで統一的な数値比較を実現
+- **Numericトレイトの拡張**
+  - `to_numeric_value()`メソッドを追加
+  - 各型がNumericValueへの変換を提供
+- **NumericWrapperNodeの実装**
+  - i32やCharacterHPノードをNumericValueノードにラップ
+  - コンバーターでの型変換を簡素化
+- **テストコードの更新**
+  - GreaterThanNode/LessThanNodeのテストでNumericWrapperNodeを使用
+  - 型安全性を保ちながら動的ディスパッチを実現
+
+## 🚀 以前のアップデート (CurrentElementをUnknownValueに改名)
 ### 実装内容
 - **CurrentElement型をUnknownValue型に改名**
   - より明確な命名により、評価コンテキストから独立した値であることを示す

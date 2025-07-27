@@ -43,6 +43,7 @@ mod tests {
     use super::*;
     use crate::{Character, Team, TeamSide};
     use crate::{ConditionCheckNode, StrikeActionNode, HealActionNode, RandomConditionNode, GreaterThanNode, ConstantValueNode, ActingCharacterNode, CharacterHpValueNode};
+    use crate::nodes::value::NumericNode;
     use rand::SeedableRng;
 
     #[test]
@@ -141,8 +142,8 @@ mod tests {
         let hp_rules: Vec<RuleNode> = vec![
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
-                    Box::new(ConstantValueNode::new(50)),
-                    Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50)))),
+                    Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))))),
                 )),
                 Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
             )),
@@ -290,8 +291,8 @@ mod tests {
         let complex_rules: Vec<RuleNode> = vec![
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
-                    Box::new(ConstantValueNode::new(30)),
-                    Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(30)))),
+                    Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))))),
                 )),
                 Box::new(ConditionCheckNode::new(
                     Box::new(RandomConditionNode),
@@ -336,8 +337,8 @@ mod tests {
         let nested_rules: Vec<RuleNode> = vec![
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
-                    Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))),
-                    Box::new(ConstantValueNode::new(90)),
+                    Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))))),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(90)))),
                 )),
                 Box::new(ConditionCheckNode::new(
                     Box::new(RandomConditionNode),
@@ -375,15 +376,15 @@ mod tests {
         let threshold_rules: Vec<RuleNode> = vec![
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
-                    Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))),
-                    Box::new(ConstantValueNode::new(70)),
+                    Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))))),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(70)))),
                 )),
                 Box::new(StrikeActionNode::new(Box::new(ActingCharacterNode))),
             )),
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
-                    Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))),
-                    Box::new(ConstantValueNode::new(30)),
+                    Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))))),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(30)))),
                 )),
                 Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
             )),
@@ -433,8 +434,8 @@ mod tests {
         let char_comparison_rules: Vec<RuleNode> = vec![
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
-                    Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))),
-                    Box::new(CharacterHpValueNode::new(Box::new(RandomPickNode::<Character>::new(Box::new(AllCharactersNode::new()))))),
+                    Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))))),
+                    Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(RandomPickNode::<Character>::new(Box::new(AllCharactersNode::new()))))))),
                 )),
                 Box::new(StrikeActionNode::new(Box::new(ActingCharacterNode))),
             )),
@@ -471,8 +472,8 @@ mod tests {
         let constant_comparison_rules: Vec<RuleNode> = vec![
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
-                    Box::new(ConstantValueNode::new(100)),
-                    Box::new(ConstantValueNode::new(50)),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(100)))),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50)))),
                 )),
                 Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
             )),
@@ -519,15 +520,15 @@ mod tests {
         let impossible_rules: Vec<RuleNode> = vec![
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
-                    Box::new(ConstantValueNode::new(10)),
-                    Box::new(ConstantValueNode::new(100)),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(10)))),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(100)))),
                 )),
                 Box::new(HealActionNode::new(Box::new(ActingCharacterNode))),
             )),
             Box::new(ConditionCheckNode::new(
                 Box::new(GreaterThanNode::new(
-                    Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))),
-                    Box::new(ConstantValueNode::new(200)),
+                    Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ActingCharacterNode))))),
+                    Box::new(NumericNode::new(Box::new(ConstantValueNode::new(200)))),
                 )),
                 Box::new(StrikeActionNode::new(Box::new(ActingCharacterNode))),
             )),

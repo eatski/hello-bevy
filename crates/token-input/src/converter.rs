@@ -2,7 +2,7 @@
 
 use crate::StructuredTokenInput;
 use action_system::{
-    RuleNode, Node as CoreNode, EvaluationContext,
+    RuleNode, Node as CoreNode, EvaluationContext, Numeric,
     StrikeActionNode, HealActionNode, ConditionCheckNode,
     RandomConditionNode, GreaterThanNode, LessThanNode,
     nodes::condition::EqConditionNode,
@@ -13,8 +13,9 @@ use action_system::{
     EnemyNode, HeroNode, ElementNode,
     MaxNode, MinNode,
     Character, CharacterHP, TeamSide, Action,
-    ConstantValueNode,
+    ConstantValueNode, NumericNode,
 };
+
 
 /// StructuredTokenInputをRuleNodeに変換
 pub fn convert_to_rule_node(token: &StructuredTokenInput) -> Option<RuleNode> {
@@ -76,27 +77,10 @@ fn convert_greater_than(
     left: &StructuredTokenInput,
     right: &StructuredTokenInput,
 ) -> Option<Box<dyn for<'a> CoreNode<bool, EvaluationContext<'a>> + Send + Sync>> {
-    // i32同士
-    if let (Some(left_i32), Some(right_i32)) = (convert_to_i32_node(left), convert_to_i32_node(right)) {
-        return Some(Box::new(GreaterThanNode::new(left_i32, right_i32)));
-    }
-    
-    // CharacterHP同士
-    if let (Some(left_hp), Some(right_hp)) = (convert_to_character_hp_node(left), convert_to_character_hp_node(right)) {
-        return Some(Box::new(GreaterThanNode::new(left_hp, right_hp)));
-    }
-    
-    // CharacterHP vs i32
-    if let (Some(hp), Some(value)) = (convert_to_character_hp_node(left), convert_to_i32_node(right)) {
-        return Some(Box::new(GreaterThanNode::new(hp, value)));
-    }
-    
-    // i32 vs CharacterHP
-    if let (Some(value), Some(hp)) = (convert_to_i32_node(left), convert_to_character_hp_node(right)) {
-        return Some(Box::new(GreaterThanNode::new(value, hp)));
-    }
-    
-    None
+    // 左右をBox<dyn Numeric>ノードに変換
+    let left_numeric = convert_to_numeric_node(left)?;
+    let right_numeric = convert_to_numeric_node(right)?;
+    Some(Box::new(GreaterThanNode::new(left_numeric, right_numeric)))
 }
 
 /// LessThanの変換（型を推論して適切なノードを作成）
@@ -104,27 +88,10 @@ fn convert_less_than(
     left: &StructuredTokenInput,
     right: &StructuredTokenInput,
 ) -> Option<Box<dyn for<'a> CoreNode<bool, EvaluationContext<'a>> + Send + Sync>> {
-    // i32同士
-    if let (Some(left_i32), Some(right_i32)) = (convert_to_i32_node(left), convert_to_i32_node(right)) {
-        return Some(Box::new(LessThanNode::new(left_i32, right_i32)));
-    }
-    
-    // CharacterHP同士
-    if let (Some(left_hp), Some(right_hp)) = (convert_to_character_hp_node(left), convert_to_character_hp_node(right)) {
-        return Some(Box::new(LessThanNode::new(left_hp, right_hp)));
-    }
-    
-    // CharacterHP vs i32
-    if let (Some(hp), Some(value)) = (convert_to_character_hp_node(left), convert_to_i32_node(right)) {
-        return Some(Box::new(LessThanNode::new(hp, value)));
-    }
-    
-    // i32 vs CharacterHP
-    if let (Some(value), Some(hp)) = (convert_to_i32_node(left), convert_to_character_hp_node(right)) {
-        return Some(Box::new(LessThanNode::new(value, hp)));
-    }
-    
-    None
+    // 左右をBox<dyn Numeric>ノードに変換
+    let left_numeric = convert_to_numeric_node(left)?;
+    let right_numeric = convert_to_numeric_node(right)?;
+    Some(Box::new(LessThanNode::new(left_numeric, right_numeric)))
 }
 
 /// キャラクターノードへの変換
@@ -236,4 +203,24 @@ fn convert_to_team_side_array_node(token: &StructuredTokenInput) -> Option<Box<d
         }
         _ => None,
     }
+}
+
+/// Box<dyn Numeric>ノードへの変換
+fn convert_to_numeric_node(token: &StructuredTokenInput) -> Option<Box<dyn for<'a> CoreNode<Box<dyn Numeric>, EvaluationContext<'a>> + Send + Sync>> {
+    // i32ノードの場合はNumericNodeでラップ
+    if let Some(i32_node) = convert_to_i32_node(token) {
+        return Some(Box::new(NumericNode::new(i32_node)));
+    }
+    
+    // CharacterHPノードの場合はNumericNodeでラップ
+    if let Some(hp_node) = convert_to_character_hp_node(token) {
+        return Some(Box::new(NumericNode::new(hp_node)));
+    }
+    
+    // Characterノードの場合はNumericNodeでラップ
+    if let Some(char_node) = convert_to_character_node(token) {
+        return Some(Box::new(NumericNode::new(char_node)));
+    }
+    
+    None
 }

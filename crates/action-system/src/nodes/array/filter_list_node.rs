@@ -56,6 +56,7 @@ mod tests {
     use crate::nodes::character::character_hp_value_node::CharacterHpValueNode;
     use crate::nodes::character::element_node::ElementNode;
     use crate::nodes::value::constant_value_node::ConstantValueNode;
+    use crate::nodes::value::numeric_node::NumericNode;
     use crate::{BattleContext, Character};
     use crate::nodes::evaluation_context::EvaluationContext;
     use crate::{Team, TeamSide};
@@ -80,9 +81,12 @@ mod tests {
         
         // Create FilterList that filters characters with HP > 50
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
+        
+        use crate::nodes::value::NumericNode;
+        
         let hp_condition = Box::new(GreaterThanNode::new(
-            Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new()))), // Use Element node to reference current character being filtered
-            Box::new(ConstantValueNode::new(50)),
+            Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new()))))),
+            Box::new(NumericNode::new(Box::new(ConstantValueNode::new(50)))),
         ));
         
         let filter_node = FilterListNode::new(team_array, hp_condition);
@@ -114,8 +118,8 @@ mod tests {
         // Create FilterList that filters characters with HP > 90 (none should match)
         let team_array = Box::new(TeamMembersNode::new(TeamSide::Player));
         let hp_condition = Box::new(GreaterThanNode::new(
-            Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new()))),
-            Box::new(ConstantValueNode::new(90)),
+            Box::new(NumericNode::new(Box::new(CharacterHpValueNode::new(Box::new(ElementNode::<Character>::new()))))),
+            Box::new(NumericNode::new(Box::new(ConstantValueNode::new(90)))),
         ));
         
         let filter_node = FilterListNode::new(team_array, hp_condition);

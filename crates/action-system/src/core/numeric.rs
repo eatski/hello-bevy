@@ -1,31 +1,22 @@
 use crate::core::character_hp::CharacterHP;
-use std::cmp::Ordering;
 
 /// Trait for numeric values that can be compared and used in game calculations
 /// This allows CharacterHP and i32 to be used uniformly in Max, Min, GreaterThan operations
-pub trait Numeric: Clone + PartialEq + Send + Sync + 'static {
+pub trait Numeric: Send + Sync + 'static {
     /// Convert to i32 for comparison operations
     fn to_i32(&self) -> i32;
     
-    /// Compare two Numeric values
-    fn compare(&self, other: &Self) -> Ordering {
-        self.to_i32().cmp(&other.to_i32())
-    }
-    
-    /// Get maximum of two values
-    fn max(self, other: Self) -> Self {
-        if self.to_i32() >= other.to_i32() { self } else { other }
-    }
-    
-    /// Get minimum of two values
-    fn min(self, other: Self) -> Self {
-        if self.to_i32() <= other.to_i32() { self } else { other }
-    }
+    /// Clone the value as a boxed trait object
+    fn clone_box(&self) -> Box<dyn Numeric>;
 }
 
 impl Numeric for i32 {
     fn to_i32(&self) -> i32 {
         *self
+    }
+    
+    fn clone_box(&self) -> Box<dyn Numeric> {
+        Box::new(*self)
     }
 }
 
@@ -33,11 +24,19 @@ impl Numeric for CharacterHP {
     fn to_i32(&self) -> i32 {
         self.get_hp()
     }
+    
+    fn clone_box(&self) -> Box<dyn Numeric> {
+        Box::new(self.clone())
+    }
 }
 
 impl Numeric for crate::Character {
     fn to_i32(&self) -> i32 {
         self.hp
+    }
+    
+    fn clone_box(&self) -> Box<dyn Numeric> {
+        Box::new(self.clone())
     }
 }
 
@@ -45,21 +44,24 @@ impl Numeric for crate::Character {
 mod tests {
     use super::*;
     use crate::Character;
+    use std::cmp::Ordering;
 
     #[test]
-    fn test_i32_game_numeric() {
+    fn test_i32_numeric() {
         let a = 10i32;
         let b = 20i32;
         
         assert_eq!(a.to_i32(), 10);
         assert_eq!(b.to_i32(), 20);
-        assert_eq!(Numeric::max(a, b), 20);
-        assert_eq!(Numeric::min(a, b), 10);
-        assert_eq!(a.compare(&b), Ordering::Less);
+        
+        let a_box: Box<dyn Numeric> = a.clone_box();
+        let b_box: Box<dyn Numeric> = b.clone_box();
+        assert_eq!(a_box.to_i32(), 10);
+        assert_eq!(b_box.to_i32(), 20);
     }
     
     #[test]
-    fn test_character_hp_game_numeric() {
+    fn test_character_hp_numeric() {
         let char1 = Character::new(1, "Test1".to_string(), 100, 100, 10);
         let char2 = Character::new(2, "Test2".to_string(), 100, 100, 10);
         
@@ -68,9 +70,11 @@ mod tests {
         
         assert_eq!(hp1.to_i32(), 80);
         assert_eq!(hp2.to_i32(), 60);
-        assert_eq!(Numeric::max(hp1.clone(), hp2.clone()).to_i32(), 80);
-        assert_eq!(Numeric::min(hp1.clone(), hp2.clone()).to_i32(), 60);
-        assert_eq!(hp1.compare(&hp2), Ordering::Greater);
+        
+        let hp1_box: Box<dyn Numeric> = hp1.clone_box();
+        let hp2_box: Box<dyn Numeric> = hp2.clone_box();
+        assert_eq!(hp1_box.to_i32(), 80);
+        assert_eq!(hp2_box.to_i32(), 60);
     }
     
     #[test]
