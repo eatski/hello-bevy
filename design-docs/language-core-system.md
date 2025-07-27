@@ -9,7 +9,7 @@ hello-bevy プロジェクトでは、ゲームロジックをトークンベー
 - 今後、トークンの種類が増える際のnodeへの変換ロジックが
   - 最小になっていること
   - 修正漏れが発生しずらいこと
-- コアの言語システムが個々のトークンに依存しない形になっていること 
+- 型システムがゲーム固有の型定義を持たず、完全にジェネリックであること
 
 ### 考えられる拡張
 
@@ -49,26 +49,55 @@ hello-bevy プロジェクトでは、ゲームロジックをトークンベー
 
 ## アーキテクチャ詳細
 
-### 型システム設計
+### ジェネリック型システム設計
 
-#### 基本型
-- プリミティブ型: `number`, `bool`
-- ゲーム固有型: `Character`, `Team`, `CharacterHP`
-- コレクション型: `Vec<T>`
+#### 設計原則
+- 型システムは具体的な型を一切知らない
+- ジェネリクスを使用して任意のドメインで再利用可能
+- 型の「形」と「関係性」のみを扱う
 
-#### 抽象型
+#### TypeSystemトレイト
+```rust
+trait TypeSystem {
+    type TypeId: Clone + Eq + Hash;
+    
+    // 型の関係性を定義
+    fn is_subtype(&self, sub: &Self::TypeId, super_: &Self::TypeId) -> bool;
+    fn unify(&self, a: &Self::TypeId, b: &Self::TypeId) -> Option<Self::TypeId>;
+}
 ```
-trait Numeric {
-    fn value(&self) -> i32;
+
+#### 型推論エンジン
+```rust
+struct TypeInferenceEngine<T: TypeSystem> {
+    system: T,
 }
 
-// CharacterHP と i32 の両方が Numeric を実装
-// これにより GreaterThan(CharacterHP, i32) のような異なる型の比較が可能
+impl<T: TypeSystem> TypeInferenceEngine<T> {
+    pub fn infer<AST>(&self, ast: &AST) -> Result<TypedAST<T::TypeId>, TypeError>
+    where
+        AST: TypeInferable<T::TypeId>
+}
 ```
 
-#### 型推論
-RondomPickやMaxなどの関数は様々な型を要素として持つ配列を受け取り、その型の値を返却する。
-引数の型から返り値の型を決定する機能が必要
+#### 型付きAST
+```rust
+struct TypedAST<TypeId> {
+    node_type: TypeId,
+    token_name: String,
+    arguments: Vec<TypedAST<TypeId>>,
+}
+```
+
+#### メタデータ駆動
+```rust
+struct TokenMetadata<TypeId> {
+    name: String,
+    argument_types: Vec<TypeId>,
+    return_type: TypeId,
+    validator: Option<Box<dyn Fn(&[TypeId]) -> bool>>,
+}
+```
 
 #### 擬似関数の実現
 フロントエンドに関数概念は存在しないが、特定のトークンで擬似的に実現
@@ -101,11 +130,71 @@ RondomPickやMaxなどの関数は様々な型を要素として持つ配列を�
     ↓
 構造化トークン（StructuredTokenInput）
     ↓
-型検査・型推論
+型検査・型推論（ジェネリック）
     ↓
-中間表現（型付きAST）
+中間表現（TypedAST<TypeId>）
     ↓
-最適化
+コード生成（ドメイン固有）
     ↓
 実行可能Node
 ```
+
+### 実装例
+
+#### ゲーム側での型定義
+```rust
+// ゲーム固有の型（action-systemクレート）
+enum GameType {
+    Character,
+    CharacterHP,
+    I32,
+    Bool,
+    Action,
+    Array(Box<GameType>),
+    Numeric, // 抽象型
+}
+
+struct GameTypeSystem;
+
+impl TypeSystem for GameTypeSystem {
+    type TypeId = GameType;
+    
+    fn is_subtype(&self, sub: &GameType, super_: &GameType) -> bool {
+        match (sub, super_) {
+            (GameType::I32, GameType::Numeric) => true,
+            (GameType::CharacterHP, GameType::Numeric) => true,
+            _ => false,
+        }
+    }
+}
+```
+
+#### コンパイラの使用
+```rust
+// 型システムの初期化
+let type_system = GameTypeSystem;
+let mut registry = TokenRegistry::new();
+
+// トークンメタデータの登録
+registry.register(TokenMetadata {
+    name: "Strike".to_string(),
+    argument_types: vec![GameType::Character],
+    return_type: GameType::Action,
+    validator: None,
+});
+
+// コンパイラの作成
+let compiler = Compiler {
+    type_system,
+    inference_engine: TypeInferenceEngine::new(type_system),
+    code_generator: GameCodeGenerator,
+};
+```
+
+## 利点
+
+1. **完全な独立性**: 型システムはドメイン固有の型を知らない
+2. **再利用性**: 異なるドメインで同じ型システムを使用可能
+3. **拡張性**: 新しい型は`TypeSystem`実装を追加するだけ
+4. **型安全性**: ジェネリクスによるコンパイル時チェック
+5. **保守性**: 型システムとドメインロジックの完全な分離
