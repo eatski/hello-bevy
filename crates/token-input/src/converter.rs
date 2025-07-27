@@ -151,7 +151,7 @@ fn convert_to_character_node(token: &StructuredTokenInput) -> Option<Box<dyn for
         }
         StructuredTokenInput::Element => {
             // ElementはFilterListのcontext内で使用される
-            Some(Box::new(ElementNode::<Character>::new()))
+            Some(Box::new(ElementNode::new()))
         }
         _ => None,
     }
